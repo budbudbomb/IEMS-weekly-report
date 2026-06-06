@@ -1,7 +1,7 @@
 // ============================================
-// MODULE DATA
+// DEFAULT MODULE DATA
 // ============================================
-const MODULES = {
+const DEFAULT_MODULES = {
     preksha: {
         id: 'preksha',
         name: 'Preksha',
@@ -699,6 +699,19 @@ const MODULES = {
         ]
     }
 };
+
+// ============================================
+// DATA PERSISTENCE & LOAD
+// ============================================
+let MODULES = DEFAULT_MODULES;
+try {
+    const savedData = localStorage.getItem('project_dashboard_modules');
+    if (savedData) {
+        MODULES = JSON.parse(savedData);
+    }
+} catch (e) {
+    console.error('Error loading data from localStorage', e);
+}
 
 // ============================================
 // HELPER FUNCTIONS
@@ -1528,9 +1541,491 @@ function renderHeaderStats() {
 }
 
 // ============================================
+// UPLOAD & PARSING IMPLEMENTATION
+// ============================================
+
+function openUploadModal() {
+    document.getElementById('upload-modal').classList.add('active');
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.remove('active');
+}
+
+function initUploadListeners() {
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+
+    if (!dropzone || !fileInput) return;
+
+    // Trigger file input on click
+    dropzone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // Handle drag over/leave styling
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+
+    // Handle dropped file
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            handleFileUpload(files[0]);
+        }
+    });
+
+    // Handle selected file
+    fileInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            handleFileUpload(files[0]);
+        }
+    });
+}
+
+function handleFileUpload(file) {
+    if (!file) return;
+
+    // Check file extension
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        showToast('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        showToast('SheetJS library not loaded. Please connect to the internet and try again.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            const parsed = parseExcelToModules(workbook);
+            
+            if (Object.keys(parsed).length === 0) {
+                showToast('No module data could be parsed from this file. Check the format.', 'error');
+                return;
+            }
+
+            // Update global MODULES
+            MODULES = parsed;
+            localStorage.setItem('project_dashboard_modules', JSON.stringify(MODULES));
+            
+            // Re-render
+            renderHeaderStats();
+            showLanding();
+            
+            // Calculate statistics for the toast
+            let moduleCount = Object.keys(parsed).length;
+            let pageCount = 0;
+            Object.values(parsed).forEach(m => {
+                m.userTypes.forEach(ut => {
+                    ut.categories.forEach(c => {
+                        pageCount += c.pages.length;
+                    });
+                });
+            });
+
+            showToast(`Dashboard updated! Loaded ${moduleCount} modules and ${pageCount} pages.`, 'success');
+            closeUploadModal();
+        } catch (error) {
+            console.error(error);
+            showToast('Error reading or parsing file: ' + error.message, 'error');
+        }
+    };
+    
+    reader.onerror = function() {
+        showToast('Error reading file.', 'error');
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function resetToDefault() {
+    if (confirm('Are you sure you want to reset all data back to defaults? This will erase any uploaded spreadsheet updates.')) {
+        localStorage.removeItem('project_dashboard_modules');
+        MODULES = DEFAULT_MODULES;
+        renderHeaderStats();
+        showLanding();
+        showToast('Reset dashboard data to hardcoded defaults.', 'success');
+        closeUploadModal();
+    }
+}
+
+// Helper: Parse comma/slash-separated team members
+function parseTeam(val) {
+    if (!val) return [];
+    const str = val.toString().trim();
+    if (str === '' || str === '-' || str.toLowerCase() === 'none') return [];
+    
+    // Split by comma, slash, and, semicolon
+    const parts = str.split(/[,/\&;]|\band\b/i);
+    return parts
+        .map(p => p.trim())
+        .filter(p => p !== '' && p !== '-');
+}
+
+// Helper: Map module names to IDs
+function getModuleId(name) {
+    const n = name.toLowerCase().trim();
+    if (n.includes('preksha')) return 'preksha';
+    if (n.includes('samadhan') || n.includes('grievance')) return 'samadhan';
+    if (n.includes('expenditure') || n.includes('expense')) return 'expenditure';
+    if (n.includes('sugamta') || n.includes('route')) return 'sugamta';
+    if (n.includes('pithasin') || n.includes('polling') || n.includes('ipbms')) return 'ipbms';
+    if (n.includes('evm')) return 'evm';
+    
+    // Fallback: slugify name
+    return name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+}
+
+// Preset visuals map
+const EXISTING_VISUALS = {
+    preksha: { color: '#6366f1', icon: 'प्र' },
+    samadhan: { color: '#10b981', icon: 'स' },
+    expenditure: { color: '#f59e0b', icon: 'व्य' },
+    sugamta: { color: '#f43f5e', icon: 'सु' },
+    ipbms: { color: '#8b5cf6', icon: 'प' },
+    evm: { color: '#06b6d4', icon: 'EV' }
+};
+
+const PRESET_COLORS = ['#3b82f6', '#ec4899', '#14b8a6', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4'];
+let colorIndex = 0;
+
+function getVisuals(moduleId, name) {
+    if (EXISTING_VISUALS[moduleId]) {
+        return EXISTING_VISUALS[moduleId];
+    }
+    const color = PRESET_COLORS[colorIndex % PRESET_COLORS.length];
+    colorIndex++;
+    const icon = name.substring(0, 2).toUpperCase();
+    return { color, icon };
+}
+
+// Heuristic: Check if row is a category header
+function isCategoryHeader(row, colIdx) {
+    const pageVal = (row[colIdx.pages] || '').toString().trim();
+    if (!pageVal) return false;
+    
+    const devVal = (row[colIdx.dynamicDev] || '').toString().trim();
+    const intRevVal = (row[colIdx.internalReviewReview] || '').toString().trim();
+    const intStatusVal = (row[colIdx.internalReviewStatus] || '').toString().trim();
+    const cliRevVal = (row[colIdx.clientReviewReview] || '').toString().trim();
+    const cliStatusVal = (row[colIdx.clientReviewStatus] || '').toString().trim();
+    
+    const reqVal = (row[colIdx.reqGathering] || '').toString().trim();
+    const finalVal = (row[colIdx.finalStatus] || '').toString().trim();
+    
+    const isEmptyOrHyphen = (val) => val === '' || val === '-';
+    
+    // Category headers are typically blank in almost all other fields
+    if (isEmptyOrHyphen(devVal) && isEmptyOrHyphen(intRevVal) && isEmptyOrHyphen(intStatusVal) && 
+        isEmptyOrHyphen(cliRevVal) && isEmptyOrHyphen(cliStatusVal) && 
+        isEmptyOrHyphen(reqVal) && isEmptyOrHyphen(finalVal)) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Excel data parser
+function parseExcelToModules(workbook) {
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+    if (rows.length === 0) {
+        throw new Error('Workbook sheet is empty');
+    }
+
+    // Find header row by scanning for "Pages"
+    let headerRowIndex = -1;
+    for (let r = 0; r < Math.min(rows.length, 10); r++) {
+        const row = rows[r];
+        if (row && row.some(cell => cell && cell.toString().toLowerCase().trim() === 'pages')) {
+            headerRowIndex = r;
+            break;
+        }
+    }
+
+    if (headerRowIndex === -1) {
+        headerRowIndex = 1; // Default fallback to index 1 (row 2 in excel)
+    }
+
+    // Default mapping (Columns A to W)
+    let colIdx = {
+        module: 0,
+        userType: 1,
+        pages: 2,
+        reqGathering: 3,
+        staticScreensCreation: 4,
+        staticScreensPresentation: 5,
+        staticScreensStatus: 6,
+        dynamicDev: 7,
+        internalReviewReview: 8,
+        internalReviewStatus: 9,
+        clientReviewReview: 10,
+        clientReviewStatus: 11,
+        crDetails: 12,
+        crDevStatus: 13,
+        crClientReview: 14,
+        crApproval: 15,
+        finalStatus: 16,
+        businessDevelopment: 17,
+        dependency: 18,
+        docProcessFlow: 19,
+        docUserManual: 20,
+        team: 21,
+        timeNeeded: 22
+    };
+
+    // Attempt to map headers based on keywords
+    const headerRow = rows[headerRowIndex] || [];
+    headerRow.forEach((cell, idx) => {
+        if (!cell) return;
+        const s = cell.toString().toLowerCase().trim();
+        if (s.includes('module')) colIdx.module = idx;
+        else if (s.includes('user type') || s.includes('usertype')) colIdx.userType = idx;
+        else if (s.includes('page')) colIdx.pages = idx;
+        else if (s.includes('requirement')) colIdx.reqGathering = idx;
+        else if (s.includes('creation') || (s.includes('static') && s.includes('create'))) colIdx.staticScreensCreation = idx;
+        else if (s.includes('presentation') || (s.includes('static') && s.includes('present'))) colIdx.staticScreensPresentation = idx;
+        else if (s.includes('static') && s.includes('status')) colIdx.staticScreensStatus = idx;
+        else if (s.includes('dynamic') || s.includes('development')) colIdx.dynamicDev = idx;
+        else if (s.includes('internal') && s.includes('review') && !s.includes('status')) colIdx.internalReviewReview = idx;
+        else if (s.includes('internal') && s.includes('status')) colIdx.internalReviewStatus = idx;
+        else if (s.includes('client') && s.includes('review') && !s.includes('status')) colIdx.clientReviewReview = idx;
+        else if (s.includes('client') && s.includes('status')) colIdx.clientReviewStatus = idx;
+        else if (s.includes('cr') && s.includes('detail')) colIdx.crDetails = idx;
+        else if (s.includes('cr') && s.includes('dev')) colIdx.crDevStatus = idx;
+        else if (s.includes('cr') && s.includes('client')) colIdx.crClientReview = idx;
+        else if (s.includes('cr') && s.includes('approval')) colIdx.crApproval = idx;
+        else if (s.includes('final status') || s.includes('finalstatus') || (s.includes('overall') && s.includes('status'))) colIdx.finalStatus = idx;
+        else if (s.includes('business') || s.includes('bd') || s.includes('biz')) colIdx.businessDevelopment = idx;
+        else if (s.includes('dependency') || s.includes('blocker')) colIdx.dependency = idx;
+        else if (s.includes('process flow') || s.includes('processflow')) colIdx.docProcessFlow = idx;
+        else if (s.includes('user manual') || s.includes('usermanual')) colIdx.docUserManual = idx;
+        else if (s.includes('team') || s.includes('developer')) colIdx.team = idx;
+        else if (s.includes('time') || s.includes('duration')) colIdx.timeNeeded = idx;
+    });
+
+    const parsedModules = {};
+    const dataStartRowIndex = headerRowIndex + 1;
+    let currentModuleName = '';
+    let currentUserTypeName = '';
+    let currentCategoryName = 'General';
+    let lastUserTypeName = '';
+
+    for (let r = dataStartRowIndex; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row) continue;
+
+        // Merged cells carrying forward values
+        const moduleVal = row[colIdx.module];
+        const userTypeVal = row[colIdx.userType];
+
+        if (moduleVal && moduleVal.toString().trim() !== '') {
+            currentModuleName = moduleVal.toString().trim();
+        }
+        if (userTypeVal && userTypeVal.toString().trim() !== '') {
+            currentUserTypeName = userTypeVal.toString().trim();
+        }
+
+        if (!currentModuleName || !currentUserTypeName) {
+            continue; // Skip until we have both contexts
+        }
+
+        const pageVal = row[colIdx.pages];
+        if (!pageVal) continue;
+        const pageName = pageVal.toString().trim();
+        if (pageName === '') continue;
+
+        const id = getModuleId(currentModuleName);
+        if (!parsedModules[id]) {
+            const visuals = getVisuals(id, currentModuleName);
+            parsedModules[id] = {
+                id: id,
+                name: currentModuleName,
+                icon: visuals.icon,
+                color: visuals.color,
+                requirementGathering: row[colIdx.reqGathering] || '-',
+                staticScreens: {
+                    creation: row[colIdx.staticScreensCreation] || '-',
+                    presentation: row[colIdx.staticScreensPresentation] || '-',
+                    status: row[colIdx.staticScreensStatus] || '-'
+                },
+                finalStatus: row[colIdx.finalStatus] || '-',
+                businessDevelopment: row[colIdx.businessDevelopment] || '',
+                dependency: row[colIdx.dependency] || '',
+                clientReviewPoints: (MODULES[id] && MODULES[id].clientReviewPoints) ? [...MODULES[id].clientReviewPoints] : [],
+                documentation: {
+                    processFlow: row[colIdx.docProcessFlow] || '-',
+                    userManual: row[colIdx.docUserManual] || '-',
+                    conceptNote: '-'
+                },
+                team: parseTeam(row[colIdx.team]),
+                timeNeeded: row[colIdx.timeNeeded] || '',
+                userTypes: []
+            };
+        }
+
+        const mod = parsedModules[id];
+
+        // Update module level fields if they were '-' but now have values
+        if (row[colIdx.reqGathering] && mod.requirementGathering === '-') mod.requirementGathering = row[colIdx.reqGathering];
+        if (row[colIdx.staticScreensCreation] && mod.staticScreens.creation === '-') mod.staticScreens.creation = row[colIdx.staticScreensCreation];
+        if (row[colIdx.staticScreensPresentation] && mod.staticScreens.presentation === '-') mod.staticScreens.presentation = row[colIdx.staticScreensPresentation];
+        if (row[colIdx.staticScreensStatus] && mod.staticScreens.status === '-') mod.staticScreens.status = row[colIdx.staticScreensStatus];
+        if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
+        if (row[colIdx.businessDevelopment] && mod.businessDevelopment === '') mod.businessDevelopment = row[colIdx.businessDevelopment];
+        if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
+        if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
+        if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
+        if (row[colIdx.timeNeeded] && mod.timeNeeded === '') mod.timeNeeded = row[colIdx.timeNeeded];
+
+        const newTeam = parseTeam(row[colIdx.team]);
+        newTeam.forEach(member => {
+            if (!mod.team.includes(member)) mod.team.push(member);
+        });
+
+        // Reset category if user type changes
+        if (currentUserTypeName !== lastUserTypeName) {
+            currentCategoryName = 'General';
+            lastUserTypeName = currentUserTypeName;
+        }
+
+        // Category header detection
+        if (isCategoryHeader(row, colIdx)) {
+            currentCategoryName = pageName;
+            continue;
+        }
+
+        // Find or create user type
+        let ut = mod.userTypes.find(u => u.name === currentUserTypeName);
+        if (!ut) {
+            ut = {
+                name: currentUserTypeName,
+                reqGathering: row[colIdx.reqGathering] || '-',
+                staticScreens: {
+                    creation: row[colIdx.staticScreensCreation] || '-',
+                    presentation: row[colIdx.staticScreensPresentation] || '-',
+                    status: row[colIdx.staticScreensStatus] || '-'
+                },
+                categories: []
+            };
+            mod.userTypes.push(ut);
+        } else {
+            if (row[colIdx.reqGathering] && ut.reqGathering === '-') ut.reqGathering = row[colIdx.reqGathering];
+            if (row[colIdx.staticScreensCreation] && ut.staticScreens.creation === '-') ut.staticScreens.creation = row[colIdx.staticScreensCreation];
+            if (row[colIdx.staticScreensPresentation] && ut.staticScreens.presentation === '-') ut.staticScreens.presentation = row[colIdx.staticScreensPresentation];
+            if (row[colIdx.staticScreensStatus] && ut.staticScreens.status === '-') ut.staticScreens.status = row[colIdx.staticScreensStatus];
+        }
+
+        // Find or create category in this user type
+        let cat = ut.categories.find(c => c.name === currentCategoryName);
+        if (!cat) {
+            cat = {
+                name: currentCategoryName,
+                pages: []
+            };
+            ut.categories.push(cat);
+        }
+
+        // Parse page properties
+        const page = {
+            name: pageName,
+            dynamicDev: row[colIdx.dynamicDev] || '-',
+            internalReview: {
+                review: row[colIdx.internalReviewReview] || '-',
+                status: row[colIdx.internalReviewStatus] || '-'
+            },
+            clientReview: {
+                review: row[colIdx.clientReviewReview] || '-',
+                status: row[colIdx.clientReviewStatus] || '-'
+            },
+            changeRequest: null
+        };
+
+        const crDetails = (row[colIdx.crDetails] || '').toString().trim();
+        if (crDetails && crDetails !== '-' && crDetails !== '') {
+            page.changeRequest = {
+                details: crDetails,
+                devStatus: row[colIdx.crDevStatus] || '-',
+                clientReview: row[colIdx.crClientReview] || '-',
+                approval: row[colIdx.crApproval] || '-'
+            };
+        }
+
+        cat.pages.push(page);
+    }
+
+    // Filter out empty categories
+    Object.values(parsedModules).forEach(mod => {
+        mod.userTypes.forEach(ut => {
+            ut.categories = ut.categories.filter(c => c.pages.length > 0);
+        });
+    });
+
+    return parsedModules;
+}
+
+// Toast notification helper
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icon = type === 'success' ? '✓' : '⚠';
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Trigger entry transition
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Remove after 4s
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 4000);
+}
+
+// ============================================
 // INITIALIZE
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     renderLanding();
     renderHeaderStats();
+    initUploadListeners();
 });

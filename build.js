@@ -22,7 +22,8 @@ try {
     html = html.replace(/<script[^>]*src=["']app\.js["'][^>]*>\s*<\/script>/, `<script>\n${js}\n</script>`);
 
     fs.writeFileSync(outputPath, html, 'utf8');
-    console.log('Successfully generated standalone HTML dashboard at:', outputPath);
+    fs.writeFileSync(path.join(__dirname, 'dashboard_standalone.html'), html, 'utf8');
+    console.log('Successfully generated standalone HTML dashboards at:', outputPath, 'and root directory');
 } catch (error) {
     console.error('Error generating standalone HTML:', error);
 }

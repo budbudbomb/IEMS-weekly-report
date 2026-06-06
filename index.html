@@ -34,6 +34,10 @@
                 </div>
                 <div class="header-right">
                     <div class="header-stats" id="header-stats"></div>
+                    <button class="upload-btn" id="upload-btn" onclick="openUploadModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <span>Upload Sheet</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -53,7 +57,36 @@
             <nav class="tabs-nav" id="tabs-nav"></nav>
             <div class="tab-content" id="tab-content"></div>
         </main>
+
+        <!-- Upload Modal -->
+        <div class="modal-overlay" id="upload-modal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">Upload Project Sheet</h3>
+                    <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+                </div>
+                <div class="dropzone" id="dropzone">
+                    <div class="dropzone-icon">📁</div>
+                    <div class="dropzone-text">Drag & drop your Excel file here or <strong>browse</strong></div>
+                    <div class="dropzone-subtext">Supports .xlsx, .xls, .csv files</div>
+                </div>
+                <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display: none;">
+                
+                <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; gap: 1rem;">
+                    <button class="back-btn" onclick="resetToDefault()" style="border-color: rgba(239, 68, 68, 0.25); color: #f43f5e;">
+                        Reset to Default
+                    </button>
+                    <button class="back-btn" onclick="closeUploadModal()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div class="toast-container" id="toast-container"></div>
     </div>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
