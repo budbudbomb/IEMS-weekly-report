@@ -1800,19 +1800,38 @@ function parseExcelToModules(workbook) {
         timeNeeded: 22
     };
 
+    // Generate combined headers to handle multi-row and merged group headers
+    const row1 = rows[headerRowIndex] || [];
+    const row2 = rows[headerRowIndex + 1] || [];
+    const combinedHeaders = [];
+    const maxCols = Math.max(row1.length, row2.length);
+    
+    let currentGroupHeader = '';
+    for (let c = 0; c < maxCols; c++) {
+        const val1 = (row1[c] || '').toString().trim();
+        if (val1 !== '') {
+            currentGroupHeader = val1;
+        }
+        const val2 = (row2[c] || '').toString().trim();
+        
+        // Combine group header (from row 1) and sub-header (from row 2)
+        let combined = currentGroupHeader;
+        if (val2 !== '' && val2.toLowerCase() !== currentGroupHeader.toLowerCase()) {
+            combined += ' ' + val2;
+        }
+        combinedHeaders.push(combined.toLowerCase().trim());
+    }
+
     // Attempt to map headers based on keywords
-    const headerRow = rows[headerRowIndex] || [];
-    headerRow.forEach((cell, idx) => {
-        if (!cell) return;
-        const s = cell.toString().toLowerCase().trim();
+    combinedHeaders.forEach((s, idx) => {
         if (s.includes('module')) colIdx.module = idx;
         else if (s.includes('user type') || s.includes('usertype')) colIdx.userType = idx;
-        else if (s.includes('page')) colIdx.pages = idx;
-        else if (s.includes('requirement')) colIdx.reqGathering = idx;
-        else if (s.includes('creation') || (s.includes('static') && s.includes('create'))) colIdx.staticScreensCreation = idx;
-        else if (s.includes('presentation') || (s.includes('static') && s.includes('present'))) colIdx.staticScreensPresentation = idx;
+        else if (s === 'pages' || s === 'page' || s.includes('page name')) colIdx.pages = idx;
+        else if (s.includes('requirement') || s.includes('requiemernt')) colIdx.reqGathering = idx;
+        else if (s.includes('static') && s.includes('creation')) colIdx.staticScreensCreation = idx;
+        else if (s.includes('static') && s.includes('presentation')) colIdx.staticScreensPresentation = idx;
         else if (s.includes('static') && s.includes('status')) colIdx.staticScreensStatus = idx;
-        else if (s.includes('dynamic') || s.includes('development')) colIdx.dynamicDev = idx;
+        else if (s.includes('dynamic')) colIdx.dynamicDev = idx;
         else if (s.includes('internal') && s.includes('review') && !s.includes('status')) colIdx.internalReviewReview = idx;
         else if (s.includes('internal') && s.includes('status')) colIdx.internalReviewStatus = idx;
         else if (s.includes('client') && s.includes('review') && !s.includes('status')) colIdx.clientReviewReview = idx;
@@ -1821,13 +1840,13 @@ function parseExcelToModules(workbook) {
         else if (s.includes('cr') && s.includes('dev')) colIdx.crDevStatus = idx;
         else if (s.includes('cr') && s.includes('client')) colIdx.crClientReview = idx;
         else if (s.includes('cr') && s.includes('approval')) colIdx.crApproval = idx;
-        else if (s.includes('final status') || s.includes('finalstatus') || (s.includes('overall') && s.includes('status'))) colIdx.finalStatus = idx;
+        else if (s.includes('final') && s.includes('status')) colIdx.finalStatus = idx;
         else if (s.includes('business') || s.includes('bd') || s.includes('biz')) colIdx.businessDevelopment = idx;
         else if (s.includes('dependency') || s.includes('blocker')) colIdx.dependency = idx;
-        else if (s.includes('process flow') || s.includes('processflow')) colIdx.docProcessFlow = idx;
-        else if (s.includes('user manual') || s.includes('usermanual')) colIdx.docUserManual = idx;
-        else if (s.includes('team') || s.includes('developer')) colIdx.team = idx;
-        else if (s.includes('time') || s.includes('duration')) colIdx.timeNeeded = idx;
+        else if (s.includes('process') && s.includes('flow')) colIdx.docProcessFlow = idx;
+        else if (s.includes('user') && s.includes('manual')) colIdx.docUserManual = idx;
+        else if (s.includes('team') || s.includes('developer') || s === 'dev') colIdx.team = idx;
+        else if (s.includes('time') || s.includes('duration') || s.includes('need')) colIdx.timeNeeded = idx;
     });
 
     const parsedModules = {};
