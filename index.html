@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Project Module Dashboard - Track development progress across all modules">
+    <title>Project Module Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Ambient background blobs -->
+        <div class="ambient-bg">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+
+        <!-- Header -->
+        <header class="header" id="main-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="back-btn hidden" id="back-btn" onclick="showLanding()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <span>All Modules</span>
+                    </button>
+                    <h1 class="logo" id="page-title">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#grad)" stroke-width="2"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                        Project Dashboard
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <div class="header-stats" id="header-stats"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Landing Page -->
+        <main class="landing-page" id="landing-page">
+            <div class="landing-hero">
+                <h2 class="hero-title">Module Overview</h2>
+                <p class="hero-subtitle">Click on any module to view detailed progress and status</p>
+            </div>
+            <div class="modules-grid" id="modules-grid"></div>
+        </main>
+
+        <!-- Module Detail Page -->
+        <main class="detail-page hidden" id="detail-page">
+            <div class="detail-header" id="detail-header"></div>
+            <nav class="tabs-nav" id="tabs-nav"></nav>
+            <div class="tab-content" id="tab-content"></div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
