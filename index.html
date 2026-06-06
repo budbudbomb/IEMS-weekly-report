@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Project Module Dashboard - Track development progress across all modules">
+    <title>Project Module Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+/* ============================================
+   Design System & CSS Variables
+   ============================================ */
+:root {
+    --bg-primary: #06080f;
+    --bg-secondary: #0c1020;
+    --bg-card: rgba(15, 20, 40, 0.7);
+    --bg-card-hover: rgba(20, 28, 58, 0.8);
+    --bg-glass: rgba(255, 255, 255, 0.03);
+    --bg-glass-hover: rgba(255, 255, 255, 0.06);
+
+    --text-primary: #e8ecf4;
+    --text-secondary: #8892a8;
+    --text-muted: #5a6478;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-accent: rgba(99, 102, 241, 0.3);
+
+    --color-done: #22c55e;
+    --color-done-bg: rgba(34, 197, 94, 0.1);
+    --color-progress: #f59e0b;
+    --color-progress-bg: rgba(245, 158, 11, 0.1);
+    --color-pending: #f97316;
+    --color-pending-bg: rgba(249, 115, 22, 0.1);
+    --color-not-done: #ef4444;
+    --color-not-done-bg: rgba(239, 68, 68, 0.1);
+    --color-skipped: #6b7280;
+    --color-skipped-bg: rgba(107, 114, 128, 0.1);
+    --color-bug: #f43f5e;
+    --color-bug-bg: rgba(244, 63, 94, 0.1);
+    --color-approved: #10b981;
+    --color-approved-bg: rgba(16, 185, 129, 0.1);
+    --color-na: #374151;
+    --color-na-bg: rgba(55, 65, 81, 0.15);
+
+    --module-preksha: #6366f1;
+    --module-samadhan: #10b981;
+    --module-expenditure: #f59e0b;
+    --module-sugamta: #f43f5e;
+    --module-ipbms: #8b5cf6;
+    --module-evm: #06b6d4;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+#app {
+    position: relative;
+    min-height: 100vh;
+}
+
+/* ============================================
+   Ambient Background
+   ============================================ */
+.ambient-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    animation: float 20s ease-in-out infinite;
+}
+
+.blob-1 {
+    width: 600px;
+    height: 600px;
+    background: var(--module-preksha);
+    top: -200px;
+    left: -100px;
+    animation-delay: 0s;
+}
+
+.blob-2 {
+    width: 500px;
+    height: 500px;
+    background: var(--module-evm);
+    bottom: -150px;
+    right: -100px;
+    animation-delay: -7s;
+}
+
+.blob-3 {
+    width: 400px;
+    height: 400px;
+    background: var(--module-sugamta);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: -14s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -30px) scale(1.05); }
+    50% { transform: translate(-20px, 20px) scale(0.95); }
+    75% { transform: translate(10px, 10px) scale(1.02); }
+}
+
+/* ============================================
+   Header
+   ============================================ */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(6, 8, 15, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 2rem;
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e8ecf4, #8892a8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.back-btn:hover {
+    background: var(--bg-glass-hover);
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+}
+
+.header-stats {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.header-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.header-stat .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ============================================
+   Landing Page
+   ============================================ */
+.landing-page, .detail-page {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.landing-hero {
+    text-align: center;
+    padding: 2rem 0 2.5rem;
+}
+
+.hero-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 0%, #8892a8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+/* ============================================
+   Module Cards Grid
+   ============================================ */
+.modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 1.5rem;
+}
+
+.module-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 1.75rem;
+    cursor: pointer;
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.module-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-xl);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--accent) 0%, transparent 50%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.module-card:hover::before {
+    opacity: 1;
+}
+
+.module-card:hover {
+    transform: translateY(-4px);
+    background: var(--bg-card-hover);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 60px -10px var(--accent-glow);
+}
+
+.module-card .card-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: 0.8;
+}
+
+.module-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.module-card .card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.module-card .card-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.module-card .card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.3rem;
+}
+
+.module-card .card-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.module-card .card-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.module-card .stat-item {
+    text-align: center;
+    padding: 0.6rem;
+    background: var(--bg-glass);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+.module-card .stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.module-card .stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.15rem;
+}
+
+.module-card .card-progress {
+    margin-bottom: 1rem;
+}
+
+.progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+}
+
+.module-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.module-card .team-avatars {
+    display: flex;
+    gap: 0;
+}
+
+.team-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #fff;
+    border: 2px solid var(--bg-card);
+    margin-left: -6px;
+}
+
+.team-avatar:first-child {
+    margin-left: 0;
+}
+
+.module-card .time-badge {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* ============================================
+   Detail Page
+   ============================================ */
+.detail-page {
+    animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem 0 1.5rem;
+    flex-wrap: wrap;
+}
+
+.detail-module-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.detail-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.detail-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.3rem;
+}
+
+.detail-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.meta-item svg {
+    opacity: 0.5;
+}
+
+.detail-summary-cards {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.summary-card {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1.25rem;
+    text-align: center;
+    min-width: 100px;
+}
+
+.summary-card .sc-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.summary-card .sc-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+.tabs-nav {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tabs-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.tab-btn .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.65rem;
+    margin-left: 0.4rem;
+    padding: 0 0.3rem;
+}
+
+/* ============================================
+   Tab Content
+   ============================================ */
+.tab-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Overview Section */
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    transition: var(--transition);
+}
+
+.info-card:hover {
+    border-color: var(--border-accent);
+}
+
+.info-card .ic-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.info-card .ic-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.info-card .ic-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.info-card .ic-body {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.info-card .ic-body p {
+    margin-bottom: 0.4rem;
+}
+
+.info-card .ic-body .label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   Data Tables
+   ============================================ */
+.table-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.user-type-group {
+    margin-bottom: 2rem;
+}
+
+.user-type-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg-glass);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+}
+
+.user-type-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+
+.user-type-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.user-type-count {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.category-group {
+    margin-bottom: 1.25rem;
+    margin-left: 1rem;
+}
+
+.category-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--border-subtle);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+}
+
+.data-table thead th {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+    position: sticky;
+    top: 64px;
+    z-index: 5;
+}
+
+.data-table thead th:first-child {
+    border-radius: var(--radius-sm) 0 0 0;
+}
+
+.data-table thead th:last-child {
+    border-radius: 0 var(--radius-sm) 0 0;
+}
+
+.data-table tbody tr {
+    transition: var(--transition);
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.data-table tbody td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: top;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.data-table tbody td:first-child {
+    color: var(--text-primary);
+    font-weight: 500;
+    max-width: 260px;
+}
+
+.data-table th.text-center,
+.data-table td.text-center {
+    text-align: center;
+}
+
+.data-table th.text-right,
+.data-table td.text-right {
+    text-align: right;
+}
+
+.col-status {
+    width: 180px;
+}
+
+.col-review {
+    width: 30%;
+    min-width: 220px;
+}
+
+.data-table .page-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   Status Badges
+   ============================================ */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-done {
+    color: var(--color-done);
+    background: var(--color-done-bg);
+}
+
+.status-approved {
+    color: var(--color-approved);
+    background: var(--color-approved-bg);
+}
+
+.status-progress {
+    color: var(--color-progress);
+    background: var(--color-progress-bg);
+}
+
+.status-pending {
+    color: var(--color-pending);
+    background: var(--color-pending-bg);
+}
+
+.status-not-done {
+    color: var(--color-not-done);
+    background: var(--color-not-done-bg);
+}
+
+.status-skipped {
+    color: var(--color-skipped);
+    background: var(--color-skipped-bg);
+}
+
+.status-bug {
+    color: var(--color-bug);
+    background: var(--color-bug-bg);
+}
+
+.status-na {
+    color: var(--text-muted);
+    background: var(--color-na-bg);
+}
+
+.review-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    line-height: 1.4;
+    max-width: 300px;
+}
+
+/* ============================================
+   Team Section
+   ============================================ */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.team-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    transition: var(--transition);
+}
+
+.team-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+}
+
+.team-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.team-avatar-lg {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.team-name {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.team-role {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.team-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.team-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.6rem;
+    background: var(--bg-glass);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+.team-field-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.team-field-value {
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* ============================================
+   Documentation Section
+   ============================================ */
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.doc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.doc-card:hover {
+    border-color: var(--border-accent);
+}
+
+.doc-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+    font-size: 1.2rem;
+}
+
+.doc-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   Change Request Cards
+   ============================================ */
+.cr-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    transition: var(--transition);
+}
+
+.cr-card:hover {
+    border-color: var(--border-accent);
+}
+
+.cr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.cr-page {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.cr-user-type {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--bg-glass);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+}
+
+.cr-details {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-glass);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-progress);
+}
+
+.cr-statuses {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cr-status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.cr-status-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state svg {
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 768px) {
+    .landing-page, .detail-page {
+        padding: 1rem;
+    }
+
+    .modules-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    .detail-header {
+        flex-direction: column;
+    }
+
+    .detail-summary-cards {
+        margin-left: 0;
+    }
+
+    .data-table {
+        font-size: 0.72rem;
+    }
+
+    .tabs-nav {
+        border-radius: var(--radius-md);
+    }
+
+    .tab-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.72rem;
+    }
+
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-stats {
+        display: none;
+    }
+}
+
+/* ============================================
+   Tooltip
+   ============================================ */
+.tooltip-trigger {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--text-muted);
+}
+
+.tooltip-trigger:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    white-space: normal;
+    width: max-content;
+    max-width: 280px;
+    z-index: 50;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-subtle);
+    line-height: 1.4;
+}
+
+/* ============================================
+   Dependency/Blocker alert style
+   ============================================ */
+.alert-card {
+    background: rgba(249, 115, 22, 0.06);
+    border: 1px solid rgba(249, 115, 22, 0.2);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-top: 0.75rem;
+}
+
+.alert-card.alert-info {
+    background: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.alert-card .alert-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-pending);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.alert-card.alert-info .alert-title {
+    color: #818cf8;
+}
+
+.alert-card .alert-body {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Responsive grid for displaying user types side by side */
+.user-types-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 1rem;
+}
+
+.user-types-grid .user-type-group {
+    margin-bottom: 0;
+}
+
+</style>
+</head>
+<body>
+    <div id="app">
+        <!-- Ambient background blobs -->
+        <div class="ambient-bg">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+
+        <!-- Header -->
+        <header class="header" id="main-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="back-btn hidden" id="back-btn" onclick="showLanding()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <span>All Modules</span>
+                    </button>
+                    <h1 class="logo" id="page-title">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#grad)" stroke-width="2"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                        Project Dashboard
+                    </h1>
+                </div>
+                <div class="header-right">
+                    <div class="header-stats" id="header-stats"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Landing Page -->
+        <main class="landing-page" id="landing-page">
+            <div class="landing-hero">
+                <h2 class="hero-title">Module Overview</h2>
+                <p class="hero-subtitle">Click on any module to view detailed progress and status</p>
+            </div>
+            <div class="modules-grid" id="modules-grid"></div>
+        </main>
+
+        <!-- Module Detail Page -->
+        <main class="detail-page hidden" id="detail-page">
+            <div class="detail-header" id="detail-header"></div>
+            <nav class="tabs-nav" id="tabs-nav"></nav>
+            <div class="tab-content" id="tab-content"></div>
+        </main>
+    </div>
+    <script>
+// ============================================
+// MODULE DATA
+// ============================================
+const MODULES = {
+    preksha: {
+        id: 'preksha',
+        name: 'Preksha',
+        icon: 'प्र',
+        color: '#6366f1',
+        requirementGathering: 'Done',
+        staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+        finalStatus: 'In progress',
+        businessDevelopment: '',
+        dependency: '',
+        clientReviewPoints: [],
+        documentation: { processFlow: 'Done', userManual: 'Done', conceptNote: '-' },
+        team: ['Arjun', 'Ashutosh', 'Jay', 'Mahaveer'],
+        timeNeeded: '1 day',
+        userTypes: [
+            {
+                name: 'Roll Observer',
+                reqGathering: 'Done',
+                staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+                categories: [
+                    {
+                        name: 'Profile',
+                        pages: [
+                            {
+                                name: 'प्रेक्षक प्रोफाइल',
+                                dynamicDev: '-',
+                                internalReview: { review: 'No issues', status: '-' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: { details: 'Add new fields as per the presentation shared', devStatus: 'Done', clientReview: '-', approval: '-' }
+                            },
+                            {
+                                name: 'बैंक विवरण',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'Bug: Flow was breaking', status: 'Done' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: { details: 'None', devStatus: '-', clientReview: '-', approval: '-' }
+                            },
+                            {
+                                name: 'प्रोफाइल परिवर्तन',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'A table added to show user the "status" of their request for change in profile details. Added another feature asking user\'s permission to change the mobile no in "bank details" as well', status: 'Done' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'डाउनलोड आईडी कार्ड',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: { details: 'The ID card should contain all the details added while "Prekshak Panjiyan"', devStatus: 'Done', clientReview: 'Pending', approval: 'Pending' }
+                            }
+                        ]
+                    },
+                    {
+                        name: 'Main Pages',
+                        pages: [
+                            {
+                                name: 'जिले से संबंधित जानकारी',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: '-' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'अपीलीय अधिकारी से सम्बंधित जानकारी',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: '-' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'रजिस्ट्रीकरण अधिकारी से सम्बंधित जानकारी',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: '-' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'प्रथम चरण रिपोर्ट',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: '-' },
+                                clientReview: { review: 'Done', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'आगमन और प्रस्थान रिपोर्ट दर्ज करें',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pending', status: '-' },
+                                changeRequest: { details: 'Add a form and report to add/view arrival and departure details', devStatus: 'Done', clientReview: 'Pending', approval: 'Pending' }
+                            }
+                        ]
+                    },
+                    {
+                        name: 'Reports',
+                        pages: [
+                            {
+                                name: 'रिपोर्ट (प्रथम चरण रिपोर्ट देखें)',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Nagariya Nikaya field was coming empty', status: 'Pending to be reviewed' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'आगमन और प्रस्थान रिपोर्ट सूची',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues - Possibility of fetching details via API. Needs client review for this', status: 'Done' },
+                                clientReview: { review: 'Pending', status: 'Pending to be reviewed' },
+                                changeRequest: { details: 'Add a report to view the details filled in arrival and departure', devStatus: 'Done', clientReview: 'Pending', approval: 'Pending' }
+                            }
+                        ]
+                    },
+                    {
+                        name: 'Other Pages',
+                        pages: [
+                            {
+                                name: 'प्रशिक्षण संबन्धित जानकारी',
+                                dynamicDev: 'Done',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: { details: 'None', devStatus: '-', clientReview: '-', approval: '-' }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'Election Observer',
+                reqGathering: 'Done',
+                staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+                categories: [
+                    {
+                        name: 'Profile',
+                        pages: [
+                            {
+                                name: 'प्रेक्षक प्रोफाइल',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'बैंक विवरण',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'Bug: Flow was breaking. Fixed', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'प्रोफाइल परिवर्तन',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'A table added to show user the "status" of their request for change in profile details. Added another feature asking user\'s permission to change the mobile no in "bank details" as well', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'डाउनलोड आईडी कार्ड',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues - Possibility of fetching details via API. Needs client review', status: 'Done' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    },
+                    {
+                        name: 'Main Pages (Panchayat)',
+                        pages: [
+                            { name: 'जिले में पहुँचने के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'नामनिर्देशन पत्रों की संवीक्षा एवं प्रतीक आवंटन के उपरांत', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभ्यर्थियों की बैठक के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान कर्मियों के प्रशिक्षण एवं मतदान तैयारी के सम्बन्ध में', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान समाप्ति के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'खण्ड स्तरीय मतगणना की स्तिथि में', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'परिणाम की घोषणा के उपरान्त', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'समय-समय पर अन्य महत्वपूर्ण घटनाओं के संबंध में', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'Main Pages (Nagariya Nikaya)',
+                        pages: [
+                            { name: 'जिले में पहुँचने के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'नामनिर्देशन पत्रों की संवीक्षा एवं प्रतीक आवंटन के उपरांत', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभ्यर्थियों की बैठक के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान कर्मियों के प्रशिक्षण एवं मतदान तैयारी के सम्बन्ध में', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान समाप्ति के पश्चात्', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतगणना की स्थिति में', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'समय-समय पर अन्य महत्वपूर्ण घटनाओं के संबंध में', dynamicDev: 'Done', internalReview: { review: 'Review points shared with the dev', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'Reports',
+                        pages: [
+                            { name: 'आगमन और प्रस्थान रिपोर्ट सूची', dynamicDev: 'Done', internalReview: { review: 'No issues - Possibility of fetching details via API. Needs client review', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'त्रिस्तरीय पंचायत रिपोर्ट देखें', dynamicDev: 'Done', internalReview: { review: 'Modification: Creating a single page for all reports with table view. A view button in each row will open the report as a modal (print button in modal itself)', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'नगरीय निकाय रिपोर्ट देखें', dynamicDev: 'Done', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'MPSEC',
+                reqGathering: 'Done',
+                staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+                categories: [
+                    {
+                        name: 'Dashboard & Management',
+                        pages: [
+                            { name: 'Master Dashboard', dynamicDev: 'Done', internalReview: { review: 'Done', status: '-' }, clientReview: { review: 'Pending', status: '-' }, changeRequest: null },
+                            { name: 'प्रेक्षक पंजीयन', dynamicDev: 'Done', internalReview: { review: 'Requires UI fixes', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'प्रेक्षक मोबाइल नंबर परिवर्तन प्रबंधन', dynamicDev: 'Done', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+
+    samadhan: {
+        id: 'samadhan',
+        name: 'Samadhan',
+        icon: 'स',
+        color: '#10b981',
+        requirementGathering: 'Done',
+        staticScreens: { creation: 'Done', presentation: 'Done', status: 'Approved' },
+        finalStatus: 'In progress',
+        businessDevelopment: 'Malviya sir reviewed it once, gave some changes which were implemented. But he doesn\'t give any formal approval. Pradeep sir has approved it. He asked to show it to Sanju ma\'am but Sanju ma\'am said that she has no knowledge of this domain',
+        dependency: '',
+        clientReviewPoints: [],
+        documentation: { processFlow: 'Done', userManual: 'Done', conceptNote: '-' },
+        team: ['Ashmit'],
+        timeNeeded: '1 day',
+        userTypes: [
+            {
+                name: 'Voter',
+                categories: [
+                    {
+                        name: 'Complaint Management',
+                        pages: [
+                            {
+                                name: 'Register a complaint',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Regarding EPIC no API: Pradeep sir suggested to keep only login via mobile and remove EPIC no as not everyone has it. Add "Forward to SP" and "Forward to MPSEC"', status: 'Pending to be reviewed' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'Complaint list',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'Check complaint status',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'DEO',
+                categories: [
+                    {
+                        name: 'Complaint Management',
+                        pages: [
+                            {
+                                name: 'Complaint list',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pending', status: 'Pending' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'RO',
+                categories: [
+                    {
+                        name: 'Complaint Management',
+                        pages: [
+                            {
+                                name: 'Complaint list',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pending', status: 'Pending' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'Admin',
+                categories: [
+                    {
+                        name: 'User Management',
+                        pages: [
+                            {
+                                name: 'User Management',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'User Management: Office registration to be added', status: 'Done' },
+                                clientReview: { review: 'Pending', status: 'Pending' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+
+    expenditure: {
+        id: 'expenditure',
+        name: 'Expenditure',
+        icon: 'E',
+        color: '#f59e0b',
+        requirementGathering: 'Done',
+        staticScreens: { creation: '-', presentation: '-', status: '-' },
+        finalStatus: 'In Progress',
+        businessDevelopment: 'All approved from Pradeep sir. He asked to show it to Sanju ma\'am (given that she\'s the IT head) or Shrivastava sir',
+        dependency: '',
+        clientReviewPoints: [],
+        documentation: { processFlow: 'Partial', userManual: 'Partial', conceptNote: '-' },
+        team: ['Nayan', 'Kapil', 'Jay'],
+        timeNeeded: '7-8 days (Candidate)',
+        userTypes: [
+            {
+                name: 'DEO',
+                categories: [
+                    {
+                        name: 'Application & Reports',
+                        pages: [
+                            {
+                                name: 'Candidate application review',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'Pending', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'परिशिष्ट-36',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pradeep sir asked to add a dropdown to select the "Nagariya Nikaya" prakar', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'परिशिष्ट-36 रिपोर्ट',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'No issues', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'परिशिष्ट-36 (क)',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pradeep sir asked to add a dropdown to select the "Nagariya Nikaya" prakar', status: 'Approved' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'परिशिष्ट-36 (क) रिपोर्ट',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'No issues', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'Dashboard',
+                                dynamicDev: 'Done',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: 'Pradeep sir confirmed to show "Expenditure limit crossed"KPI', status: 'Approved' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'Candidate',
+                reqGathering: 'Done',
+                staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+                categories: [
+                    {
+                        name: 'Registration',
+                        pages: [
+                            {
+                                name: 'Candidate signup and registration',
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'Pending', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: { details: 'New requirement', devStatus: 'In Progress', clientReview: '-', approval: '-' }
+                            }
+                        ]
+                    },
+                    {
+                        name: 'Main Pages',
+                        pages: [
+                            { name: 'Pro-forma (क)', dynamicDev: 'Done', internalReview: { review: 'Pending', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Pro-forma (ख)', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Pro-forma (ग)', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 1', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 2', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 3', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 4', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 5', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 6', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 7', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 8', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अनुसूचि 9', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'Reports',
+                        pages: [
+                            { name: 'भाग 1', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'भाग 2', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'भाग 3', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+
+    sugamta: {
+        id: 'sugamta',
+        name: 'Sugamta',
+        icon: 'सु',
+        color: '#f43f5e',
+        requirementGathering: 'Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
+        staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'Done' },
+        finalStatus: 'In progress',
+        businessDevelopment: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
+        dependency: 'Dependency\nAPIs to fetch Polling booth info Sector wise:\n- Polling booth name\n- Polling booth number\n- Polling booth sthan/Bhawan',
+        clientReviewPoints: [],
+        documentation: { processFlow: 'In progress', userManual: '-', conceptNote: '-' },
+        team: ['Ashmit', 'Mahaveer', 'Arjun'],
+        timeNeeded: '12-14 days',
+        userTypes: [
+            {
+                name: 'Pithasin officer',
+                categories: [
+                    {
+                        name: 'Core',
+                        pages: [
+                            {
+                                name: 'Vehicle transit log',
+                                dynamicDev: 'Not started yet',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'RO',
+                categories: [
+                    {
+                        name: 'Route Planning',
+                        pages: [
+                            {
+                                name: 'Route planning',
+                                dynamicDev: 'Not started yet',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            },
+                            {
+                                name: 'Vehicle release',
+                                dynamicDev: 'Not started yet',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'DEO',
+                categories: [
+                    {
+                        name: 'Management & Dashboard',
+                        pages: [
+                            { name: 'Route plan review', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Sector officer appointment', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Fuel station allocation', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Payment log', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Dashboard', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'RTO',
+                categories: [
+                    {
+                        name: 'Vehicle Requisition',
+                        pages: [
+                            { name: 'Vehicle requisition', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'Sector Officer',
+                categories: [
+                    {
+                        name: 'Vehicle Management',
+                        pages: [
+                            { name: 'Vehicle allocation', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+
+    ipbms: {
+        id: 'ipbms',
+        name: 'IPBMS',
+        icon: 'IP',
+        color: '#8b5cf6',
+        requirementGathering: 'Done',
+        staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
+        finalStatus: 'In progress',
+        businessDevelopment: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module',
+        dependency: 'Dependency: Securing a sample of the device and testing it.\n\nPriyanka ji said, that Utkarsh sir should convey to Sanju ma\'am that dept will need to purchase 1 sample for quick development of the module.',
+        clientReviewPoints: [
+            '✓ "Matdan Khojein" shouldn\'t be clickable until "Matdan ke dauran ki jankariyan" is filled (Done)',
+            '✓ Prapatra 14 is replaced with prapatra 17 (क) and Prapatra 15 with prapatra 18 (क) (Done)',
+            '✓ Highlighted "Search bar" in "Matdan Khojein" (Done)',
+            '✓ Reports saved in a folder on Desktop (Implemented)',
+            '✓ Reports signed with DSC (Implemented)'
+        ],
+        documentation: { processFlow: 'Pending', userManual: 'Pending', conceptNote: '-' },
+        team: ['Mahaveer'],
+        timeNeeded: '2 days',
+        userTypes: [
+            {
+                name: 'Presiding Officer',
+                categories: [
+                    {
+                        name: 'मतदान से पूर्व की जानकारियां',
+                        pages: [
+                            { name: 'मतदान से पूर्व की जानकारियां', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: 'Copy change in Login and dashboard screen. Communicated to the Dev. Fingerprint cum signature hardware identified and details shared with Nupur sir.', status: 'In progress' }, changeRequest: null },
+                            { name: 'मतदान दल की जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'निर्वाचन क्षेत्र एवं वार्ड की जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान दल द्वारा प्राप्त सामग्री की जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभिकर्ताओं की जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभ्यर्थी और उनके अभिकर्ताओं की जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'मतदान के दौरान की जानकारियां',
+                        pages: [
+                            { name: 'मतदान के दौरान की जानकारियां', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'दिखावटी मतदान (मॉकपोल) प्रमाणपत्र', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान आरम्भ होने के पूर्व की घोषणा', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'पश्चातवर्ती ई.वी.एम. के लिए दिखावटी मतदान (मॉकपोल) प्रमाणपत्र', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'पश्चातवर्ती ई.वी.एम. के उपयोग की घोषणा', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'विजिट शीट', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभ्याक्षेपित मतों की सूची', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अंधे/शिथिलांग मतदाता के साथी द्वारा घोषणापत्र', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'निर्वाचन अपराध की जानकारी - शिकायत एवं त्रुटियों, महत्वपूर्ण घटना, मतदान में बाधा से संबंधित', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'अभ्याक्षेप के लिए जमा की गई राशि की रसीद', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'थाना प्रभारी को भेजी जाने वाली लिखित शिकायत का प्रारूप', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान / मतगणना के स्थगन की सूचना का प्रारूप', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'मतदाता खोजे',
+                        pages: [
+                            { 
+                                name: 'मतदाता खोजे', 
+                                dynamicDev: 'Done', 
+                                internalReview: { review: 'No issues', status: 'Done' }, 
+                                clientReview: { review: 'Search bar highlighted. Clickability restricted until "मतदान के दौरान की जानकारियां" is filled.', status: 'Approved' }, 
+                                changeRequest: { details: 'Restrict access until mandatory form is filled and highlight search UI', devStatus: 'Done', clientReview: 'Approved', approval: 'Done' } 
+                            }
+                        ]
+                    },
+                    {
+                        name: 'मतदाता रजिस्टर',
+                        pages: [
+                            { name: 'मतदाता रजिस्टर', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'प्रारूप 17 (क)', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: 'Label updated from प्रारूप 14-क', status: 'Approved' }, changeRequest: null },
+                            { name: 'मतदान न करने वाले मतदाताओं हेतु टिप्पणी दर्ज करें', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'मतदान समाप्ति',
+                        pages: [
+                            { name: 'मतदान समाप्ति', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    },
+                    {
+                        name: 'मतदान समाप्ति के पश्चात की जानकारियां',
+                        pages: [
+                            { 
+                                name: 'मतदान समाप्ति के पश्चात की जानकारियां', 
+                                dynamicDev: 'Done', 
+                                internalReview: { review: 'No issues', status: 'Done' }, 
+                                clientReview: { review: 'All reports now support DSC and are saved in a Desktop folder.', status: 'Approved' }, 
+                                changeRequest: { details: 'Add DSC to reports and implement saving to Desktop folder', devStatus: 'Done', clientReview: 'Approved', approval: 'Done' } 
+                            },
+                            { name: 'मतदान मशीन(ई.वी.एम.) को मोहरबंद करने के पश्चात की घोषणा', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतदान से सम्बंधित महत्वपूर्ण जानकारी', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'प्रारूप-18क(अभिलिखित मतों का लेखा)', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: 'Label updated from प्रारूप 15-क', status: 'Approved' }, changeRequest: null },
+                            { name: 'अभिलिखित मतों के लेखा की पावती', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'मतपत्र लेखा की पावती', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'निविदत्त मतपत्रों की सूची', dynamicDev: 'Done', internalReview: { review: 'No issues', status: 'Done' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+
+    evm: {
+        id: 'evm',
+        name: 'EVM Tracking & Management',
+        icon: 'EV',
+        color: '#06b6d4',
+        requirementGathering: 'Done',
+        staticScreens: { creation: 'Done', presentation: 'Done', status: 'Reviewed internally' },
+        finalStatus: 'In progress',
+        businessDevelopment: 'Got the requirement from Mukul Gupta (DySecretary). The app needs to go live by Monday',
+        dependency: '',
+        clientReviewPoints: [],
+        documentation: { processFlow: '-', userManual: '-', conceptNote: '-' },
+        team: [],
+        timeNeeded: '2 days',
+        userTypes: [
+            {
+                name: 'Admin',
+                categories: [
+                    {
+                        name: 'User Management',
+                        pages: [
+                            {
+                                name: 'User Management',
+                                dynamicDev: 'In Progress',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'DEO (within MP)',
+                categories: [
+                    {
+                        name: 'Scanning',
+                        pages: [
+                            {
+                                name: 'Scan and stock',
+                                dynamicDev: 'In Progress',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: 'DEO (Other States)',
+                categories: [
+                    {
+                        name: 'Scanning',
+                        pages: [
+                            {
+                                name: 'Scan and Send',
+                                dynamicDev: 'In Progress',
+                                internalReview: { review: '-', status: '-' },
+                                clientReview: { review: '-', status: '-' },
+                                changeRequest: null
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+};
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+function getStatusBadge(status) {
+    if (!status || status === '-' || status === '') return '<span class="status-badge status-na">—</span>';
+    const s = status.toLowerCase().trim();
+    if (s === 'done' || s === 'fixed' || s.startsWith('done')) return `<span class="status-badge status-done">✓ ${status}</span>`;
+    if (s === 'approved' || s.startsWith('approved')) return `<span class="status-badge status-approved">✓ ${status}</span>`;
+    if (s.includes('in progress') || s.includes('in progress') || s === 'in progress') return `<span class="status-badge status-progress">◐ ${status}</span>`;
+    if (s.includes('pending') || s.includes('pending to be reviewed')) return `<span class="status-badge status-pending">◷ ${status}</span>`;
+    if (s.includes('not done') || s.includes('not started') || s.includes('not started yet')) return `<span class="status-badge status-not-done">✗ ${status}</span>`;
+    if (s.includes('skipped')) return `<span class="status-badge status-skipped">⊘ ${status}</span>`;
+    if (s.includes('bug')) return `<span class="status-badge status-bug">⚠ Bug</span>`;
+    if (s.includes('reviewed internally')) return `<span class="status-badge status-done">✓ ${status}</span>`;
+    if (s.includes('project setup')) return `<span class="status-badge status-progress">◐ ${status}</span>`;
+    return `<span class="status-badge status-progress">${status}</span>`;
+}
+
+function getPageDotColor(status) {
+    if (!status || status === '-') return 'var(--color-na)';
+    const s = status.toLowerCase();
+    if (s === 'done') return 'var(--color-done)';
+    if (s.includes('in progress') || s.includes('project setup')) return 'var(--color-progress)';
+    if (s.includes('pending')) return 'var(--color-pending)';
+    if (s.includes('not done')) return 'var(--color-not-done)';
+    return 'var(--color-na)';
+}
+
+function countPages(mod) {
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            count += cat.pages.length;
+        });
+    });
+    return count;
+}
+
+function countDonePages(mod) {
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.dynamicDev && p.dynamicDev.toLowerCase() === 'done') count++;
+            });
+        });
+    });
+    return count;
+}
+
+function countClientReviewPoints(mod) {
+    let count = (mod.clientReviewPoints || []).length;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.clientReview && p.clientReview.review && p.clientReview.review !== '-' && p.clientReview.review !== '') count++;
+            });
+        });
+    });
+    return count;
+}
+
+function countCRs(mod) {
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.changeRequest && p.changeRequest.details && p.changeRequest.details !== 'None' && p.changeRequest.details !== '-') count++;
+            });
+        });
+    });
+    return count;
+}
+
+function getAvatarColor(name) {
+    const colors = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4', '#8b5cf6', '#ec4899', '#14b8a6'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+function getInitials(name) {
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// ============================================
+// STATE
+// ============================================
+let currentModule = null;
+let currentTab = 'overview';
+
+// ============================================
+// RENDER LANDING PAGE
+// ============================================
+function renderLanding() {
+    const grid = document.getElementById('modules-grid');
+    grid.innerHTML = '';
+
+    Object.values(MODULES).forEach((mod, i) => {
+        const totalPages = countPages(mod);
+        const donePages = countDonePages(mod);
+        const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+        const crs = countCRs(mod);
+        const reviewPts = countClientReviewPoints(mod);
+
+        const card = document.createElement('div');
+        card.className = 'module-card';
+        card.style.setProperty('--accent', mod.color);
+        card.style.setProperty('--accent-glow', mod.color + '40');
+        card.style.animationDelay = `${i * 0.1}s`;
+        card.onclick = () => showModule(mod.id);
+        card.id = `module-card-${mod.id}`;
+
+        card.innerHTML = `
+            <div class="card-accent"></div>
+            <div class="card-header">
+                <div class="card-icon">${mod.icon}</div>
+                ${getStatusBadge(mod.finalStatus)}
+            </div>
+            <div class="card-title">${mod.name}</div>
+            <div class="card-desc">${mod.userTypes.length} user type${mod.userTypes.length > 1 ? 's' : ''} · ${totalPages} pages · ${mod.team.length} team member${mod.team.length !== 1 ? 's' : ''}</div>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <div class="stat-value">${totalPages}</div>
+                    <div class="stat-label">Pages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${donePages}</div>
+                    <div class="stat-label">Done</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${reviewPts}</div>
+                    <div class="stat-label">Reviews</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${crs}</div>
+                    <div class="stat-label">CRs</div>
+                </div>
+            </div>
+            <div class="card-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                </div>
+                <div class="progress-label">
+                    <span>Development Progress</span>
+                    <span>${progress}%</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="team-avatars">
+                    ${mod.team.slice(0, 4).map(name => `<div class="team-avatar" style="background: ${getAvatarColor(name)}" title="${name}">${getInitials(name)}</div>`).join('')}
+                    ${mod.team.length > 4 ? `<div class="team-avatar" style="background: #374151">+${mod.team.length - 4}</div>` : ''}
+                    ${mod.team.length === 0 ? '<span style="font-size:0.72rem;color:var(--text-muted)">Not assigned</span>' : ''}
+                </div>
+                <div class="time-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${mod.timeNeeded}
+                </div>
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
+}
+
+// ============================================
+// RENDER MODULE DETAIL
+// ============================================
+function showModule(moduleId) {
+    currentModule = MODULES[moduleId];
+    currentTab = 'overview';
+
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('detail-page').classList.remove('hidden');
+    document.getElementById('back-btn').classList.remove('hidden');
+    document.getElementById('page-title').classList.add('hidden');
+
+    renderDetailHeader();
+    renderTabs();
+    renderTabContent();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showLanding() {
+    currentModule = null;
+    document.getElementById('landing-page').classList.remove('hidden');
+    document.getElementById('detail-page').classList.add('hidden');
+    document.getElementById('back-btn').classList.add('hidden');
+    document.getElementById('page-title').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDetailHeader() {
+    const mod = currentModule;
+    const totalPages = countPages(mod);
+    const donePages = countDonePages(mod);
+    const crs = countCRs(mod);
+
+    document.getElementById('detail-header').innerHTML = `
+        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}30">${mod.icon}</div>
+        <div class="detail-info">
+            <div class="detail-title">${mod.name}</div>
+            <div class="detail-meta">
+                <div class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    ${mod.userTypes.length} User Types
+                </div>
+                <div class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    ${totalPages} Pages
+                </div>
+                <div class="meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${mod.timeNeeded}
+                </div>
+            </div>
+        </div>
+        <div class="detail-summary-cards">
+            <div class="summary-card">
+                <div class="sc-label">Status</div>
+                <div class="sc-value">${getStatusBadge(mod.finalStatus)}</div>
+            </div>
+            <div class="summary-card">
+                <div class="sc-label">Done</div>
+                <div class="sc-value" style="color: var(--color-done)">${donePages}/${totalPages}</div>
+            </div>
+            <div class="summary-card">
+                <div class="sc-label">Change Req.</div>
+                <div class="sc-value" style="color: var(--color-progress)">${crs}</div>
+            </div>
+        </div>
+    `;
+}
+
+function renderTabs() {
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: '📋' },
+        { id: 'development', label: 'Dynamic Development', icon: '⚡' },
+        { id: 'review', label: 'Review', icon: '🔍' },
+        { id: 'changes', label: 'Change Requests', icon: '🔄', count: countCRs(currentModule) },
+        { id: 'documentation', label: 'Documentation', icon: '📄' },
+        { id: 'team', label: 'Team', icon: '👥', count: currentModule.team.length }
+    ];
+
+    document.getElementById('tabs-nav').innerHTML = tabs.map(tab => `
+        <button class="tab-btn ${currentTab === tab.id ? 'active' : ''}" onclick="switchTab('${tab.id}')" id="tab-${tab.id}">
+            ${tab.label}
+            ${tab.count !== undefined ? `<span class="tab-count">${tab.count}</span>` : ''}
+        </button>
+    `).join('');
+}
+
+function switchTab(tabId) {
+    currentTab = tabId;
+    renderTabs();
+    renderTabContent();
+}
+
+function renderTabContent() {
+    const container = document.getElementById('tab-content');
+    container.innerHTML = '';
+
+    switch (currentTab) {
+        case 'overview': renderOverview(container); break;
+        case 'development': renderDevelopment(container); break;
+        case 'review': renderReview(container); break;
+        case 'changes': renderChanges(container); break;
+        case 'documentation': renderDocumentation(container); break;
+        case 'team': renderTeam(container); break;
+    }
+}
+
+// ============================================
+// TAB RENDERERS
+// ============================================
+
+function renderOverview(container) {
+    const mod = currentModule;
+
+    let html = `<div class="overview-grid">`;
+
+    // Requirement Gathering
+    html += `
+        <div class="info-card">
+            <div class="ic-header">
+                <div class="ic-icon" style="background: rgba(99,102,241,0.12); color: #818cf8">📋</div>
+                <div class="ic-title">Requirement Gathering</div>
+            </div>
+            <div class="ic-body">
+                ${mod.requirementGathering.length > 20 
+                    ? `<div style="font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">${mod.requirementGathering.replace(/\n/g, '<br>')}</div>`
+                    : `<p>${getStatusBadge(mod.requirementGathering)}</p>`}
+            </div>
+        </div>
+    `;
+
+    // Static Screens
+    html += `
+        <div class="info-card">
+            <div class="ic-header">
+                <div class="ic-icon" style="background: rgba(16,185,129,0.12); color: #34d399">🖥️</div>
+                <div class="ic-title">Static Screens</div>
+            </div>
+            <div class="ic-body">
+                <p><span class="label">Creation:</span> ${getStatusBadge(mod.staticScreens.creation)}</p>
+                <p><span class="label">Presentation:</span> ${getStatusBadge(mod.staticScreens.presentation)}</p>
+                <p><span class="label">Status:</span> ${getStatusBadge(mod.staticScreens.status)}</p>
+            </div>
+        </div>
+    `;
+
+    // Final Status
+    html += `
+        <div class="info-card">
+            <div class="ic-header">
+                <div class="ic-icon" style="background: rgba(245,158,11,0.12); color: #fbbf24">🎯</div>
+                <div class="ic-title">Final Status</div>
+            </div>
+            <div class="ic-body">
+                <p>${getStatusBadge(mod.finalStatus)}</p>
+                <p style="margin-top:0.5rem"><span class="label">Time Estimate:</span> ${mod.timeNeeded}</p>
+            </div>
+        </div>
+    `;
+
+    // User Types Summary
+    html += `
+        <div class="info-card">
+            <div class="ic-header">
+                <div class="ic-icon" style="background: rgba(6,182,212,0.12); color: #22d3ee">👥</div>
+                <div class="ic-title">User Types</div>
+            </div>
+            <div class="ic-body">
+                ${mod.userTypes.map(ut => {
+                    const pageCount = ut.categories.reduce((sum, cat) => sum + cat.pages.length, 0);
+                    return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    html += `</div>`;
+
+    // Business Development
+    if (mod.businessDevelopment) {
+        html += `
+            <div class="alert-card alert-info" style="margin-bottom:1rem">
+                <div class="alert-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    Business Development
+                </div>
+                <div class="alert-body">${mod.businessDevelopment.replace(/\n/g, '<br>')}</div>
+            </div>
+        `;
+    }
+
+    // Dependencies
+    if (mod.dependency) {
+        html += `
+            <div class="alert-card" style="margin-bottom:1rem">
+                <div class="alert-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Dependency / Blocker
+                </div>
+                <div class="alert-body">${mod.dependency.replace(/\n/g, '<br>')}</div>
+            </div>
+        `;
+    }
+
+    // Per User-Type Static Screens (if they differ)
+    const hasUserTypeInfo = mod.userTypes.some(ut => ut.staticScreens || ut.reqGathering);
+    if (hasUserTypeInfo) {
+        html += `
+            <div class="section-header" style="margin-top:1rem">
+                <div class="section-icon">📊</div>
+                <div>
+                    <div class="section-title">Per User-Type Overview</div>
+                    <div class="section-subtitle">Requirement gathering and static screen status by user type</div>
+                </div>
+            </div>
+            <div class="table-section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User Type</th>
+                            <th class="text-center col-status">Req. Gathering</th>
+                            <th class="text-center col-status">Static Creation</th>
+                            <th class="text-center col-status">Static Presentation</th>
+                            <th class="text-center col-status">Static Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${mod.userTypes.filter(ut => ut.staticScreens || ut.reqGathering).map(ut => `
+                            <tr>
+                                <td>${ut.name}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.reqGathering || mod.requirementGathering)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.creation : mod.staticScreens.creation)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.presentation : mod.staticScreens.presentation)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.status : mod.staticScreens.status)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderDevelopment(container) {
+    const mod = currentModule;
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">⚡</div>
+            <div>
+                <div class="section-title">Dynamic Development Status</div>
+                <div class="section-subtitle">Page-wise development progress across all user types</div>
+            </div>
+        </div>
+        <div class="user-types-grid">
+    `;
+
+    mod.userTypes.forEach(ut => {
+        const totalPages = ut.categories.reduce((s, c) => s + c.pages.length, 0);
+
+        html += `
+            <div class="user-type-group">
+                <div class="user-type-header">
+                    <div class="user-type-icon">${getInitials(ut.name)}</div>
+                    <div class="user-type-name">${ut.name}</div>
+                    <div class="user-type-count">${totalPages} pages</div>
+                </div>
+        `;
+
+        ut.categories.forEach(cat => {
+            html += `
+                <div class="category-group">
+                    <div class="category-label">${cat.name}</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th class="text-center col-status">Development Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cat.pages.map(page => `
+                                <tr>
+                                    <td>
+                                        <div class="page-name">
+                                            <div class="page-dot" style="background: ${getPageDotColor(page.dynamicDev)}"></div>
+                                            ${page.name}
+                                        </div>
+                                    </td>
+                                    <td class="text-center col-status">${getStatusBadge(page.dynamicDev)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    });
+
+    html += `</div>`;
+
+    container.innerHTML = html;
+}
+
+function renderReview(container) {
+    const mod = currentModule;
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">🔍</div>
+            <div>
+                <div class="section-title">Review Status</div>
+                <div class="section-subtitle">Internal and client review progress for each page</div>
+            </div>
+        </div>
+    `;
+
+    // Module-level client review points
+    if (mod.clientReviewPoints && mod.clientReviewPoints.length > 0) {
+        html += `
+            <div class="alert-card alert-info" style="margin-bottom:1.5rem">
+                <div class="alert-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Client Review Points (${mod.clientReviewPoints.length})
+                </div>
+                <div class="alert-body">
+                    <ul style="margin:0.5rem 0 0 1.2rem; list-style: disc;">
+                        ${mod.clientReviewPoints.map(pt => `<li style="margin-bottom:0.4rem">${pt}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    mod.userTypes.forEach(ut => {
+        html += `
+            <div class="user-type-group">
+                <div class="user-type-header">
+                    <div class="user-type-icon">${getInitials(ut.name)}</div>
+                    <div class="user-type-name">${ut.name}</div>
+                </div>
+        `;
+
+        ut.categories.forEach(cat => {
+            html += `
+                <div class="category-group">
+                    <div class="category-label">${cat.name}</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th class="col-review">Internal Review</th>
+                                <th class="text-center col-status">Internal Status</th>
+                                <th class="col-review">Client Review</th>
+                                <th class="text-center col-status">Client Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cat.pages.map(page => `
+                                <tr>
+                                    <td>
+                                        <div class="page-name">
+                                            <div class="page-dot" style="background: ${getPageDotColor(page.dynamicDev)}"></div>
+                                            ${page.name}
+                                        </div>
+                                    </td>
+                                    <td class="col-review">
+                                        ${page.internalReview.review && page.internalReview.review !== '-' 
+                                            ? `<div class="review-text">${page.internalReview.review}</div>` 
+                                            : '<span class="status-badge status-na">—</span>'}
+                                    </td>
+                                    <td class="text-center col-status">${getStatusBadge(page.internalReview.status)}</td>
+                                    <td class="col-review">
+                                        ${page.clientReview.review && page.clientReview.review !== '-' 
+                                            ? `<div class="review-text">${page.clientReview.review}</div>` 
+                                            : '<span class="status-badge status-na">—</span>'}
+                                    </td>
+                                    <td class="text-center col-status">${getStatusBadge(page.clientReview.status)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function renderChanges(container) {
+    const mod = currentModule;
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">🔄</div>
+            <div>
+                <div class="section-title">Change Requests & New Requirements</div>
+                <div class="section-subtitle">All change requests and new requirements across pages</div>
+            </div>
+        </div>
+    `;
+
+    let hasCRs = false;
+
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(page => {
+                if (page.changeRequest && page.changeRequest.details && page.changeRequest.details !== 'None' && page.changeRequest.details !== '-') {
+                    hasCRs = true;
+                    html += `
+                        <div class="cr-card">
+                            <div class="cr-header">
+                                <div class="cr-page">${page.name}</div>
+                                <div class="cr-user-type">${ut.name} · ${cat.name}</div>
+                            </div>
+                            <div class="cr-details">${page.changeRequest.details}</div>
+                            <div class="cr-statuses">
+                                <div class="cr-status-item">
+                                    <div class="cr-status-label">Development</div>
+                                    ${getStatusBadge(page.changeRequest.devStatus)}
+                                </div>
+                                <div class="cr-status-item">
+                                    <div class="cr-status-label">Client Review</div>
+                                    ${getStatusBadge(page.changeRequest.clientReview)}
+                                </div>
+                                <div class="cr-status-item">
+                                    <div class="cr-status-label">Approval</div>
+                                    ${getStatusBadge(page.changeRequest.approval)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        });
+    });
+
+    if (!hasCRs) {
+        html += `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                <p>No change requests for this module</p>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderDocumentation(container) {
+    const mod = currentModule;
+
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">📄</div>
+            <div>
+                <div class="section-title">Documentation Status</div>
+                <div class="section-subtitle">Process flow, user manual, and concept note status</div>
+            </div>
+        </div>
+        <div class="doc-grid">
+            <div class="doc-card">
+                <div class="doc-icon" style="background: rgba(99,102,241,0.12); color: #818cf8">📊</div>
+                <div class="doc-title">Process Flow</div>
+                ${getStatusBadge(mod.documentation.processFlow)}
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon" style="background: rgba(16,185,129,0.12); color: #34d399">📖</div>
+                <div class="doc-title">User Manual</div>
+                ${getStatusBadge(mod.documentation.userManual)}
+            </div>
+            <div class="doc-card">
+                <div class="doc-icon" style="background: rgba(245,158,11,0.12); color: #fbbf24">💡</div>
+                <div class="doc-title">Concept Note</div>
+                ${getStatusBadge(mod.documentation.conceptNote)}
+            </div>
+        </div>
+    `;
+
+    // Per user-type documentation if available (Samadhan DEO/RO have individual doc statuses)
+    const docNotes = [];
+    if (mod.id === 'samadhan') {
+        docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: '-' });
+        docNotes.push({ userType: 'RO', processFlow: 'Pending', userManual: '-' });
+        docNotes.push({ userType: 'Admin', processFlow: 'Pending', userManual: '-' });
+    }
+    if (mod.id === 'expenditure') {
+        docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: 'Done' });
+        docNotes.push({ userType: 'Candidate', processFlow: 'Pending', userManual: 'Pending' });
+    }
+
+    if (docNotes.length > 0) {
+        html += `
+            <div class="section-header" style="margin-top:1.5rem">
+                <div class="section-icon">📊</div>
+                <div>
+                    <div class="section-title">Per User-Type Documentation</div>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>User Type</th>
+                        <th class="text-center col-status">Process Flow</th>
+                        <th class="text-center col-status">User Manual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${docNotes.map(d => `
+                        <tr>
+                            <td>${d.userType}</td>
+                            <td class="text-center col-status">${getStatusBadge(d.processFlow)}</td>
+                            <td class="text-center col-status">${getStatusBadge(d.userManual)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderTeam(container) {
+    const mod = currentModule;
+
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">👥</div>
+            <div>
+                <div class="section-title">Team Members</div>
+                <div class="section-subtitle">Assigned developers and their tracking fields</div>
+            </div>
+        </div>
+    `;
+
+    if (mod.team.length === 0) {
+        html += `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                <p>No team members assigned yet</p>
+            </div>
+        `;
+    } else {
+        html += `<div class="team-grid">`;
+
+        mod.team.forEach(member => {
+            const color = getAvatarColor(member);
+            html += `
+                <div class="team-card">
+                    <div class="team-card-header">
+                        <div class="team-avatar-lg" style="background: ${color}">${getInitials(member)}</div>
+                        <div>
+                            <div class="team-name">${member}</div>
+                            <div class="team-role">${mod.name} Developer</div>
+                        </div>
+                    </div>
+                    <div class="team-fields">
+                        <div class="team-field">
+                            <span class="team-field-label">Office Discipline</span>
+                            <span class="team-field-value status-badge status-na">Not Set</span>
+                        </div>
+                        <div class="team-field">
+                            <span class="team-field-label">Quality of Work</span>
+                            <span class="team-field-value status-badge status-na">Not Set</span>
+                        </div>
+                        <div class="team-field">
+                            <span class="team-field-label">Code Review & Checklist</span>
+                            <span class="team-field-value status-badge status-na">Not Set</span>
+                        </div>
+                        <div class="team-field">
+                            <span class="team-field-label">Portal Task Status</span>
+                            <span class="team-field-value status-badge status-na">Not Set</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+// ============================================
+// HEADER STATS
+// ============================================
+function renderHeaderStats() {
+    const totalModules = Object.keys(MODULES).length;
+    let totalPages = 0;
+    let donePagesAll = 0;
+
+    Object.values(MODULES).forEach(mod => {
+        totalPages += countPages(mod);
+        donePagesAll += countDonePages(mod);
+    });
+
+    document.getElementById('header-stats').innerHTML = `
+        <div class="header-stat">
+            <div class="dot" style="background: var(--module-preksha)"></div>
+            ${totalModules} Modules
+        </div>
+        <div class="header-stat">
+            <div class="dot" style="background: var(--color-done)"></div>
+            ${donePagesAll}/${totalPages} Pages Done
+        </div>
+    `;
+}
+
+// ============================================
+// INITIALIZE
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+    renderLanding();
+    renderHeaderStats();
+});
+
+</script>
+</body>
+</html>
