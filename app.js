@@ -408,7 +408,7 @@ const MODULES = {
                         pages: [
                             { name: 'Pro-forma (क)', dynamicDev: 'Done', internalReview: { review: 'Pending', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'Pro-forma (ख)', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Pro-forma (ग)', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Pro-forma (ग)', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 1', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 2', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 3', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
@@ -750,6 +750,24 @@ function countDonePages(mod) {
     return count;
 }
 
+function calculateUserTypeProgress(ut) {
+    let total = 0;
+    let done = 0;
+    ut.categories.forEach(cat => {
+        cat.pages.forEach(p => {
+            total++;
+            if (p.dynamicDev && p.dynamicDev.toLowerCase() === 'done') {
+                done++;
+            }
+        });
+    });
+    return {
+        total,
+        done,
+        percent: total > 0 ? Math.round((done / total) * 100) : 0
+    };
+}
+
 function countClientReviewPoints(mod) {
     let count = (mod.clientReviewPoints || []).length;
     mod.userTypes.forEach(ut => {
@@ -840,13 +858,28 @@ function renderLanding() {
                 </div>
             </div>
             <div class="card-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
-                </div>
-                <div class="progress-label">
-                    <span>Development Progress</span>
-                    <span>${progress}%</span>
-                </div>
+                ${mod.id === 'expenditure' ? mod.userTypes.map(ut => {
+                    const utProgress = calculateUserTypeProgress(ut);
+                    return `
+                        <div class="user-type-progress-item" style="margin-bottom: 0.6rem;">
+                            <div class="progress-bar" style="height: 5px;">
+                                <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                            </div>
+                            <div class="progress-label" style="margin-top: 0.25rem; display: flex; justify-content: space-between;">
+                                <span>${ut.name} Progress</span>
+                                <span>${utProgress.percent}%</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                    </div>
+                    <div class="progress-label">
+                        <span>Development Progress</span>
+                        <span>${progress}%</span>
+                    </div>
+                `}
             </div>
             <div class="card-footer">
                 <div class="team-avatars">
@@ -1035,7 +1068,22 @@ function renderOverview(container) {
             <div class="ic-body">
                 ${mod.userTypes.map(ut => {
                     const pageCount = ut.categories.reduce((sum, cat) => sum + cat.pages.length, 0);
-                    return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
+                    if (mod.id === 'expenditure') {
+                        const utProgress = calculateUserTypeProgress(ut);
+                        return `
+                            <div style="margin-bottom: 0.8rem;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.8rem;">
+                                    <span>${ut.name}</span>
+                                    <span class="label" style="font-weight: 500;">${utProgress.percent}% (${utProgress.done}/${utProgress.total} done)</span>
+                                </div>
+                                <div class="progress-bar" style="height: 4px; background: rgba(255, 255, 255, 0.04);">
+                                    <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
+                    }
                 }).join('')}
             </div>
         </div>

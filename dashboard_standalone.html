@@ -831,6 +831,25 @@ body {
     max-width: 260px;
 }
 
+.data-table th.text-center,
+.data-table td.text-center {
+    text-align: center;
+}
+
+.data-table th.text-right,
+.data-table td.text-right {
+    text-align: right;
+}
+
+.col-status {
+    width: 180px;
+}
+
+.col-review {
+    width: 30%;
+    min-width: 220px;
+}
+
 .data-table .page-name {
     display: flex;
     align-items: center;
@@ -1242,6 +1261,19 @@ body {
     line-height: 1.5;
 }
 
+/* Responsive grid for displaying user types side by side */
+.user-types-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 1rem;
+}
+
+.user-types-grid .user-type-group {
+    margin-bottom: 0;
+}
+
 </style>
 </head>
 <body>
@@ -1299,7 +1331,7 @@ const MODULES = {
         icon: 'प्र',
         color: '#6366f1',
         requirementGathering: 'Done',
-        staticScreens: { creation: 'Done', presentation: 'Skipped', status: 'Skipped' },
+        staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
         finalStatus: 'In progress',
         businessDevelopment: '',
         dependency: '',
@@ -1647,30 +1679,30 @@ const MODULES = {
                             },
                             {
                                 name: 'परिशिष्ट-36 रिपोर्ट',
-                                dynamicDev: '-',
-                                internalReview: { review: 'No issues', status: '-' },
-                                clientReview: { review: '-', status: '-' },
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'No issues', status: '-' },
                                 changeRequest: null
                             },
                             {
                                 name: 'परिशिष्ट-36 (क)',
-                                dynamicDev: '-',
-                                internalReview: { review: 'Pradeep sir asked to add a dropdown to select the "Nagariya Nikaya" prakar', status: 'Approved' },
-                                clientReview: { review: '-', status: '-' },
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'Pradeep sir asked to add a dropdown to select the "Nagariya Nikaya" prakar', status: 'Approved' },
                                 changeRequest: null
                             },
                             {
                                 name: 'परिशिष्ट-36 (क) रिपोर्ट',
-                                dynamicDev: '-',
-                                internalReview: { review: 'No issues', status: '-' },
-                                clientReview: { review: '-', status: '-' },
+                                dynamicDev: 'Done',
+                                internalReview: { review: 'No issues', status: 'Done' },
+                                clientReview: { review: 'No issues', status: '-' },
                                 changeRequest: null
                             },
                             {
                                 name: 'Dashboard',
-                                dynamicDev: '-',
+                                dynamicDev: 'Done',
                                 internalReview: { review: '-', status: '-' },
-                                clientReview: { review: 'Pradeep sir confirmed to show "Expenditure limit crossed" KPI', status: 'Approved' },
+                                clientReview: { review: 'Pradeep sir confirmed to show "Expenditure limit crossed"KPI', status: 'Approved' },
                                 changeRequest: null
                             }
                         ]
@@ -1699,7 +1731,7 @@ const MODULES = {
                         pages: [
                             { name: 'Pro-forma (क)', dynamicDev: 'Done', internalReview: { review: 'Pending', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'Pro-forma (ख)', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Pro-forma (ग)', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Pro-forma (ग)', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 1', dynamicDev: 'In Progress', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 2', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
                             { name: 'अनुसूचि 3', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
@@ -1729,32 +1761,25 @@ const MODULES = {
         name: 'Sugamta',
         icon: 'सु',
         color: '#f43f5e',
-        requirementGathering: 'Done',
-        staticScreens: { creation: 'In Progress', presentation: 'Done', status: 'Done' },
+        requirementGathering: 'Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
+        staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'Done' },
         finalStatus: 'In progress',
         businessDevelopment: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
-        dependency: 'Finger print cum signature Hardware: Mail sent to the vendor regarding the technical requirements. Awaiting a response back from them.\n\nAPIs to fetch Polling booth info Sector wise:\n- Polling booth name\n- Polling booth number\n- Polling booth sthan/Bhawan',
+        dependency: 'Dependency\nAPIs to fetch Polling booth info Sector wise:\n- Polling booth name\n- Polling booth number\n- Polling booth sthan/Bhawan',
         clientReviewPoints: [],
         documentation: { processFlow: 'In progress', userManual: '-', conceptNote: '-' },
-        team: ['Mahaveer', 'Ashmit'],
-        timeNeeded: '2 days (Pithasin) / 12-14 days (Route Planning)',
+        team: ['Ashmit', 'Mahaveer', 'Arjun'],
+        timeNeeded: '12-14 days',
         userTypes: [
             {
-                name: 'Pithasin Officer',
+                name: 'Pithasin officer',
                 categories: [
                     {
                         name: 'Core',
                         pages: [
                             {
-                                name: 'Pithasin Officer Module',
-                                dynamicDev: 'Done',
-                                internalReview: { review: 'Done', status: '-' },
-                                clientReview: { review: 'Copy change in Login and dashboard screen. Communicated to the Dev. Fingerprint cum signature hardware identified and details shared with Nupur sir.', status: '-' },
-                                changeRequest: null
-                            },
-                            {
                                 name: 'Vehicle transit log',
-                                dynamicDev: '-',
+                                dynamicDev: 'Not started yet',
                                 internalReview: { review: '-', status: '-' },
                                 clientReview: { review: '-', status: '-' },
                                 changeRequest: null
@@ -1771,14 +1796,14 @@ const MODULES = {
                         pages: [
                             {
                                 name: 'Route planning',
-                                dynamicDev: 'Project setup in Progress',
+                                dynamicDev: 'Not started yet',
                                 internalReview: { review: '-', status: '-' },
                                 clientReview: { review: '-', status: '-' },
                                 changeRequest: null
                             },
                             {
                                 name: 'Vehicle release',
-                                dynamicDev: '-',
+                                dynamicDev: 'Not started yet',
                                 internalReview: { review: '-', status: '-' },
                                 clientReview: { review: '-', status: '-' },
                                 changeRequest: null
@@ -1793,11 +1818,11 @@ const MODULES = {
                     {
                         name: 'Management & Dashboard',
                         pages: [
-                            { name: 'Route plan review', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Sector officer appointment', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Fuel station allocation', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Payment log', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
-                            { name: 'Dashboard', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                            { name: 'Route plan review', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Sector officer appointment', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Fuel station allocation', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Payment log', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null },
+                            { name: 'Dashboard', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
                         ]
                     }
                 ]
@@ -1808,7 +1833,7 @@ const MODULES = {
                     {
                         name: 'Vehicle Requisition',
                         pages: [
-                            { name: 'Vehicle requisition', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                            { name: 'Vehicle requisition', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
                         ]
                     }
                 ]
@@ -1819,7 +1844,7 @@ const MODULES = {
                     {
                         name: 'Vehicle Management',
                         pages: [
-                            { name: 'Vehicle allocation', dynamicDev: '-', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
+                            { name: 'Vehicle allocation', dynamicDev: 'Not started yet', internalReview: { review: '-', status: '-' }, clientReview: { review: '-', status: '-' }, changeRequest: null }
                         ]
                     }
                 ]
@@ -2004,11 +2029,11 @@ const MODULES = {
 function getStatusBadge(status) {
     if (!status || status === '-' || status === '') return '<span class="status-badge status-na">—</span>';
     const s = status.toLowerCase().trim();
-    if (s === 'done' || s === 'fixed') return `<span class="status-badge status-done">✓ ${status}</span>`;
-    if (s === 'approved') return `<span class="status-badge status-approved">✓ ${status}</span>`;
+    if (s === 'done' || s === 'fixed' || s.startsWith('done')) return `<span class="status-badge status-done">✓ ${status}</span>`;
+    if (s === 'approved' || s.startsWith('approved')) return `<span class="status-badge status-approved">✓ ${status}</span>`;
     if (s.includes('in progress') || s.includes('in progress') || s === 'in progress') return `<span class="status-badge status-progress">◐ ${status}</span>`;
     if (s.includes('pending') || s.includes('pending to be reviewed')) return `<span class="status-badge status-pending">◷ ${status}</span>`;
-    if (s.includes('not done') || s.includes('not started')) return `<span class="status-badge status-not-done">✗ ${status}</span>`;
+    if (s.includes('not done') || s.includes('not started') || s.includes('not started yet')) return `<span class="status-badge status-not-done">✗ ${status}</span>`;
     if (s.includes('skipped')) return `<span class="status-badge status-skipped">⊘ ${status}</span>`;
     if (s.includes('bug')) return `<span class="status-badge status-bug">⚠ Bug</span>`;
     if (s.includes('reviewed internally')) return `<span class="status-badge status-done">✓ ${status}</span>`;
@@ -2046,6 +2071,24 @@ function countDonePages(mod) {
         });
     });
     return count;
+}
+
+function calculateUserTypeProgress(ut) {
+    let total = 0;
+    let done = 0;
+    ut.categories.forEach(cat => {
+        cat.pages.forEach(p => {
+            total++;
+            if (p.dynamicDev && p.dynamicDev.toLowerCase() === 'done') {
+                done++;
+            }
+        });
+    });
+    return {
+        total,
+        done,
+        percent: total > 0 ? Math.round((done / total) * 100) : 0
+    };
 }
 
 function countClientReviewPoints(mod) {
@@ -2138,13 +2181,28 @@ function renderLanding() {
                 </div>
             </div>
             <div class="card-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
-                </div>
-                <div class="progress-label">
-                    <span>Development Progress</span>
-                    <span>${progress}%</span>
-                </div>
+                ${mod.id === 'expenditure' ? mod.userTypes.map(ut => {
+                    const utProgress = calculateUserTypeProgress(ut);
+                    return `
+                        <div class="user-type-progress-item" style="margin-bottom: 0.6rem;">
+                            <div class="progress-bar" style="height: 5px;">
+                                <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                            </div>
+                            <div class="progress-label" style="margin-top: 0.25rem; display: flex; justify-content: space-between;">
+                                <span>${ut.name} Progress</span>
+                                <span>${utProgress.percent}%</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                    </div>
+                    <div class="progress-label">
+                        <span>Development Progress</span>
+                        <span>${progress}%</span>
+                    </div>
+                `}
             </div>
             <div class="card-footer">
                 <div class="team-avatars">
@@ -2287,7 +2345,9 @@ function renderOverview(container) {
                 <div class="ic-title">Requirement Gathering</div>
             </div>
             <div class="ic-body">
-                <p>${getStatusBadge(mod.requirementGathering)}</p>
+                ${mod.requirementGathering.length > 20 
+                    ? `<div style="font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">${mod.requirementGathering.replace(/\n/g, '<br>')}</div>`
+                    : `<p>${getStatusBadge(mod.requirementGathering)}</p>`}
             </div>
         </div>
     `;
@@ -2331,7 +2391,22 @@ function renderOverview(container) {
             <div class="ic-body">
                 ${mod.userTypes.map(ut => {
                     const pageCount = ut.categories.reduce((sum, cat) => sum + cat.pages.length, 0);
-                    return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
+                    if (mod.id === 'expenditure') {
+                        const utProgress = calculateUserTypeProgress(ut);
+                        return `
+                            <div style="margin-bottom: 0.8rem;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.8rem;">
+                                    <span>${ut.name}</span>
+                                    <span class="label" style="font-weight: 500;">${utProgress.percent}% (${utProgress.done}/${utProgress.total} done)</span>
+                                </div>
+                                <div class="progress-bar" style="height: 4px; background: rgba(255, 255, 255, 0.04);">
+                                    <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
+                    }
                 }).join('')}
             </div>
         </div>
@@ -2381,20 +2456,20 @@ function renderOverview(container) {
                     <thead>
                         <tr>
                             <th>User Type</th>
-                            <th>Req. Gathering</th>
-                            <th>Static Creation</th>
-                            <th>Static Presentation</th>
-                            <th>Static Status</th>
+                            <th class="text-center col-status">Req. Gathering</th>
+                            <th class="text-center col-status">Static Creation</th>
+                            <th class="text-center col-status">Static Presentation</th>
+                            <th class="text-center col-status">Static Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${mod.userTypes.filter(ut => ut.staticScreens || ut.reqGathering).map(ut => `
                             <tr>
                                 <td>${ut.name}</td>
-                                <td>${getStatusBadge(ut.reqGathering || mod.requirementGathering)}</td>
-                                <td>${getStatusBadge(ut.staticScreens ? ut.staticScreens.creation : mod.staticScreens.creation)}</td>
-                                <td>${getStatusBadge(ut.staticScreens ? ut.staticScreens.presentation : mod.staticScreens.presentation)}</td>
-                                <td>${getStatusBadge(ut.staticScreens ? ut.staticScreens.status : mod.staticScreens.status)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.reqGathering || mod.requirementGathering)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.creation : mod.staticScreens.creation)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.presentation : mod.staticScreens.presentation)}</td>
+                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.status : mod.staticScreens.status)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -2416,6 +2491,7 @@ function renderDevelopment(container) {
                 <div class="section-subtitle">Page-wise development progress across all user types</div>
             </div>
         </div>
+        <div class="user-types-grid">
     `;
 
     mod.userTypes.forEach(ut => {
@@ -2438,7 +2514,7 @@ function renderDevelopment(container) {
                         <thead>
                             <tr>
                                 <th>Page</th>
-                                <th>Development Status</th>
+                                <th class="text-center col-status">Development Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2450,7 +2526,7 @@ function renderDevelopment(container) {
                                             ${page.name}
                                         </div>
                                     </td>
-                                    <td>${getStatusBadge(page.dynamicDev)}</td>
+                                    <td class="text-center col-status">${getStatusBadge(page.dynamicDev)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -2461,6 +2537,8 @@ function renderDevelopment(container) {
 
         html += `</div>`;
     });
+
+    html += `</div>`;
 
     container.innerHTML = html;
 }
@@ -2511,10 +2589,10 @@ function renderReview(container) {
                         <thead>
                             <tr>
                                 <th>Page</th>
-                                <th>Internal Review</th>
-                                <th>Internal Status</th>
-                                <th>Client Review</th>
-                                <th>Client Status</th>
+                                <th class="col-review">Internal Review</th>
+                                <th class="text-center col-status">Internal Status</th>
+                                <th class="col-review">Client Review</th>
+                                <th class="text-center col-status">Client Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2526,18 +2604,18 @@ function renderReview(container) {
                                             ${page.name}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="col-review">
                                         ${page.internalReview.review && page.internalReview.review !== '-' 
                                             ? `<div class="review-text">${page.internalReview.review}</div>` 
                                             : '<span class="status-badge status-na">—</span>'}
                                     </td>
-                                    <td>${getStatusBadge(page.internalReview.status)}</td>
-                                    <td>
+                                    <td class="text-center col-status">${getStatusBadge(page.internalReview.status)}</td>
+                                    <td class="col-review">
                                         ${page.clientReview.review && page.clientReview.review !== '-' 
                                             ? `<div class="review-text">${page.clientReview.review}</div>` 
                                             : '<span class="status-badge status-na">—</span>'}
                                     </td>
-                                    <td>${getStatusBadge(page.clientReview.status)}</td>
+                                    <td class="text-center col-status">${getStatusBadge(page.clientReview.status)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -2648,6 +2726,10 @@ function renderDocumentation(container) {
         docNotes.push({ userType: 'RO', processFlow: 'Pending', userManual: '-' });
         docNotes.push({ userType: 'Admin', processFlow: 'Pending', userManual: '-' });
     }
+    if (mod.id === 'expenditure') {
+        docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: 'Done' });
+        docNotes.push({ userType: 'Candidate', processFlow: 'Pending', userManual: 'Pending' });
+    }
 
     if (docNotes.length > 0) {
         html += `
@@ -2661,16 +2743,16 @@ function renderDocumentation(container) {
                 <thead>
                     <tr>
                         <th>User Type</th>
-                        <th>Process Flow</th>
-                        <th>User Manual</th>
+                        <th class="text-center col-status">Process Flow</th>
+                        <th class="text-center col-status">User Manual</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${docNotes.map(d => `
                         <tr>
                             <td>${d.userType}</td>
-                            <td>${getStatusBadge(d.processFlow)}</td>
-                            <td>${getStatusBadge(d.userManual)}</td>
+                            <td class="text-center col-status">${getStatusBadge(d.processFlow)}</td>
+                            <td class="text-center col-status">${getStatusBadge(d.userManual)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
