@@ -2776,39 +2776,84 @@ function renderSlide() {
                 <p class="hero-subtitle">Targeting Level 5 (Optimizing) maturity in engineering artifacts</p>
             </div>
             
-            <div style="max-width: 900px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                    <thead>
-                        <tr style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle);">
-                            <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem; width: 35%;">Artifact Type</th>
-                            <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem;">CMMI Level 5 (Optimizing)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid var(--border-subtle);">
-                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Project Plan</td>
-                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Statistically derived using historical capability baselines.</td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid var(--border-subtle);">
-                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Risk Register</td>
-                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Predictive models detailing exact cost/schedule variance.</td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid var(--border-subtle);">
-                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Status Reports</td>
-                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Control charts (X-bar/R) showing statistical variations.</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Issue Logs</td>
-                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Generates a CAR to alter the core process preventing recurrence.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div style="max-width: 1200px; margin: 0 auto; display: flex; gap: 2rem; align-items: flex-start;">
+                
+                <!-- Left Column: CMMI5 Table -->
+                <div style="flex: 2; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle);">
+                                <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem; width: 35%;">Artifact Type</th>
+                                <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem;">CMMI Level 5 (Optimizing)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Project Plan</td>
+                                <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Statistically derived using historical capability baselines.</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Risk Register</td>
+                                <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Predictive models detailing exact cost/schedule variance.</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Status Reports</td>
+                                <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Control charts (X-bar/R) showing statistical variations.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Issue Logs</td>
+                                <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Generates a CAR to alter the core process preventing recurrence.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <div style="max-width: 900px; margin: 2rem auto 0; text-align: center; padding: 1.25rem; border-radius: 8px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15);">
-                <p style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.5; margin: 0;">
-                    <span style="font-weight: 700; color: #ec4899; margin-right: 0.25rem;">Note:</span> While the DPR was already created, I need to learn to create the other category of documents required for CMMI5.
-                </p>
+                <!-- Right Column: Document Status & Note -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+                    
+                    <!-- Document Status Card -->
+                    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-md); padding: 1.25rem;">
+                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Current Documentation Status</h3>
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">DPR</span>
+                                <span class="status-badge" style="background: var(--color-done-bg); color: var(--color-done); padding: 0.2rem 0.6rem; font-size: 0.75rem;">Prepared</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">RTM</span>
+                                <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.2rem 0.6rem; font-size: 0.75rem;">Pending</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">Concept note</span>
+                                <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.2rem 0.6rem; font-size: 0.75rem;">Pending</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">BRD</span>
+                                <span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.2rem 0.6rem; font-size: 0.75rem;">To be started</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">SRS</span>
+                                <span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.2rem 0.6rem; font-size: 0.75rem;">To be started</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">Process flows</span>
+                                <span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.2rem 0.6rem; font-size: 0.75rem;">In progress</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="font-weight: 600; color: var(--text-secondary);">User Manuals</span>
+                                <span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.2rem 0.6rem; font-size: 0.75rem;">In progress</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Note Card -->
+                    <div style="padding: 1.25rem; border-radius: 8px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15);">
+                        <p style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                            <span style="font-weight: 700; color: #ec4899; display: block; margin-bottom: 0.4rem;">Note:</span> While the DPR was already created, I need to learn to create the other category of documents required for CMMI5.
+                        </p>
+                    </div>
+                </div>
+
             </div>
         `;
         container.innerHTML = html;
