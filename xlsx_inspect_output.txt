@@ -1,0 +1,63 @@
+Parsing: C:\Users\Dell\Downloads\IEMS weekly report (2).xlsx
+Total rows read: 1055
+
+Row 1: Module | User type | Pages | Requiement gathering | Static screens development |  |  | Dynamic Development | Review |  |  |  | Change requests/ New requirement |  |  |  | Final status | Business development | Dependency/Blocker | Documentation |  | Developer | Time needed to complete development
+Row 2:  |  |  |  |  |  |  |  | Internal Review |  | Client review |  |  |  |  |  |  |  |  |  |  |  | 
+Row 3:  |  |  |  | Static screen creation | Static screen presentation | Status |  | Review | Status | Review | Status | Details | Development Status | Client review  | Approval status |  |  |  | Process flow | User Manual |  | 
+Row 4: Preksha | Roll observer | Profile | Done | Skipped | Skipped | Not done | Done | No issues |  |  |  |  |  |  |  | In progress |  |  | Done | Done | Arjun, Ashutosh, Jay and Mahaveer | 1 day
+Row 5:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 6:  |  | प्रेक्षक प्रोफाइल |  |  |  |  |  | No issues |  | Add new fields as per the presentation shared | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 7:  |  | बैंक विवरण |  |  |  |  | Done | Bug : Flow was breaking.  | Done | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 8:  |  | प्रोफाइल परिवर्तन |  |  |  |  | Done | A table added to show user the "status" of their request for change in profile details. 
+Added another feature asking user's permission to change the mobile no in "bank details" as well | Done | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 9:  |  | डाउनलोड आईडी कार्ड |  |  |  |  | Done | No issues | Done | The ID card should contain all the details added while "Prekshak Panjiyan" | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 10:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 11:  |  | Main pages |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 12:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 13:  |  | जिले से संबंधित जानकारी |  |  |  |  | Done | No issues |  | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 14:  |  | अपीलीय अधिकारी से सम्बंधित जानकारी |  |  |  |  | Done | No issues |  | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 15:  |  | रजिस्ट्रीकरण अधिकारी से सम्बंधित जानकारी |  |  |  |  | Done | No issues |  | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 16:  |  | प्रथम चरण रिपोर्ट |  |  |  |  | Done | No issues |  | Done | Approved |  |  |  |  |  |  |  |  |  |  | 
+Row 17:  |  | आगमन और प्रस्थान रिपोर्ट दर्ज करें |  |  |  |  | Done | No issues | Done | Add a form and report to add/view arrival and departure details | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 18:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 19:  |  | Reports |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 20:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 21:  |  | रिपोर्ट (प्रथम चरण रिपोर्ट देखें) |  |  |  |  | Done | No issues | Done | Nagariya Nikaya field was coming empty | Pending  |  |  |  |  |  |  |  |  |  |  | 
+Row 22:  |  | आगमन और प्रस्थान रिपोर्ट सूची |  |  |  |  | Done | No issues - Possiblity of fetching details via API. Needs client review for this | Done | Add a report to view the details filled in arrival and deprature  | Pending  |  |  |  |  |  |  |  |  |  |  | 
+Row 23:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 24:  |  | Other pages |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 25:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 26:  |  | प्रशिक्षण संबन्धित जानकारी |  |  |  |  | Done | No issues | Done | Pending | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 27:  | Election Observer |  | Done | Skipped | Skipped | Not done |  |  |  |  |  |  |  |  |  | In progress |  |  | Done | Done |  | 
+Row 28:  |  | Profile |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 29:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 30:  |  | प्रेक्षक प्रोफाइल |  |  |  |  | Done | No issues | Done |  |  |  |  |  |  |  | 
+
+
+
+
+
+
+
+ |  |  |  |  | 
+Row 31:  |  | बैंक विवरण |  |  |  |  | Done | Bug : Flow was breaking. Fixed  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 32:  |  | प्रोफाइल परिवर्तन |  |  |  |  | Done | A table added to show user the "status" of their request for change in profile details. 
+Added another feature asking user's permission to change the mobile no in "bank details" as well |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 33:  |  | डाउनलोड आईडी कार्ड |  |  |  |  | Done | No issues - Possiblity of fetching details via API. Needs client review for this | Done | The ID card should contain all the details added while "Prekshak Panjiyan" | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 34:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 35:  |  | Main pages (Panchayat) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 36:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 37:  |  | जिले में पहुँचने के पश्चात् |  |  |  |  | Done | No issues | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 38:  |  | नामनिर्देशन पत्रों की संवीक्षा एवं प्रतीक आवंटन के उपरांत |  |  |  |  | Done | Review points shared with the dev | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 39:  |  | अभ्यर्थियों की बैठक के पश्चात् |  |  |  |  | Done | Review points shared with the dev | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 40:  |  | मतदान कर्मियों के प्रशिक्षण एवं मतदान तैयारी के सम्बन्ध में |  |  |  |  | Done | Review points shared with the dev | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 41:  |  | मतदान समाप्ति के पश्चात् |  |  |  |  | Done | Review points shared with the dev | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 42:  |  | खण्ड स्तरीय मतगणना की स्तिथि में |  |  |  |  | Done | No issues | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 43:  |  | परिणाम की घोषणा के उपरान्त |  |  |  |  | Done | No issues | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 44:  |  | समय-समय पर अन्य महत्वपूर्ण घटनाओं के संबंध में |  |  |  |  | Done | Review points shared with the dev | Done |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 45:  |  | आगमन और प्रस्थान रिपोर्ट दर्ज करें |  |  |  |  | Done | No issues | Done | Add a form and report to add/view arrival and departure details | Pending |  |  |  |  |  |  |  |  |  |  | 
+Row 46:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 47:  |  | Main Pages (Nagariya Nikaya) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 48:  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 49:  |  | जिले में पहुँचने के पश्चात् |  |  |  |  | Done | No issues | DOne |  |  |  |  |  |  |  |  |  |  |  |  | 
+Row 50:  |  | नामनिर्देशन पत्रों की संवीक्षा एवं प्रतीक आवंटन के उपरांत |  |  |  |  | Done | No issues | DOne |  |  |  |  |  |  |  |  |  |  |  |  | 
