@@ -27,7 +27,7 @@ const DEFAULT_MODULES = {
                         pages: [
                             {
                                 name: 'प्रेक्षक प्रोफाइल',
-                                dynamicDev: '-',
+                                dynamicDev: 'Done',
                                 internalReview: { review: 'No issues', status: '-' },
                                 clientReview: { review: 'Done', status: 'Approved' },
                                 changeRequest: { details: 'Add new fields as per the presentation shared', devStatus: 'Done', clientReview: '-', approval: '-' }
