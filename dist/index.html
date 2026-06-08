@@ -5451,14 +5451,14 @@ function renderJuneCommitments(containerId) {
         if (!mod) return;
         
         html += `
-            <div class="new-pres-card" style="border-top: 4px solid ${mod.color}; padding: 1.25rem; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; box-shadow: var(--shadow-md);">
-                <div class="pres-card-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+            <div class="new-pres-card" style="border-top: 4px solid ${mod.color}; padding: 1.25rem; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; box-shadow: var(--shadow-md); min-height: 0; overflow: hidden;">
+                <div class="pres-card-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; flex-shrink: 0;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 36px; height: 36px; font-size: 1.1rem; margin: 0; line-height: 1;">${mod.icon}</div>
-                        <div class="pres-card-title" style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary);">${mod.name}</div>
+                        <div class="pres-card-title" style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${mod.name}</div>
                     </div>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 0.6rem; flex: 1; overflow-y: auto;">
+                <div style="display: flex; flex-direction: column; gap: 0.6rem; flex: 1; overflow-y: auto; min-height: 0; padding-right: 0.5rem;">
                     ${commit.goals.map((goal, idx) => {
                         let icon = '🎯'; // default target
                         if (goal.toLowerCase().includes('qa') || goal.toLowerCase().includes('audit')) icon = '🔍';
