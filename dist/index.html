@@ -4408,10 +4408,6 @@ function isCategoryHeader(row, colIdx) {
         'core'
     ];
     if (categories.some(cat => pName === cat || pName.startsWith(cat))) {
-        // If it has development status, it's an actual page row, not a header
-        if (!isEmptyOrHyphen(devVal)) {
-            return false;
-        }
         return true;
     }
     
@@ -4568,6 +4564,8 @@ function parseExcelToModules(workbook) {
     let currentCategoryName = 'General';
     let lastUserTypeName = '';
 
+    let inheritedProps = null;
+
     for (let r = dataStartRowIndex; r < rows.length; r++) {
         const row = rows[r];
         if (!row) continue;
@@ -4681,6 +4679,12 @@ function parseExcelToModules(workbook) {
         // Category header detection
         if (isCategoryHeader(row, colIdx)) {
             currentCategoryName = pageName;
+            
+            // Check if the category header row accidentally contains data due to merged cells
+            const devVal = (row[colIdx.dynamicDev] || '').toString().trim();
+            if (devVal && devVal !== '-') {
+                inheritedProps = row;
+            }
             continue;
         }
 
@@ -4695,29 +4699,32 @@ function parseExcelToModules(workbook) {
         }
 
         // Parse page properties
+        const activeRow = inheritedProps || row;
         const page = {
             name: pageName,
-            dynamicDev: row[colIdx.dynamicDev] || '-',
+            dynamicDev: activeRow[colIdx.dynamicDev] || (row[colIdx.dynamicDev] || '-'),
             internalReview: {
-                review: row[colIdx.internalReviewReview] || '-',
-                status: row[colIdx.internalReviewStatus] || '-'
+                review: activeRow[colIdx.internalReviewReview] || (row[colIdx.internalReviewReview] || '-'),
+                status: activeRow[colIdx.internalReviewStatus] || (row[colIdx.internalReviewStatus] || '-')
             },
             clientReview: {
-                review: row[colIdx.clientReviewReview] || '-',
-                status: row[colIdx.clientReviewStatus] || '-'
+                review: activeRow[colIdx.clientReviewReview] || (row[colIdx.clientReviewReview] || '-'),
+                status: activeRow[colIdx.clientReviewStatus] || (row[colIdx.clientReviewStatus] || '-')
             },
             changeRequest: null
         };
 
-        const crDetails = (row[colIdx.crDetails] || '').toString().trim();
+        const crDetails = (activeRow[colIdx.crDetails] || (row[colIdx.crDetails] || '')).toString().trim();
         if (crDetails && crDetails !== '-' && crDetails !== '') {
             page.changeRequest = {
                 details: crDetails,
-                devStatus: row[colIdx.crDevStatus] || '-',
-                clientReview: row[colIdx.crClientReview] || '-',
-                approval: row[colIdx.crApproval] || '-'
+                devStatus: activeRow[colIdx.crDevStatus] || (row[colIdx.crDevStatus] || '-'),
+                clientReview: activeRow[colIdx.crClientReview] || (row[colIdx.crClientReview] || '-'),
+                approval: activeRow[colIdx.crApproval] || (row[colIdx.crApproval] || '-')
             };
         }
+
+        inheritedProps = null;
 
         cat.pages.push(page);
     }
