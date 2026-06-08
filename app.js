@@ -2758,11 +2758,11 @@ function renderSlide() {
         renderTeamReview('team-page-content-pres');
     } else if (currentSlideIndex === MODULE_ORDER.length + 2) {
         let html = `
-            <div class="landing-hero" style="padding: 1rem 0 1.5rem;">
+            <div class="landing-hero" style="padding: 1rem 0 1rem; margin-bottom: 0;">
                 <h2 class="hero-title" style="font-size: 2rem;">June Commitments</h2>
                 <p class="hero-subtitle">Key targets, milestones, and blockers identified for the current sprint</p>
             </div>
-            <div id="commitments-content-pres" class="new-pres-card-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: stretch; max-width: 1200px; margin: 0 auto; height: auto;"></div>
+            <div id="commitments-content-pres" class="new-pres-card-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1rem; align-items: stretch; max-width: 1200px; margin: 0 auto; height: calc(100vh - 200px);"></div>
         `;
         container.innerHTML = html;
         renderJuneCommitments('commitments-content-pres');
