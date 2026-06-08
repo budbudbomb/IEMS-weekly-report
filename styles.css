@@ -1459,23 +1459,35 @@ body {
     z-index: 1;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.25rem 2rem 1rem 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    min-height: calc(100vh - 100px);
+    gap: 1rem;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.slide-details-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-shrink: 0;
 }
 
 .presentation-controls {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1.5rem;
+    padding: 0.6rem 1.25rem;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
+    flex-shrink: 0;
+    margin-top: auto;
+    z-index: 100;
 }
 
 .pres-btn {
@@ -1528,6 +1540,11 @@ body {
 }
 
 .presentation-slide {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1541,6 +1558,10 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 1rem;
 }
 
 .pres-card {
@@ -1671,20 +1692,34 @@ body {
     color: var(--color-done);
 }
 
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 4px var(--color-progress-bg);
+    }
+    50% {
+        box-shadow: 0 0 14px var(--color-progress);
+    }
+    100% {
+        box-shadow: 0 0 4px var(--color-progress-bg);
+    }
+}
+
 .tracker-step.in-progress .tracker-dot {
     border-color: var(--color-progress);
     background: var(--color-progress-bg);
     color: var(--color-progress);
-    box-shadow: 0 0 12px var(--color-progress-bg);
+    animation: pulse-glow 2s infinite ease-in-out;
 }
 
 .tracker-label {
     margin-top: 0.75rem;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
     text-align: center;
-    color: var(--text-secondary);
-    white-space: nowrap;
+    color: var(--text-muted);
+    white-space: normal;
+    max-width: 90px;
+    line-height: 1.25;
 }
 
 .tracker-step.done .tracker-label {
@@ -1700,6 +1735,92 @@ body {
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.slide-details-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.pres-user-types-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    align-items: stretch;
+}
+
+.pres-user-type-card {
+    flex: 1;
+    min-width: 320px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    height: 100%;
+}
+
+.pres-user-type-card-scrollable {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.pres-user-type-card-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pres-user-type-card-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pres-user-type-card-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.1);
+    border-radius: 3px;
+}
+
+.pres-user-type-card-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.25);
+}
+
+.pres-user-type-card-scrollable .data-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 10;
+}
+
+/* Presentation overrides for hero and tracker */
+.presentation-page .landing-hero {
+    padding: 0.5rem 0 0.75rem 0 !important;
+    margin-bottom: 0.25rem;
+}
+
+.presentation-page .hero-title {
+    font-size: 1.6rem !important;
+    margin-bottom: 0.15rem !important;
+}
+
+.presentation-page .hero-subtitle {
+    font-size: 0.85rem !important;
+}
+
+.presentation-page .tracker-container {
+    padding: 1.25rem 1rem 1rem 1rem !important;
+    margin-bottom: 1rem !important;
+    border-radius: var(--radius-lg) !important;
 }
 
 @media (max-width: 1024px) {

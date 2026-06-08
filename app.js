@@ -2283,6 +2283,7 @@ function togglePresentationMode() {
     const uploadBtn = document.getElementById('upload-btn');
 
     if (presentationMode) {
+        document.body.style.overflow = 'hidden';
         btn.innerHTML = '<span>📊 Dashboard Mode</span>';
         btn.style.background = 'rgba(16, 185, 129, 0.12)';
         btn.style.color = '#10b981';
@@ -2304,6 +2305,7 @@ function togglePresentationMode() {
         }
         renderSlide();
     } else {
+        document.body.style.overflow = '';
         btn.innerHTML = '<span>🎬 Presentation Mode</span>';
         btn.style.background = 'rgba(99, 102, 241, 0.12)';
         btn.style.color = '#4f46e5';
@@ -2353,7 +2355,9 @@ function renderSlide() {
     let dotsHtml = '';
     for (let i = 0; i <= MODULE_ORDER.length; i++) {
         const title = i === 0 ? 'Overview' : MODULES[MODULE_ORDER[i-1]].name;
-        dotsHtml += `<div class="pres-dot ${i === currentSlideIndex ? 'active' : ''}" onclick="goToSlide(${i})" title="${title}"></div>`;
+        const color = i === 0 ? '#6366f1' : MODULES[MODULE_ORDER[i-1]].color;
+        const style = i === currentSlideIndex ? `style="background: ${color}; opacity: 1; transform: scale(1.3);"` : '';
+        dotsHtml += `<div class="pres-dot ${i === currentSlideIndex ? 'active' : ''}" ${style} onclick="goToSlide(${i})" title="${title}"></div>`;
     }
     dotsContainer.innerHTML = dotsHtml;
 
@@ -2466,7 +2470,7 @@ function renderSlide() {
             <div class="tracker-container">
                 <div class="tracker-wrapper">
                     <div class="tracker-line">
-                        <div class="tracker-line-fill" style="width: ${fillPercent}%; background: ${mod.color};"></div>
+                        <div class="tracker-line-fill" style="width: ${fillPercent}%; background: var(--color-done);"></div>
                     </div>
                     ${trackerSteps.map((step, sIdx) => {
                         const status = stepsStatus[sIdx];
@@ -2476,16 +2480,10 @@ function renderSlide() {
 
                         return `
                             <div class="tracker-step ${status}">
-                                <div class="tracker-dot" style="
-                                    ${status === 'done' ? `border-color: ${mod.color}; background: ${mod.color}12; color: ${mod.color};` : ''}
-                                    ${status === 'in-progress' ? `border-color: var(--color-progress); background: var(--color-progress-bg); color: var(--color-progress); box-shadow: 0 0 10px var(--color-progress-bg);` : ''}
-                                ">
+                                <div class="tracker-dot">
                                     ${icon}
                                 </div>
-                                <div class="tracker-label" style="
-                                    ${status === 'done' ? 'color: var(--text-primary); font-weight: 700;' : ''}
-                                    ${status === 'in-progress' ? 'color: var(--color-progress); font-weight: 700;' : ''}
-                                ">
+                                <div class="tracker-label">
                                     ${step}
                                 </div>
                             </div>
@@ -2497,7 +2495,7 @@ function renderSlide() {
             <!-- Slide detail content -->
             <div class="slide-details-grid">
                 <!-- Left panel: Remarks and Page list -->
-                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                <div class="slide-details-left">
                     <!-- Remarks card -->
                     <div class="alert-card alert-info" style="margin: 0;">
                         <div class="alert-title">
@@ -2508,48 +2506,50 @@ function renderSlide() {
                     </div>
 
                     <!-- User type page list -->
-                    <div class="user-types-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="pres-user-types-grid">
                         ${mod.userTypes.map(ut => {
                             const utProgress = calculateUserTypeProgress(ut);
                             const timeStr = ut.timeNeeded && ut.timeNeeded !== '-' && ut.timeNeeded !== 'NA' ? ` • ${ut.timeNeeded}` : '';
                             return `
-                                <div class="user-type-group" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 1.5rem; margin: 0;">
-                                    <div class="user-type-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <div class="user-type-icon" style="background: ${mod.color}15; color: ${mod.color}; font-weight: 700; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                <div class="pres-user-type-card">
+                                    <div class="user-type-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div class="user-type-icon" style="background: ${mod.color}15; color: ${mod.color}; font-weight: 700; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
                                                 ${getInitials(ut.name)}
                                             </div>
                                             <div>
-                                                <div class="user-type-name" style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${ut.name}</div>
-                                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">${utProgress.done} / ${utProgress.total} pages completed ${timeStr}</div>
+                                                <div class="user-type-name" style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">${ut.name}</div>
+                                                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem;">${utProgress.done} / ${utProgress.total} pages done${timeStr}</div>
                                             </div>
                                         </div>
-                                        <span class="status-badge" style="background: ${utProgress.percent === 100 ? 'var(--color-done-bg); color: var(--color-done);' : 'var(--color-progress-bg); color: var(--color-progress);'}">
+                                        <span class="status-badge" style="background: ${utProgress.percent === 100 ? 'var(--color-done-bg); color: var(--color-done);' : 'var(--color-progress-bg); color: var(--color-progress);'}; font-size: 0.7rem; padding: 0.15rem 0.5rem;">
                                             ${utProgress.percent}%
                                         </span>
                                     </div>
 
-                                    ${ut.categories.map(cat => `
-                                        <div class="category-group" style="margin-bottom: 1rem;">
-                                            <div class="category-label" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em;">${cat.name}</div>
-                                            <table class="data-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Page Name</th>
-                                                        <th class="text-center" style="width: 150px;">Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    ${cat.pages.map(p => `
+                                    <div class="pres-user-type-card-scrollable">
+                                        ${ut.categories.map(cat => `
+                                            <div class="category-group" style="margin-bottom: 0.75rem; margin-left: 0;">
+                                                <div class="category-label" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; letter-spacing: 0.05em; border-left: 2px solid ${mod.color}; padding-left: 0.4rem;">${cat.name}</div>
+                                                <table class="data-table">
+                                                    <thead>
                                                         <tr>
-                                                            <td style="font-weight: 500; color: var(--text-primary);">${p.name}</td>
-                                                            <td class="text-center">${getStatusBadge(p.dynamicDev)}</td>
+                                                            <th>Page Name</th>
+                                                            <th class="text-center" style="width: 110px;">Status</th>
                                                         </tr>
-                                                    `).join('')}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    `).join('')}
+                                                    </thead>
+                                                    <tbody>
+                                                        ${cat.pages.map(p => `
+                                                            <tr>
+                                                                <td style="font-weight: 500; color: var(--text-primary); padding: 0.4rem 0.5rem;">${p.name}</td>
+                                                                <td class="text-center" style="padding: 0.4rem 0.5rem;">${getStatusBadge(p.dynamicDev)}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        `).join('')}
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
@@ -2557,7 +2557,7 @@ function renderSlide() {
                 </div>
 
                 <!-- Right panel: Metadata & Docs -->
-                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                <div class="slide-details-right">
                     <!-- Documentation card -->
                     <div class="info-card" style="margin: 0; height: auto;">
                         <div class="ic-header">
