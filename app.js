@@ -702,6 +702,96 @@ const DEFAULT_MODULES = {
 };
 
 // ============================================
+// TEAM REVIEW DATA
+// ============================================
+const TEAM_REVIEW_DATA = [
+    {
+        developer: 'Ashmit',
+        l1Review: 'Done',
+        l2Ind: '2/2',
+        l2Team: '',
+        unitTesting: '5/5',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '19/21',
+        quality: 'On point',
+        utilization: '90%',
+        remark: "There were a couple of days when the dev's utilization was not 100% as only simple review points were being implemented in Samadhan. However, now with Sugamta, the Dev has clear requirements to stay completely occupied for at least 2 weeks."
+    },
+    {
+        developer: 'Jay malviya',
+        l1Review: 'Done',
+        l2Ind: '2/2',
+        l2Team: '1/2',
+        unitTesting: '5/5',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '19/21',
+        quality: 'On point',
+        utilization: '90%',
+        remark: 'There were a couple of days before I personally started reviewed Preksha, there was not sufficient work to keep him completely occupied. Would like to highlight that during that time Jay voluntarily went for the L2 review. Now with the new requirement of "Candidate\'s" expenditure, he\'ll be entirely occupied for at least 8-10 days'
+    },
+    {
+        developer: 'Kapil Nagar',
+        l1Review: 'Done',
+        l2Ind: '1/2',
+        l2Team: '',
+        unitTesting: '5/5',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '17/19',
+        quality: 'On point',
+        utilization: '100%',
+        remark: ''
+    },
+    {
+        developer: 'Nayan Lakhra',
+        l1Review: 'Done',
+        l2Ind: '0/2',
+        l2Team: '',
+        unitTesting: '-',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '1/1',
+        quality: 'On point',
+        utilization: '100%',
+        remark: ''
+    },
+    {
+        developer: 'Arjun Kushwah',
+        l1Review: 'Done',
+        l2Ind: '1/2',
+        l2Team: '',
+        unitTesting: '3/5',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '20/21',
+        quality: 'On point',
+        utilization: '100%',
+        remark: ''
+    },
+    {
+        developer: 'Mahaveer Sisodiya',
+        l1Review: 'Done',
+        l2Ind: '1/2',
+        l2Team: '',
+        unitTesting: '5/5',
+        coordination: '5/5',
+        ownership: '5/5',
+        accountability: '5/5',
+        taskFilled: '16/17',
+        quality: 'On point',
+        utilization: '100%',
+        remark: 'Was on leave until 10th'
+    }
+];
+
+// ============================================
 // DATA PERSISTENCE & LOAD
 // ============================================
 let MODULES = DEFAULT_MODULES;
@@ -913,6 +1003,7 @@ function showModule(moduleId) {
 
     document.getElementById('landing-page').classList.add('hidden');
     document.getElementById('detail-page').classList.remove('hidden');
+    document.getElementById('team-page').classList.add('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
 
@@ -927,8 +1018,130 @@ function showLanding() {
     renderLanding();
     document.getElementById('landing-page').classList.remove('hidden');
     document.getElementById('detail-page').classList.add('hidden');
+    document.getElementById('team-page').classList.add('hidden');
     document.getElementById('back-btn').classList.add('hidden');
     document.getElementById('page-title').classList.remove('hidden');
+}
+
+function showTeamReview() {
+    currentModule = null;
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('detail-page').classList.add('hidden');
+    document.getElementById('team-page').classList.remove('hidden');
+    document.getElementById('back-btn').classList.remove('hidden');
+    document.getElementById('page-title').classList.add('hidden');
+    renderTeamReview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderTeamReview(targetId = 'team-page-content') {
+    const container = document.getElementById(targetId);
+    
+    let html = '<div class="dev-review-grid">';
+    
+    TEAM_REVIEW_DATA.forEach(dev => {
+        let avatarColor = getAvatarColor(dev.developer);
+        let initials = getInitials(dev.developer);
+        
+        let unitTestColor = dev.unitTesting === '5/5' ? 'var(--color-done)' : (dev.unitTesting === '-' ? 'var(--text-muted)' : 'var(--color-progress)');
+        let coordColor = dev.coordination === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
+        let ownColor = dev.ownership === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
+        let accColor = dev.accountability === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
+        let qualColor = dev.quality === 'On point' ? 'var(--color-done)' : 'var(--color-progress)';
+        
+        // Parse tasks "19/21" -> progress bar
+        let taskProgress = 0;
+        let taskFilledStr = dev.taskFilled || '0/0';
+        let parts = taskFilledStr.split('/');
+        if (parts.length === 2 && parseInt(parts[1]) > 0) {
+            taskProgress = Math.round((parseInt(parts[0]) / parseInt(parts[1])) * 100);
+        }
+        
+        let utilProgress = 0;
+        if (dev.utilization && dev.utilization.includes('%')) {
+            utilProgress = parseInt(dev.utilization.replace('%', ''));
+        }
+        
+        html += `
+        <div class="dev-review-card">
+            <div class="dev-card-header">
+                <div class="dev-avatar" style="background: ${avatarColor}">${initials}</div>
+                <div class="dev-info">
+                    <div class="dev-name">${dev.developer}</div>
+                    <div class="dev-role">Developer</div>
+                </div>
+                <div class="dev-utilization">
+                    <div class="util-val" style="color: ${utilProgress === 100 ? 'var(--color-done)' : 'var(--color-progress)'}">${dev.utilization}</div>
+                    <div class="util-label">Utilization</div>
+                </div>
+            </div>
+            
+            <div class="dev-metrics-grid">
+                <div class="dev-metric">
+                    <span class="m-label">L1 Review</span>
+                    <span class="m-val ${dev.l1Review === 'Done' ? 'm-done' : ''}">${dev.l1Review || '-'}</span>
+                </div>
+                <div class="dev-metric">
+                    <span class="m-label">L2 Individual</span>
+                    <span class="m-val">${dev.l2Ind || '-'}</span>
+                </div>
+                <div class="dev-metric">
+                    <span class="m-label">L2 Team</span>
+                    <span class="m-val">${dev.l2Team || '-'}</span>
+                </div>
+                <div class="dev-metric">
+                    <span class="m-label">Quality of Tasks</span>
+                    <span class="m-val" style="color: ${qualColor}">${dev.quality || '-'}</span>
+                </div>
+            </div>
+            
+            <div class="dev-bars-section">
+                <div class="dev-bar-item">
+                    <div class="db-header">
+                        <span class="db-label">Unit Testing</span>
+                        <span class="db-val" style="color: ${unitTestColor}">${dev.unitTesting}</span>
+                    </div>
+                </div>
+                <div class="dev-bar-item">
+                    <div class="db-header">
+                        <span class="db-label">Coordination</span>
+                        <span class="db-val" style="color: ${coordColor}">${dev.coordination}</span>
+                    </div>
+                </div>
+                <div class="dev-bar-item">
+                    <div class="db-header">
+                        <span class="db-label">Ownership</span>
+                        <span class="db-val" style="color: ${ownColor}">${dev.ownership}</span>
+                    </div>
+                </div>
+                <div class="dev-bar-item">
+                    <div class="db-header">
+                        <span class="db-label">Accountability</span>
+                        <span class="db-val" style="color: ${accColor}">${dev.accountability}</span>
+                    </div>
+                </div>
+                
+                <div class="dev-progress-item">
+                    <div class="dp-header">
+                        <span class="dp-label">Tasks Filled</span>
+                        <span class="dp-val">${dev.taskFilled}</span>
+                    </div>
+                    <div class="dp-track">
+                        <div class="dp-fill" style="width: ${taskProgress}%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dev-remark">
+                <div class="rem-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Remark</div>
+                <div class="rem-body">${dev.remark ? dev.remark : '<em>No remarks provided.</em>'}</div>
+            </div>
+        </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2314,9 +2527,11 @@ function togglePresentationMode() {
         presPage.classList.add('hidden');
         if (uploadBtn) uploadBtn.classList.remove('hidden');
         
-        if (currentSlideIndex >= 1) {
+        if (currentSlideIndex >= 1 && currentSlideIndex <= MODULE_ORDER.length) {
             const mid = MODULE_ORDER[currentSlideIndex - 1];
             showModule(mid);
+        } else if (currentSlideIndex === MODULE_ORDER.length + 1) {
+            showTeamReview();
         } else {
             showLanding();
         }
@@ -2333,7 +2548,7 @@ function prevSlide() {
 
 function nextSlide() {
     if (!presentationMode) return;
-    if (currentSlideIndex < MODULE_ORDER.length) {
+    if (currentSlideIndex < MODULE_ORDER.length + 1) {
         currentSlideIndex++;
         renderSlide();
     }
@@ -2349,13 +2564,22 @@ function renderSlide() {
     const container = document.getElementById('presentation-slide-container');
     const dotsContainer = document.getElementById('pres-dots');
     
-    document.getElementById('pres-prev-btn').disabled = (currentSlideIndex === 0);
-    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length);
+    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length + 1);
 
     let dotsHtml = '';
-    for (let i = 0; i <= MODULE_ORDER.length; i++) {
-        const title = i === 0 ? 'Overview' : MODULES[MODULE_ORDER[i-1]].name;
-        const color = i === 0 ? '#6366f1' : MODULES[MODULE_ORDER[i-1]].color;
+    for (let i = 0; i <= MODULE_ORDER.length + 1; i++) {
+        let title = '';
+        let color = '';
+        if (i === 0) {
+            title = 'Overview';
+            color = '#6366f1';
+        } else if (i === MODULE_ORDER.length + 1) {
+            title = 'Team Review';
+            color = '#10b981';
+        } else {
+            title = MODULES[MODULE_ORDER[i-1]].name;
+            color = MODULES[MODULE_ORDER[i-1]].color;
+        }
         const style = i === currentSlideIndex ? `style="background: ${color}; opacity: 1; transform: scale(1.3);"` : '';
         dotsHtml += `<div class="pres-dot ${i === currentSlideIndex ? 'active' : ''}" ${style} onclick="goToSlide(${i})" title="${title}"></div>`;
     }
@@ -2420,6 +2644,16 @@ function renderSlide() {
 
         html += `</div>`;
         container.innerHTML = html;
+    } else if (currentSlideIndex === MODULE_ORDER.length + 1) {
+        let html = `
+            <div class="landing-hero" style="padding: 1rem 0 1.5rem;">
+                <h2 class="hero-title" style="font-size: 2rem;">Team Review</h2>
+                <p class="hero-subtitle">Overall performance metrics and KPIs for the development team</p>
+            </div>
+            <div id="team-page-content-pres" class="team-page-content"></div>
+        `;
+        container.innerHTML = html;
+        renderTeamReview('team-page-content-pres');
     } else {
         const mod = MODULES[MODULE_ORDER[currentSlideIndex - 1]];
         if (!mod) return;

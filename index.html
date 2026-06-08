@@ -48,8 +48,16 @@
         <!-- Landing Page -->
         <main class="landing-page" id="landing-page">
             <div class="landing-hero">
-                <h2 class="hero-title">Module Overview</h2>
-                <p class="hero-subtitle">Click on any module to view detailed progress and status</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 class="hero-title">Module Overview</h2>
+                        <p class="hero-subtitle">Click on any module to view detailed progress and status</p>
+                    </div>
+                    <button class="upload-btn" id="team-review-btn" onclick="showTeamReview()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; vertical-align: middle;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span>Team Review</span>
+                    </button>
+                </div>
             </div>
             <div class="modules-grid" id="modules-grid"></div>
         </main>
@@ -59,6 +67,15 @@
             <div class="detail-header" id="detail-header"></div>
             <nav class="tabs-nav" id="tabs-nav"></nav>
             <div class="tab-content" id="tab-content"></div>
+        </main>
+
+        <!-- Team Review Standalone Page -->
+        <main class="team-page hidden" id="team-page">
+            <div class="landing-hero" style="margin-bottom: 2rem;">
+                <h2 class="hero-title">Team Review</h2>
+                <p class="hero-subtitle">Overall performance metrics and KPIs for the development team</p>
+            </div>
+            <div id="team-page-content" class="team-page-content"></div>
         </main>
 
         <!-- Presentation Slide Deck Page -->
