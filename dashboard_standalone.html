@@ -5119,7 +5119,7 @@ function prevSlide() {
 
 function nextSlide() {
     if (!presentationMode) return;
-    if (currentSlideIndex < MODULE_ORDER.length + 2) {
+    if (currentSlideIndex < MODULE_ORDER.length + 3) {
         currentSlideIndex++;
         renderSlide();
     }
@@ -5135,10 +5135,10 @@ function renderSlide() {
     const container = document.getElementById('presentation-slide-container');
     const dotsContainer = document.getElementById('pres-dots');
     
-    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length + 2);
+    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length + 3);
 
     let dotsHtml = '';
-    for (let i = 0; i <= MODULE_ORDER.length + 2; i++) {
+    for (let i = 0; i <= MODULE_ORDER.length + 3; i++) {
         let title = '';
         let color = '';
         if (i === 0) {
@@ -5150,6 +5150,9 @@ function renderSlide() {
         } else if (i === MODULE_ORDER.length + 2) {
             title = 'June Commitments';
             color = '#f59e0b';
+        } else if (i === MODULE_ORDER.length + 3) {
+            title = 'CMMI5 Readiness';
+            color = '#ec4899';
         } else {
             title = MODULES[MODULE_ORDER[i-1]].name;
             color = MODULES[MODULE_ORDER[i-1]].color;
@@ -5246,6 +5249,49 @@ function renderSlide() {
         `;
         container.innerHTML = html;
         renderJuneCommitments('commitments-content-pres');
+    } else if (currentSlideIndex === MODULE_ORDER.length + 3) {
+        let html = `
+            <div class="landing-hero" style="padding: 1.5rem 0 2rem;">
+                <h2 class="hero-title" style="font-size: 2rem;">CMMI5 Readiness: Documentation</h2>
+                <p class="hero-subtitle">Targeting Level 5 (Optimizing) maturity in engineering artifacts</p>
+            </div>
+            
+            <div style="max-width: 900px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle);">
+                            <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem; width: 35%;">Artifact Type</th>
+                            <th style="padding: 1.25rem 1.5rem; color: #06b6d4; font-weight: 800; font-size: 1.1rem;">CMMI Level 5 (Optimizing)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Project Plan</td>
+                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Statistically derived using historical capability baselines.</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Risk Register</td>
+                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Predictive models detailing exact cost/schedule variance.</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Status Reports</td>
+                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Control charts (X-bar/R) showing statistical variations.</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Issue Logs</td>
+                            <td style="padding: 1.25rem 1.5rem; color: var(--text-secondary); line-height: 1.5;">Generates a CAR to alter the core process preventing recurrence.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="max-width: 900px; margin: 2rem auto 0; text-align: center; padding: 1.25rem; border-radius: 8px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15);">
+                <p style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.5; margin: 0;">
+                    <span style="font-weight: 700; color: #ec4899; margin-right: 0.25rem;">Note:</span> While the DPR was already created, I need to learn to create the other category of documents required for CMMI5.
+                </p>
+            </div>
+        `;
+        container.innerHTML = html;
     } else {
         const mod = MODULES[MODULE_ORDER[currentSlideIndex - 1]];
         if (!mod) return;
