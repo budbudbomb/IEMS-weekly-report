@@ -2386,8 +2386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLanding();
     renderHeaderStats();
     initUploadListeners();
-    // Auto-start in presentation mode
-    togglePresentationMode();
+    startPresentationMode();
 });
 
 // ============================================
@@ -2396,6 +2395,29 @@ document.addEventListener('DOMContentLoaded', () => {
 let presentationMode = false;
 let currentSlideIndex = 0;
 const MODULE_ORDER = ['preksha', 'samadhan', 'expenditure', 'sugamta', 'ipbms', 'evm'];
+
+function startPresentationMode() {
+    // Directly boot into presentation mode without toggling
+    presentationMode = true;
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('presentation-active');
+    const presPage = document.getElementById('presentation-page');
+    const landingPage = document.getElementById('landing-page');
+    const detailPage = document.getElementById('detail-page');
+    const backBtn = document.getElementById('back-btn');
+    const pageTitle = document.getElementById('page-title');
+    const uploadBtn = document.getElementById('upload-btn');
+    const btn = document.getElementById('pres-toggle-btn');
+    if (landingPage) landingPage.classList.add('hidden');
+    if (detailPage) detailPage.classList.add('hidden');
+    if (backBtn) backBtn.classList.add('hidden');
+    if (pageTitle) pageTitle.classList.remove('hidden');
+    if (uploadBtn) uploadBtn.classList.add('hidden');
+    if (btn) btn.style.display = 'none';
+    if (presPage) presPage.classList.remove('hidden');
+    currentSlideIndex = 0;
+    renderSlide();
+}
 
 // Keyboard navigation listener
 document.addEventListener('keydown', (e) => {
