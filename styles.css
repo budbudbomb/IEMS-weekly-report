@@ -1688,7 +1688,7 @@ body {
 
 .tracker-step.done .tracker-dot {
     border-color: var(--color-done);
-    background: var(--color-done-bg);
+    background: linear-gradient(var(--color-done-bg), var(--color-done-bg)), var(--bg-secondary);
     color: var(--color-done);
 }
 
@@ -1706,7 +1706,7 @@ body {
 
 .tracker-step.in-progress .tracker-dot {
     border-color: var(--color-progress);
-    background: var(--color-progress-bg);
+    background: linear-gradient(var(--color-progress-bg), var(--color-progress-bg)), var(--bg-secondary);
     color: var(--color-progress);
     animation: pulse-glow 2s infinite ease-in-out;
 }
