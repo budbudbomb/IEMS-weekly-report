@@ -2353,51 +2353,60 @@ function countInternalReviewPoints(mod) {
 }
 
 function getInternalReviewStatus(mod) {
-    let hasBugs = false;
+    let hasInProgress = false;
+    let hasPending = false;
     let hasDone = false;
-    let total = 0;
+    let pointsCount = 0;
+    
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
-                total++;
-                const r = (p.internalReview.review || '').toLowerCase().trim();
+                const r = (p.internalReview.review || '').trim();
                 const s = (p.internalReview.status || '').toLowerCase().trim();
-                if (r.includes('bug') || s.includes('bug')) {
-                    hasBugs = true;
-                }
-                if (s === 'done' || r === 'no issues') {
-                    hasDone = true;
+                
+                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                    pointsCount++;
+                    if (s.includes('progress')) hasInProgress = true;
+                    else if (s.includes('pending')) hasPending = true;
+                    else if (s.includes('done') || s.includes('approved')) hasDone = true;
                 }
             });
         });
     });
-    if (total === 0) return '—';
-    if (hasBugs) return 'Bugs Found';
-    if (hasDone && !hasBugs) return 'Done';
+    
+    if (pointsCount === 0) return 'Done';
+    if (hasInProgress) return 'In Progress';
+    if (hasPending) return 'Pending';
+    if (hasDone) return 'Done';
     return 'In Progress';
 }
 
 function getClientReviewStatus(mod) {
+    let hasInProgress = false;
     let hasPending = false;
-    let hasApproved = false;
-    let total = 0;
+    let hasDone = false;
+    let pointsCount = 0;
+    
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
-                total++;
-                const s = (p.clientReview.status || '').toLowerCase().trim();
-                if (s.includes('pending') || s.includes('progress')) {
-                    hasPending = true;
-                }
-                if (s.includes('approved') || s.includes('done')) {
-                    hasApproved = true;
+                const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
+                const s = (p.clientReview && p.clientReview.status) ? p.clientReview.status.trim().toLowerCase() : '';
+                
+                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                    pointsCount++;
+                    if (s.includes('progress')) hasInProgress = true;
+                    else if (s.includes('pending')) hasPending = true;
+                    else if (s.includes('done') || s.includes('approved')) hasDone = true;
                 }
             });
         });
     });
-    if (total === 0) return '—';
-    if (hasPending) return 'Pending Review';
-    if (hasApproved && !hasPending) return 'Approved';
+    
+    if (pointsCount === 0) return 'Done';
+    if (hasInProgress) return 'In Progress';
+    if (hasPending) return 'Pending';
+    if (hasDone) return 'Approved';
     return 'In Progress';
 }
 
