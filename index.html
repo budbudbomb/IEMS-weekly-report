@@ -2991,7 +2991,7 @@ const DEFAULT_MODULES = {
         icon: 'सु',
         color: '#f43f5e',
         requirementGathering: 'Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
-        staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'Done' },
+        staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'In Progress' },
         finalStatus: 'In progress',
         remark: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
         dependency: 'Dependency\nAPIs to fetch Polling booth info Sector wise:\n- Polling booth name\n- Polling booth number\n- Polling booth sthan/Bhawan',
@@ -4971,6 +4971,7 @@ function getStepStatus(mod, stepName) {
             return 'not-started';
         case 'Static screens':
             const sc = (mod.staticScreens.status || '').toLowerCase().trim();
+            if (sc === 'skipped' || sc === 'not done' || sc === 'na') return 'skipped';
             if (sc === 'done' || sc.includes('complete') || sc.includes('reviewed') || sc.includes('approved')) return 'done';
             if (sc.includes('progress') || sc.includes('started') || sc.includes('partial')) return 'in-progress';
             return 'not-started';
@@ -5024,6 +5025,7 @@ function getStepStatus(mod, stepName) {
             return 'in-progress';
         case 'QA':
             if (finalDone) return 'done';
+            if (mod.id === 'preksha' || mod.id === 'samadhan') return 'in-progress';
             if (getStepStatus(mod, 'Client review') === 'done') return 'in-progress';
             return 'not-started';
         case 'Final Review':
