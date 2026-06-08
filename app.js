@@ -2764,65 +2764,65 @@ function renderSlide() {
         renderJuneCommitments('commitments-content-pres');
     } else if (currentSlideIndex === MODULE_ORDER.length + 3) {
         let html = `
-            <div class="landing-hero" style="padding: 1.5rem 0 2rem;">
+            <div class="landing-hero" style="padding: 1rem 0 1rem; margin-bottom: 0;">
                 <h2 class="hero-title" style="font-size: 2rem;">CMMI5 Readiness: Documentation</h2>
-                <p class="hero-subtitle">Current status of required engineering artifacts for Level 5 compliance</p>
+                <p class="hero-subtitle">Current status of required documents for Level 5 compliance.</p>
             </div>
             
-            <div style="max-width: 1200px; margin: 0 auto; display: flex; gap: 2rem; align-items: flex-start;">
+            <div class="slide-details-grid" style="max-width: 900px; margin: 0 auto;">
                 
                 <!-- Left Column: Document Status Table -->
-                <div style="flex: 2; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden;">
+                <div class="slide-details-left" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
                     <table style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
                             <tr style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle);">
-                                <th style="padding: 0.75rem 1.25rem; color: #06b6d4; font-weight: 800; font-size: 1.05rem; width: 60%;">Document Name</th>
-                                <th style="padding: 0.75rem 1.25rem; color: #06b6d4; font-weight: 800; font-size: 1.05rem;">Current Status</th>
+                                <th style="padding: 0.25rem 0.4rem; color: #06b6d4; font-weight: 800; font-size: 0.62rem; width: 60%;">Document Name</th>
+                                <th style="padding: 0.25rem 0.4rem; color: #06b6d4; font-weight: 800; font-size: 0.62rem;">Current Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">Project Plan</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.25rem 0.6rem; font-size: 0.8rem;">Pending</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Project Plan</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">DPR</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: var(--color-done-bg); color: var(--color-done); padding: 0.25rem 0.6rem; font-size: 0.8rem;">Prepared</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">DPR</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-done-bg); color: var(--color-done); padding: 0.08rem 0.35rem; font-size: 0.6rem;">Prepared</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">RTM</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.25rem 0.6rem; font-size: 0.8rem;">Pending</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">RTM</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">Concept note</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.25rem 0.6rem; font-size: 0.8rem;">Pending</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Concept note</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">BRD</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.25rem 0.6rem; font-size: 0.8rem;">To be started</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">BRD</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.08rem 0.35rem; font-size: 0.6rem;">To be started</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">SRS</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.25rem 0.6rem; font-size: 0.8rem;">To be started</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">SRS</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.08rem 0.35rem; font-size: 0.6rem;">To be started</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">Process flows</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.25rem 0.6rem; font-size: 0.8rem;">In progress</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Process flows</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.08rem 0.35rem; font-size: 0.6rem;">In progress</span></td>
                             </tr>
                             <tr>
-                                <td style="padding: 0.75rem 1.25rem; font-weight: 700; color: var(--text-primary);">User Manuals</td>
-                                <td style="padding: 0.75rem 1.25rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.25rem 0.6rem; font-size: 0.8rem;">In progress</span></td>
+                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">User Manuals</td>
+                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.08rem 0.35rem; font-size: 0.6rem;">In progress</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
+                
                 <!-- Right Column: Note Card -->
-                <div style="flex: 1; display: flex; flex-direction: column;">
+                <div class="slide-details-right">
                     <!-- Note Card -->
-                    <div style="padding: 1.5rem; border-radius: 8px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15); box-shadow: var(--shadow-sm);">
-                        <p style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.6; margin: 0;">
-                            <span style="font-weight: 800; color: #ec4899; display: block; margin-bottom: 0.5rem; font-size: 1.1rem;">Note:</span> 
+                    <div class="info-card" style="padding: 0.45rem 0.65rem; border-radius: var(--radius-md); background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15); box-shadow: var(--shadow-sm);">
+                        <p style="color: var(--text-primary); font-size: 0.68rem; line-height: 1.3; margin: 0;">
+                            <span style="font-weight: 800; color: #ec4899; display: block; margin-bottom: 0.2rem; font-size: 0.72rem;">Note:</span> 
                             While the <strong>DPR</strong> was already created, I need to learn to create the other category of documents required for CMMI5.
                         </p>
                     </div>
