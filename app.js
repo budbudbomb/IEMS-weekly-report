@@ -2101,3 +2101,502 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHeaderStats();
     initUploadListeners();
 });
+
+// ============================================
+// PRESENTATION MODE STATE & HELPERS
+// ============================================
+let presentationMode = false;
+let currentSlideIndex = 0;
+const MODULE_ORDER = ['preksha', 'samadhan', 'expenditure', 'sugamta', 'ipbms', 'evm'];
+
+// Keyboard navigation listener
+document.addEventListener('keydown', (e) => {
+    if (!presentationMode) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+        nextSlide();
+    } else if (e.key === 'ArrowLeft') {
+        prevSlide();
+    } else if (e.key === 'Escape') {
+        togglePresentationMode();
+    }
+});
+
+function countInternalReviewPoints(mod) {
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                const r = (p.internalReview.review || '').trim();
+                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                    count++;
+                }
+            });
+        });
+    });
+    return count;
+}
+
+function getInternalReviewStatus(mod) {
+    let hasBugs = false;
+    let hasDone = false;
+    let total = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                total++;
+                const r = (p.internalReview.review || '').toLowerCase().trim();
+                const s = (p.internalReview.status || '').toLowerCase().trim();
+                if (r.includes('bug') || s.includes('bug')) {
+                    hasBugs = true;
+                }
+                if (s === 'done' || r === 'no issues') {
+                    hasDone = true;
+                }
+            });
+        });
+    });
+    if (total === 0) return '—';
+    if (hasBugs) return 'Bugs Found';
+    if (hasDone && !hasBugs) return 'Done';
+    return 'In Progress';
+}
+
+function getClientReviewStatus(mod) {
+    let hasPending = false;
+    let hasApproved = false;
+    let total = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                total++;
+                const s = (p.clientReview.status || '').toLowerCase().trim();
+                if (s.includes('pending') || s.includes('progress')) {
+                    hasPending = true;
+                }
+                if (s.includes('approved') || s.includes('done')) {
+                    hasApproved = true;
+                }
+            });
+        });
+    });
+    if (total === 0) return '—';
+    if (hasPending) return 'Pending Review';
+    if (hasApproved && !hasPending) return 'Approved';
+    return 'In Progress';
+}
+
+function getStepStatus(mod, stepName) {
+    const finalDone = mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done';
+    
+    switch (stepName) {
+        case 'Requirement Gathering':
+            const req = (mod.requirementGathering || '').toLowerCase().trim();
+            if (req === 'done' || req.includes('complete')) return 'done';
+            if (req.includes('progress') || req.includes('started')) return 'in-progress';
+            return 'not-started';
+        case 'Static screens':
+            const sc = (mod.staticScreens.status || '').toLowerCase().trim();
+            if (sc === 'done' || sc.includes('complete') || sc.includes('reviewed') || sc.includes('approved')) return 'done';
+            if (sc.includes('progress') || sc.includes('started') || sc.includes('partial')) return 'in-progress';
+            return 'not-started';
+        case 'Dynamic Development':
+            const devTotal = countPages(mod);
+            const devDone = countDonePages(mod);
+            if (devTotal > 0 && devDone === devTotal) return 'done';
+            if (devDone > 0) return 'in-progress';
+            return 'not-started';
+        case 'Internal review':
+            let intTotal = 0;
+            let intDoneCount = 0;
+            let intNotStartedCount = 0;
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        intTotal++;
+                        const s = (p.internalReview.status || '').toLowerCase().trim();
+                        const r = (p.internalReview.review || '').toLowerCase().trim();
+                        if (s === 'done' || s === 'fixed' || r === 'no issues') {
+                            intDoneCount++;
+                        } else if (s === '-' && (r === '-' || r === '')) {
+                            intNotStartedCount++;
+                        }
+                    });
+                });
+            });
+            if (intTotal > 0 && intDoneCount === intTotal) return 'done';
+            if (intNotStartedCount === intTotal) return 'not-started';
+            return 'in-progress';
+        case 'Client review':
+            let clTotal = 0;
+            let clDoneCount = 0;
+            let clNotStartedCount = 0;
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        clTotal++;
+                        const s = (p.clientReview.status || '').toLowerCase().trim();
+                        const r = (p.clientReview.review || '').toLowerCase().trim();
+                        if (s === 'approved' || s === 'done') {
+                            clDoneCount++;
+                        } else if (s === '-' && (r === '-' || r === '')) {
+                            clNotStartedCount++;
+                        }
+                    });
+                });
+            });
+            if (clTotal > 0 && clDoneCount === clTotal) return 'done';
+            if (clNotStartedCount === clTotal) return 'not-started';
+            return 'in-progress';
+        case 'QA':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Client review') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Final Review':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'QA') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Security implementation':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Final Review') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'UAT':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Security implementation') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Go Live':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'UAT') === 'done') return 'in-progress';
+            return 'not-started';
+        default:
+            return 'not-started';
+    }
+}
+
+function togglePresentationMode() {
+    presentationMode = !presentationMode;
+    const btn = document.getElementById('pres-toggle-btn');
+    const presPage = document.getElementById('presentation-page');
+    const landingPage = document.getElementById('landing-page');
+    const detailPage = document.getElementById('detail-page');
+    const backBtn = document.getElementById('back-btn');
+    const pageTitle = document.getElementById('page-title');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    if (presentationMode) {
+        btn.innerHTML = '<span>📊 Dashboard Mode</span>';
+        btn.style.background = 'rgba(16, 185, 129, 0.12)';
+        btn.style.color = '#10b981';
+        btn.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+
+        landingPage.classList.add('hidden');
+        detailPage.classList.add('hidden');
+        backBtn.classList.add('hidden');
+        pageTitle.classList.remove('hidden');
+        if (uploadBtn) uploadBtn.classList.add('hidden');
+        presPage.classList.remove('hidden');
+
+        // Context-aware slide index
+        if (currentModule) {
+            const idx = MODULE_ORDER.indexOf(currentModule.id);
+            currentSlideIndex = idx !== -1 ? idx + 1 : 0;
+        } else {
+            currentSlideIndex = 0;
+        }
+        renderSlide();
+    } else {
+        btn.innerHTML = '<span>🎬 Presentation Mode</span>';
+        btn.style.background = 'rgba(99, 102, 241, 0.12)';
+        btn.style.color = '#4f46e5';
+        btn.style.borderColor = 'rgba(99, 102, 241, 0.25)';
+
+        presPage.classList.add('hidden');
+        if (uploadBtn) uploadBtn.classList.remove('hidden');
+        
+        if (currentSlideIndex >= 1) {
+            const mid = MODULE_ORDER[currentSlideIndex - 1];
+            showModule(mid);
+        } else {
+            showLanding();
+        }
+    }
+}
+
+function prevSlide() {
+    if (!presentationMode) return;
+    if (currentSlideIndex > 0) {
+        currentSlideIndex--;
+        renderSlide();
+    }
+}
+
+function nextSlide() {
+    if (!presentationMode) return;
+    if (currentSlideIndex < MODULE_ORDER.length) {
+        currentSlideIndex++;
+        renderSlide();
+    }
+}
+
+function goToSlide(index) {
+    if (!presentationMode) return;
+    currentSlideIndex = index;
+    renderSlide();
+}
+
+function renderSlide() {
+    const container = document.getElementById('presentation-slide-container');
+    const dotsContainer = document.getElementById('pres-dots');
+    
+    document.getElementById('pres-prev-btn').disabled = (currentSlideIndex === 0);
+    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length);
+
+    let dotsHtml = '';
+    for (let i = 0; i <= MODULE_ORDER.length; i++) {
+        const title = i === 0 ? 'Overview' : MODULES[MODULE_ORDER[i-1]].name;
+        dotsHtml += `<div class="pres-dot ${i === currentSlideIndex ? 'active' : ''}" onclick="goToSlide(${i})" title="${title}"></div>`;
+    }
+    dotsContainer.innerHTML = dotsHtml;
+
+    if (currentSlideIndex === 0) {
+        let html = `
+            <div class="landing-hero" style="padding: 1rem 0 2rem;">
+                <h2 class="hero-title" style="font-size: 2rem;">Project Modules Presentation</h2>
+                <p class="hero-subtitle">High-level executive status overview across all systems</p>
+            </div>
+            <div class="pres-grid">
+        `;
+
+        MODULE_ORDER.forEach((mid, idx) => {
+            const mod = MODULES[mid];
+            if (!mod) return;
+            const totalPages = countPages(mod);
+            const donePages = countDonePages(mod);
+            const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+            const internalPts = countInternalReviewPoints(mod);
+            const internalStatus = getInternalReviewStatus(mod);
+            const clientPts = countClientReviewPoints(mod);
+            const clientStatus = getClientReviewStatus(mod);
+
+            html += `
+                <div class="pres-card" onclick="goToSlide(${idx + 1})" style="border-left: 4px solid ${mod.color}">
+                    <div class="pres-card-header">
+                        <div class="pres-card-title">${mod.name}</div>
+                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 32px; height: 32px; font-size: 1rem; margin: 0; line-height: 1;">${mod.icon}</div>
+                    </div>
+                    <div class="pres-card-body">
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Pages Done</div>
+                            <div class="pres-kpi-val" style="color: var(--color-done)">${donePages} / ${totalPages}</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Days Required</div>
+                            <div class="pres-kpi-val" style="color: #4f46e5">${mod.timeNeeded || 'NA'}</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Internal Reviews</div>
+                            <div class="pres-kpi-val">${internalPts} pts (${internalStatus})</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Client Reviews</div>
+                            <div class="pres-kpi-val">${clientPts} pts (${clientStatus})</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.72rem; color: var(--text-secondary); font-weight:600;">
+                            <span>Dynamic Development</span>
+                            <span>${progress}%</span>
+                        </div>
+                        <div class="progress-bar" style="height: 5px;">
+                            <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+    } else {
+        const mod = MODULES[MODULE_ORDER[currentSlideIndex - 1]];
+        if (!mod) return;
+
+        const totalPages = countPages(mod);
+        const donePages = countDonePages(mod);
+        const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+
+        const trackerSteps = [
+            'Requirement Gathering',
+            'Static screens',
+            'Dynamic Development',
+            'Internal review',
+            'Client review',
+            'QA',
+            'Final Review',
+            'Security implementation',
+            'UAT',
+            'Go Live'
+        ];
+
+        let lastDoneIndex = -1;
+        const stepsStatus = trackerSteps.map((step, sIdx) => {
+            const status = getStepStatus(mod, step);
+            if (status === 'done') {
+                lastDoneIndex = sIdx;
+            }
+            return status;
+        });
+
+        const fillPercent = trackerSteps.length > 1 ? (Math.max(0, lastDoneIndex) / (trackerSteps.length - 1)) * 100 : 0;
+
+        let html = `
+            <div class="landing-hero" style="padding: 1rem 0 1.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h2 class="hero-title" style="font-size: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 44px; height: 44px; font-size: 1.4rem; margin: 0; display: inline-flex; line-height: 1;">${mod.icon}</span>
+                        ${mod.name} Status
+                    </h2>
+                    <p class="hero-subtitle">Detailed engineering milestone tracker and page checklist</p>
+                </div>
+                <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); background: var(--bg-glass); border: 1px solid var(--border-subtle); padding: 0.4rem 1rem; border-radius: var(--radius-md);">
+                    Estimate: <span style="color: ${mod.color}">${mod.timeNeeded || 'NA'}</span>
+                </div>
+            </div>
+
+            <!-- Horizontal Step Tracker -->
+            <div class="tracker-container">
+                <div class="tracker-wrapper">
+                    <div class="tracker-line">
+                        <div class="tracker-line-fill" style="width: ${fillPercent}%; background: ${mod.color};"></div>
+                    </div>
+                    ${trackerSteps.map((step, sIdx) => {
+                        const status = stepsStatus[sIdx];
+                        let icon = sIdx + 1;
+                        if (status === 'done') icon = '✓';
+                        else if (status === 'in-progress') icon = '◐';
+
+                        return `
+                            <div class="tracker-step ${status}">
+                                <div class="tracker-dot" style="
+                                    ${status === 'done' ? `border-color: ${mod.color}; background: ${mod.color}12; color: ${mod.color};` : ''}
+                                    ${status === 'in-progress' ? `border-color: var(--color-progress); background: var(--color-progress-bg); color: var(--color-progress); box-shadow: 0 0 10px var(--color-progress-bg);` : ''}
+                                ">
+                                    ${icon}
+                                </div>
+                                <div class="tracker-label" style="
+                                    ${status === 'done' ? 'color: var(--text-primary); font-weight: 700;' : ''}
+                                    ${status === 'in-progress' ? 'color: var(--color-progress); font-weight: 700;' : ''}
+                                ">
+                                    ${step}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Slide detail content -->
+            <div class="slide-details-grid">
+                <!-- Left panel: Remarks and Page list -->
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <!-- Remarks card -->
+                    <div class="alert-card alert-info" style="margin: 0;">
+                        <div class="alert-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            Remarks / Highlights
+                        </div>
+                        <div class="alert-body">${mod.remark ? mod.remark.replace(/\n/g, '<br>') : 'No remarks or blocker items registered.'}</div>
+                    </div>
+
+                    <!-- User type page list -->
+                    <div class="user-types-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        ${mod.userTypes.map(ut => {
+                            const utProgress = calculateUserTypeProgress(ut);
+                            const timeStr = ut.timeNeeded && ut.timeNeeded !== '-' && ut.timeNeeded !== 'NA' ? ` • ${ut.timeNeeded}` : '';
+                            return `
+                                <div class="user-type-group" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 1.5rem; margin: 0;">
+                                    <div class="user-type-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <div class="user-type-icon" style="background: ${mod.color}15; color: ${mod.color}; font-weight: 700; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                                ${getInitials(ut.name)}
+                                            </div>
+                                            <div>
+                                                <div class="user-type-name" style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${ut.name}</div>
+                                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">${utProgress.done} / ${utProgress.total} pages completed ${timeStr}</div>
+                                            </div>
+                                        </div>
+                                        <span class="status-badge" style="background: ${utProgress.percent === 100 ? 'var(--color-done-bg); color: var(--color-done);' : 'var(--color-progress-bg); color: var(--color-progress);'}">
+                                            ${utProgress.percent}%
+                                        </span>
+                                    </div>
+
+                                    ${ut.categories.map(cat => `
+                                        <div class="category-group" style="margin-bottom: 1rem;">
+                                            <div class="category-label" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em;">${cat.name}</div>
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Page Name</th>
+                                                        <th class="text-center" style="width: 150px;">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${cat.pages.map(p => `
+                                                        <tr>
+                                                            <td style="font-weight: 500; color: var(--text-primary);">${p.name}</td>
+                                                            <td class="text-center">${getStatusBadge(p.dynamicDev)}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <!-- Right panel: Metadata & Docs -->
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <!-- Documentation card -->
+                    <div class="info-card" style="margin: 0; height: auto;">
+                        <div class="ic-header">
+                            <div class="ic-icon" style="background: rgba(16,185,129,0.12); color: #34d399">📝</div>
+                            <div class="ic-title">Documentation Status</div>
+                        </div>
+                        <div class="ic-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="label">Process Flow</span>
+                                ${getStatusBadge(mod.documentation.processFlow)}
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="label">User Manual</span>
+                                ${getStatusBadge(mod.documentation.userManual)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Team card -->
+                    <div class="info-card" style="margin: 0; height: auto;">
+                        <div class="ic-header">
+                            <div class="ic-icon" style="background: rgba(99,102,241,0.12); color: #818cf8">👥</div>
+                            <div class="ic-title">Development Team</div>
+                        </div>
+                        <div class="ic-body">
+                            <div class="team-avatars" style="margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                                ${mod.team.map(name => `
+                                    <div style="display:flex; align-items:center; gap:0.5rem; width: 100%; margin-bottom: 0.4rem;">
+                                        <div class="team-avatar" style="background: ${getAvatarColor(name)}; width: 28px; height: 28px; font-size: 0.75rem; margin: 0;">${getInitials(name)}</div>
+                                        <span style="font-size:0.85rem; font-weight:500; color: var(--text-primary);">${name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${mod.team.length === 0 ? '<span style="font-size:0.85rem;color:var(--text-muted)">No developers assigned</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+}

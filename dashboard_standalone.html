@@ -13,52 +13,52 @@
    Design System & CSS Variables
    ============================================ */
 :root {
-    --bg-primary: #06080f;
-    --bg-secondary: #0c1020;
-    --bg-card: rgba(15, 20, 40, 0.7);
-    --bg-card-hover: rgba(20, 28, 58, 0.8);
-    --bg-glass: rgba(255, 255, 255, 0.03);
-    --bg-glass-hover: rgba(255, 255, 255, 0.06);
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.75);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --bg-glass: rgba(15, 23, 42, 0.03);
+    --bg-glass-hover: rgba(15, 23, 42, 0.05);
 
-    --text-primary: #e8ecf4;
-    --text-secondary: #8892a8;
-    --text-muted: #5a6478;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
 
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-accent: rgba(99, 102, 241, 0.3);
+    --border-subtle: rgba(15, 23, 42, 0.06);
+    --border-accent: rgba(99, 102, 241, 0.25);
 
-    --color-done: #22c55e;
-    --color-done-bg: rgba(34, 197, 94, 0.1);
-    --color-progress: #f59e0b;
-    --color-progress-bg: rgba(245, 158, 11, 0.1);
-    --color-pending: #f97316;
-    --color-pending-bg: rgba(249, 115, 22, 0.1);
-    --color-not-done: #ef4444;
-    --color-not-done-bg: rgba(239, 68, 68, 0.1);
-    --color-skipped: #6b7280;
-    --color-skipped-bg: rgba(107, 114, 128, 0.1);
-    --color-bug: #f43f5e;
-    --color-bug-bg: rgba(244, 63, 94, 0.1);
-    --color-approved: #10b981;
-    --color-approved-bg: rgba(16, 185, 129, 0.1);
-    --color-na: #374151;
-    --color-na-bg: rgba(55, 65, 81, 0.15);
+    --color-done: #16a34a;
+    --color-done-bg: rgba(22, 163, 74, 0.08);
+    --color-progress: #d97706;
+    --color-progress-bg: rgba(217, 119, 6, 0.08);
+    --color-pending: #ea580c;
+    --color-pending-bg: rgba(234, 88, 12, 0.08);
+    --color-not-done: #dc2626;
+    --color-not-done-bg: rgba(220, 38, 38, 0.08);
+    --color-skipped: #4b5563;
+    --color-skipped-bg: rgba(75, 85, 99, 0.08);
+    --color-bug: #e11d48;
+    --color-bug-bg: rgba(225, 29, 72, 0.08);
+    --color-approved: #059669;
+    --color-approved-bg: rgba(5, 150, 105, 0.08);
+    --color-na: #475569;
+    --color-na-bg: rgba(71, 85, 105, 0.08);
 
-    --module-preksha: #6366f1;
-    --module-samadhan: #10b981;
-    --module-expenditure: #f59e0b;
-    --module-sugamta: #f43f5e;
-    --module-ipbms: #8b5cf6;
-    --module-evm: #06b6d4;
+    --module-preksha: #4f46e5;
+    --module-samadhan: #059669;
+    --module-expenditure: #d97706;
+    --module-sugamta: #e11d48;
+    --module-ipbms: #7c3aed;
+    --module-evm: #0891b2;
 
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
     --radius-xl: 20px;
 
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.08);
 
     --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -106,7 +106,7 @@ body {
     position: absolute;
     border-radius: 50%;
     filter: blur(120px);
-    opacity: 0.15;
+    opacity: 0.06;
     animation: float 20s ease-in-out infinite;
 }
 
@@ -152,7 +152,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(6, 8, 15, 0.8);
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-subtle);
     padding: 0 2rem;
@@ -180,7 +180,7 @@ body {
     font-size: 1.15rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #e8ecf4, #8892a8);
+    background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -251,7 +251,7 @@ body {
     font-size: 2.2rem;
     font-weight: 800;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #fff 0%, #8892a8 100%);
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -305,7 +305,7 @@ body {
 .module-card:hover {
     transform: translateY(-4px);
     background: var(--bg-card-hover);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 60px -10px var(--accent-glow);
+    box-shadow: var(--shadow-lg), 0 0 40px -10px var(--accent-glow);
 }
 
 .module-card .card-accent {
@@ -397,7 +397,7 @@ body {
 
 .progress-bar {
     height: 6px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(15, 23, 42, 0.08);
     border-radius: 999px;
     overflow: hidden;
 }
@@ -405,7 +405,7 @@ body {
 .progress-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--bg-secondary)));
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -590,11 +590,11 @@ body {
 
 .tab-btn:hover {
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(15, 23, 42, 0.015);
 }
 
 .tab-btn.active {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.08);
     color: var(--text-primary);
     font-weight: 600;
 }
@@ -606,7 +606,7 @@ body {
     min-width: 18px;
     height: 18px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.12);
     font-size: 0.65rem;
     margin-left: 0.4rem;
     padding: 0 0.3rem;
@@ -786,7 +786,7 @@ body {
 }
 
 .data-table thead th {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(15, 23, 42, 0.015);
     padding: 0.6rem 0.75rem;
     text-align: left;
     font-weight: 600;
@@ -819,7 +819,7 @@ body {
 
 .data-table tbody td {
     padding: 0.6rem 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
     vertical-align: top;
     color: var(--text-secondary);
     line-height: 1.5;
@@ -1140,12 +1140,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.1);
     border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.2);
 }
 
 /* ============================================
@@ -1210,7 +1210,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     background: #1e293b;
-    color: var(--text-primary);
+    color: #ffffff;
     font-size: 0.72rem;
     padding: 0.5rem 0.75rem;
     border-radius: var(--radius-sm);
@@ -1316,7 +1316,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(3, 4, 8, 0.75);
+    background: rgba(15, 23, 42, 0.3);
     backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
@@ -1428,10 +1428,10 @@ body {
 }
 
 .toast {
-    background: rgba(12, 16, 32, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid var(--border-subtle);
     border-left: 4px solid var(--color-done);
-    color: var(--text-primary);
+    color: #0f172a;
     padding: 1rem 1.5rem;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
@@ -1462,6 +1462,263 @@ body {
     line-height: 1.4;
 }
 
+/* ============================================
+   Presentation Mode CSS Styles
+   ============================================ */
+.presentation-page {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: calc(100vh - 100px);
+}
+
+.presentation-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+}
+
+.pres-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.pres-btn:hover:not(:disabled) {
+    background: var(--bg-glass-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-1px);
+}
+
+.pres-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pres-dots {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.pres-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.3;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.pres-dot.active {
+    background: var(--module-preksha);
+    opacity: 1;
+    transform: scale(1.3);
+}
+
+.presentation-slide {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide 1 Grid layout */
+.pres-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 1.5rem;
+}
+
+.pres-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.pres-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-lg);
+}
+
+.pres-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.pres-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pres-card-body {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.pres-kpi-item {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+}
+
+.pres-kpi-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.pres-kpi-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 0.15rem;
+}
+
+/* Horizontal Progress Tracker */
+.tracker-container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.tracker-wrapper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    min-width: 950px;
+    padding: 0 1rem;
+}
+
+.tracker-line {
+    position: absolute;
+    top: 15px;
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: var(--border-subtle);
+    z-index: 1;
+}
+
+.tracker-line-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--color-done);
+    width: 0%;
+    transition: width 0.8s ease;
+}
+
+.tracker-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    width: 80px;
+}
+
+.tracker-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 3px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.tracker-step.done .tracker-dot {
+    border-color: var(--color-done);
+    background: var(--color-done-bg);
+    color: var(--color-done);
+}
+
+.tracker-step.in-progress .tracker-dot {
+    border-color: var(--color-progress);
+    background: var(--color-progress-bg);
+    color: var(--color-progress);
+    box-shadow: 0 0 12px var(--color-progress-bg);
+}
+
+.tracker-label {
+    margin-top: 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.tracker-step.done .tracker-label {
+    color: var(--text-primary);
+}
+
+.tracker-step.in-progress .tracker-label {
+    color: var(--color-progress);
+}
+
+/* slide 2-7 specific grids */
+.slide-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .slide-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -1488,6 +1745,9 @@ body {
                 </div>
                 <div class="header-right">
                     <div class="header-stats" id="header-stats"></div>
+                    <button class="back-btn" id="pres-toggle-btn" onclick="togglePresentationMode()" style="background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-color: rgba(99, 102, 241, 0.25); margin-right: 8px;">
+                        <span>🎬 Presentation Mode</span>
+                    </button>
                     <button class="upload-btn" id="upload-btn" onclick="openUploadModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                         <span>Upload Sheet</span>
@@ -1510,6 +1770,24 @@ body {
             <div class="detail-header" id="detail-header"></div>
             <nav class="tabs-nav" id="tabs-nav"></nav>
             <div class="tab-content" id="tab-content"></div>
+        </main>
+
+        <!-- Presentation Slide Deck Page -->
+        <main class="presentation-page hidden" id="presentation-page">
+            <div class="presentation-controls">
+                <button class="pres-btn" id="pres-prev-btn" onclick="prevSlide()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    <span>Previous</span>
+                </button>
+                <div class="pres-dots" id="pres-dots"></div>
+                <button class="pres-btn" id="pres-next-btn" onclick="nextSlide()">
+                    <span>Next</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+            <div class="presentation-slide" id="presentation-slide-container">
+                <!-- Slide content will be rendered here dynamically -->
+            </div>
         </main>
 
         <!-- Upload Modal -->
@@ -3645,6 +3923,505 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHeaderStats();
     initUploadListeners();
 });
+
+// ============================================
+// PRESENTATION MODE STATE & HELPERS
+// ============================================
+let presentationMode = false;
+let currentSlideIndex = 0;
+const MODULE_ORDER = ['preksha', 'samadhan', 'expenditure', 'sugamta', 'ipbms', 'evm'];
+
+// Keyboard navigation listener
+document.addEventListener('keydown', (e) => {
+    if (!presentationMode) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+        nextSlide();
+    } else if (e.key === 'ArrowLeft') {
+        prevSlide();
+    } else if (e.key === 'Escape') {
+        togglePresentationMode();
+    }
+});
+
+function countInternalReviewPoints(mod) {
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                const r = (p.internalReview.review || '').trim();
+                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                    count++;
+                }
+            });
+        });
+    });
+    return count;
+}
+
+function getInternalReviewStatus(mod) {
+    let hasBugs = false;
+    let hasDone = false;
+    let total = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                total++;
+                const r = (p.internalReview.review || '').toLowerCase().trim();
+                const s = (p.internalReview.status || '').toLowerCase().trim();
+                if (r.includes('bug') || s.includes('bug')) {
+                    hasBugs = true;
+                }
+                if (s === 'done' || r === 'no issues') {
+                    hasDone = true;
+                }
+            });
+        });
+    });
+    if (total === 0) return '—';
+    if (hasBugs) return 'Bugs Found';
+    if (hasDone && !hasBugs) return 'Done';
+    return 'In Progress';
+}
+
+function getClientReviewStatus(mod) {
+    let hasPending = false;
+    let hasApproved = false;
+    let total = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                total++;
+                const s = (p.clientReview.status || '').toLowerCase().trim();
+                if (s.includes('pending') || s.includes('progress')) {
+                    hasPending = true;
+                }
+                if (s.includes('approved') || s.includes('done')) {
+                    hasApproved = true;
+                }
+            });
+        });
+    });
+    if (total === 0) return '—';
+    if (hasPending) return 'Pending Review';
+    if (hasApproved && !hasPending) return 'Approved';
+    return 'In Progress';
+}
+
+function getStepStatus(mod, stepName) {
+    const finalDone = mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done';
+    
+    switch (stepName) {
+        case 'Requirement Gathering':
+            const req = (mod.requirementGathering || '').toLowerCase().trim();
+            if (req === 'done' || req.includes('complete')) return 'done';
+            if (req.includes('progress') || req.includes('started')) return 'in-progress';
+            return 'not-started';
+        case 'Static screens':
+            const sc = (mod.staticScreens.status || '').toLowerCase().trim();
+            if (sc === 'done' || sc.includes('complete') || sc.includes('reviewed') || sc.includes('approved')) return 'done';
+            if (sc.includes('progress') || sc.includes('started') || sc.includes('partial')) return 'in-progress';
+            return 'not-started';
+        case 'Dynamic Development':
+            const devTotal = countPages(mod);
+            const devDone = countDonePages(mod);
+            if (devTotal > 0 && devDone === devTotal) return 'done';
+            if (devDone > 0) return 'in-progress';
+            return 'not-started';
+        case 'Internal review':
+            let intTotal = 0;
+            let intDoneCount = 0;
+            let intNotStartedCount = 0;
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        intTotal++;
+                        const s = (p.internalReview.status || '').toLowerCase().trim();
+                        const r = (p.internalReview.review || '').toLowerCase().trim();
+                        if (s === 'done' || s === 'fixed' || r === 'no issues') {
+                            intDoneCount++;
+                        } else if (s === '-' && (r === '-' || r === '')) {
+                            intNotStartedCount++;
+                        }
+                    });
+                });
+            });
+            if (intTotal > 0 && intDoneCount === intTotal) return 'done';
+            if (intNotStartedCount === intTotal) return 'not-started';
+            return 'in-progress';
+        case 'Client review':
+            let clTotal = 0;
+            let clDoneCount = 0;
+            let clNotStartedCount = 0;
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        clTotal++;
+                        const s = (p.clientReview.status || '').toLowerCase().trim();
+                        const r = (p.clientReview.review || '').toLowerCase().trim();
+                        if (s === 'approved' || s === 'done') {
+                            clDoneCount++;
+                        } else if (s === '-' && (r === '-' || r === '')) {
+                            clNotStartedCount++;
+                        }
+                    });
+                });
+            });
+            if (clTotal > 0 && clDoneCount === clTotal) return 'done';
+            if (clNotStartedCount === clTotal) return 'not-started';
+            return 'in-progress';
+        case 'QA':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Client review') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Final Review':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'QA') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Security implementation':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Final Review') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'UAT':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'Security implementation') === 'done') return 'in-progress';
+            return 'not-started';
+        case 'Go Live':
+            if (finalDone) return 'done';
+            if (getStepStatus(mod, 'UAT') === 'done') return 'in-progress';
+            return 'not-started';
+        default:
+            return 'not-started';
+    }
+}
+
+function togglePresentationMode() {
+    presentationMode = !presentationMode;
+    const btn = document.getElementById('pres-toggle-btn');
+    const presPage = document.getElementById('presentation-page');
+    const landingPage = document.getElementById('landing-page');
+    const detailPage = document.getElementById('detail-page');
+    const backBtn = document.getElementById('back-btn');
+    const pageTitle = document.getElementById('page-title');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    if (presentationMode) {
+        btn.innerHTML = '<span>📊 Dashboard Mode</span>';
+        btn.style.background = 'rgba(16, 185, 129, 0.12)';
+        btn.style.color = '#10b981';
+        btn.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+
+        landingPage.classList.add('hidden');
+        detailPage.classList.add('hidden');
+        backBtn.classList.add('hidden');
+        pageTitle.classList.remove('hidden');
+        if (uploadBtn) uploadBtn.classList.add('hidden');
+        presPage.classList.remove('hidden');
+
+        // Context-aware slide index
+        if (currentModule) {
+            const idx = MODULE_ORDER.indexOf(currentModule.id);
+            currentSlideIndex = idx !== -1 ? idx + 1 : 0;
+        } else {
+            currentSlideIndex = 0;
+        }
+        renderSlide();
+    } else {
+        btn.innerHTML = '<span>🎬 Presentation Mode</span>';
+        btn.style.background = 'rgba(99, 102, 241, 0.12)';
+        btn.style.color = '#4f46e5';
+        btn.style.borderColor = 'rgba(99, 102, 241, 0.25)';
+
+        presPage.classList.add('hidden');
+        if (uploadBtn) uploadBtn.classList.remove('hidden');
+        
+        if (currentSlideIndex >= 1) {
+            const mid = MODULE_ORDER[currentSlideIndex - 1];
+            showModule(mid);
+        } else {
+            showLanding();
+        }
+    }
+}
+
+function prevSlide() {
+    if (!presentationMode) return;
+    if (currentSlideIndex > 0) {
+        currentSlideIndex--;
+        renderSlide();
+    }
+}
+
+function nextSlide() {
+    if (!presentationMode) return;
+    if (currentSlideIndex < MODULE_ORDER.length) {
+        currentSlideIndex++;
+        renderSlide();
+    }
+}
+
+function goToSlide(index) {
+    if (!presentationMode) return;
+    currentSlideIndex = index;
+    renderSlide();
+}
+
+function renderSlide() {
+    const container = document.getElementById('presentation-slide-container');
+    const dotsContainer = document.getElementById('pres-dots');
+    
+    document.getElementById('pres-prev-btn').disabled = (currentSlideIndex === 0);
+    document.getElementById('pres-next-btn').disabled = (currentSlideIndex === MODULE_ORDER.length);
+
+    let dotsHtml = '';
+    for (let i = 0; i <= MODULE_ORDER.length; i++) {
+        const title = i === 0 ? 'Overview' : MODULES[MODULE_ORDER[i-1]].name;
+        dotsHtml += `<div class="pres-dot ${i === currentSlideIndex ? 'active' : ''}" onclick="goToSlide(${i})" title="${title}"></div>`;
+    }
+    dotsContainer.innerHTML = dotsHtml;
+
+    if (currentSlideIndex === 0) {
+        let html = `
+            <div class="landing-hero" style="padding: 1rem 0 2rem;">
+                <h2 class="hero-title" style="font-size: 2rem;">Project Modules Presentation</h2>
+                <p class="hero-subtitle">High-level executive status overview across all systems</p>
+            </div>
+            <div class="pres-grid">
+        `;
+
+        MODULE_ORDER.forEach((mid, idx) => {
+            const mod = MODULES[mid];
+            if (!mod) return;
+            const totalPages = countPages(mod);
+            const donePages = countDonePages(mod);
+            const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+            const internalPts = countInternalReviewPoints(mod);
+            const internalStatus = getInternalReviewStatus(mod);
+            const clientPts = countClientReviewPoints(mod);
+            const clientStatus = getClientReviewStatus(mod);
+
+            html += `
+                <div class="pres-card" onclick="goToSlide(${idx + 1})" style="border-left: 4px solid ${mod.color}">
+                    <div class="pres-card-header">
+                        <div class="pres-card-title">${mod.name}</div>
+                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 32px; height: 32px; font-size: 1rem; margin: 0; line-height: 1;">${mod.icon}</div>
+                    </div>
+                    <div class="pres-card-body">
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Pages Done</div>
+                            <div class="pres-kpi-val" style="color: var(--color-done)">${donePages} / ${totalPages}</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Days Required</div>
+                            <div class="pres-kpi-val" style="color: #4f46e5">${mod.timeNeeded || 'NA'}</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Internal Reviews</div>
+                            <div class="pres-kpi-val">${internalPts} pts (${internalStatus})</div>
+                        </div>
+                        <div class="pres-kpi-item">
+                            <div class="pres-kpi-label">Client Reviews</div>
+                            <div class="pres-kpi-val">${clientPts} pts (${clientStatus})</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.72rem; color: var(--text-secondary); font-weight:600;">
+                            <span>Dynamic Development</span>
+                            <span>${progress}%</span>
+                        </div>
+                        <div class="progress-bar" style="height: 5px;">
+                            <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+    } else {
+        const mod = MODULES[MODULE_ORDER[currentSlideIndex - 1]];
+        if (!mod) return;
+
+        const totalPages = countPages(mod);
+        const donePages = countDonePages(mod);
+        const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+
+        const trackerSteps = [
+            'Requirement Gathering',
+            'Static screens',
+            'Dynamic Development',
+            'Internal review',
+            'Client review',
+            'QA',
+            'Final Review',
+            'Security implementation',
+            'UAT',
+            'Go Live'
+        ];
+
+        let lastDoneIndex = -1;
+        const stepsStatus = trackerSteps.map((step, sIdx) => {
+            const status = getStepStatus(mod, step);
+            if (status === 'done') {
+                lastDoneIndex = sIdx;
+            }
+            return status;
+        });
+
+        const fillPercent = trackerSteps.length > 1 ? (Math.max(0, lastDoneIndex) / (trackerSteps.length - 1)) * 100 : 0;
+
+        let html = `
+            <div class="landing-hero" style="padding: 1rem 0 1.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h2 class="hero-title" style="font-size: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 44px; height: 44px; font-size: 1.4rem; margin: 0; display: inline-flex; line-height: 1;">${mod.icon}</span>
+                        ${mod.name} Status
+                    </h2>
+                    <p class="hero-subtitle">Detailed engineering milestone tracker and page checklist</p>
+                </div>
+                <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); background: var(--bg-glass); border: 1px solid var(--border-subtle); padding: 0.4rem 1rem; border-radius: var(--radius-md);">
+                    Estimate: <span style="color: ${mod.color}">${mod.timeNeeded || 'NA'}</span>
+                </div>
+            </div>
+
+            <!-- Horizontal Step Tracker -->
+            <div class="tracker-container">
+                <div class="tracker-wrapper">
+                    <div class="tracker-line">
+                        <div class="tracker-line-fill" style="width: ${fillPercent}%; background: ${mod.color};"></div>
+                    </div>
+                    ${trackerSteps.map((step, sIdx) => {
+                        const status = stepsStatus[sIdx];
+                        let icon = sIdx + 1;
+                        if (status === 'done') icon = '✓';
+                        else if (status === 'in-progress') icon = '◐';
+
+                        return `
+                            <div class="tracker-step ${status}">
+                                <div class="tracker-dot" style="
+                                    ${status === 'done' ? `border-color: ${mod.color}; background: ${mod.color}12; color: ${mod.color};` : ''}
+                                    ${status === 'in-progress' ? `border-color: var(--color-progress); background: var(--color-progress-bg); color: var(--color-progress); box-shadow: 0 0 10px var(--color-progress-bg);` : ''}
+                                ">
+                                    ${icon}
+                                </div>
+                                <div class="tracker-label" style="
+                                    ${status === 'done' ? 'color: var(--text-primary); font-weight: 700;' : ''}
+                                    ${status === 'in-progress' ? 'color: var(--color-progress); font-weight: 700;' : ''}
+                                ">
+                                    ${step}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Slide detail content -->
+            <div class="slide-details-grid">
+                <!-- Left panel: Remarks and Page list -->
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <!-- Remarks card -->
+                    <div class="alert-card alert-info" style="margin: 0;">
+                        <div class="alert-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            Remarks / Highlights
+                        </div>
+                        <div class="alert-body">${mod.remark ? mod.remark.replace(/\n/g, '<br>') : 'No remarks or blocker items registered.'}</div>
+                    </div>
+
+                    <!-- User type page list -->
+                    <div class="user-types-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        ${mod.userTypes.map(ut => {
+                            const utProgress = calculateUserTypeProgress(ut);
+                            const timeStr = ut.timeNeeded && ut.timeNeeded !== '-' && ut.timeNeeded !== 'NA' ? ` • ${ut.timeNeeded}` : '';
+                            return `
+                                <div class="user-type-group" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 1.5rem; margin: 0;">
+                                    <div class="user-type-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <div class="user-type-icon" style="background: ${mod.color}15; color: ${mod.color}; font-weight: 700; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                                ${getInitials(ut.name)}
+                                            </div>
+                                            <div>
+                                                <div class="user-type-name" style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${ut.name}</div>
+                                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">${utProgress.done} / ${utProgress.total} pages completed ${timeStr}</div>
+                                            </div>
+                                        </div>
+                                        <span class="status-badge" style="background: ${utProgress.percent === 100 ? 'var(--color-done-bg); color: var(--color-done);' : 'var(--color-progress-bg); color: var(--color-progress);'}">
+                                            ${utProgress.percent}%
+                                        </span>
+                                    </div>
+
+                                    ${ut.categories.map(cat => `
+                                        <div class="category-group" style="margin-bottom: 1rem;">
+                                            <div class="category-label" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; letter-spacing: 0.05em;">${cat.name}</div>
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Page Name</th>
+                                                        <th class="text-center" style="width: 150px;">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${cat.pages.map(p => `
+                                                        <tr>
+                                                            <td style="font-weight: 500; color: var(--text-primary);">${p.name}</td>
+                                                            <td class="text-center">${getStatusBadge(p.dynamicDev)}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <!-- Right panel: Metadata & Docs -->
+                <div style="display:flex; flex-direction:column; gap:1.25rem;">
+                    <!-- Documentation card -->
+                    <div class="info-card" style="margin: 0; height: auto;">
+                        <div class="ic-header">
+                            <div class="ic-icon" style="background: rgba(16,185,129,0.12); color: #34d399">📝</div>
+                            <div class="ic-title">Documentation Status</div>
+                        </div>
+                        <div class="ic-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="label">Process Flow</span>
+                                ${getStatusBadge(mod.documentation.processFlow)}
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="label">User Manual</span>
+                                ${getStatusBadge(mod.documentation.userManual)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Team card -->
+                    <div class="info-card" style="margin: 0; height: auto;">
+                        <div class="ic-header">
+                            <div class="ic-icon" style="background: rgba(99,102,241,0.12); color: #818cf8">👥</div>
+                            <div class="ic-title">Development Team</div>
+                        </div>
+                        <div class="ic-body">
+                            <div class="team-avatars" style="margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                                ${mod.team.map(name => `
+                                    <div style="display:flex; align-items:center; gap:0.5rem; width: 100%; margin-bottom: 0.4rem;">
+                                        <div class="team-avatar" style="background: ${getAvatarColor(name)}; width: 28px; height: 28px; font-size: 0.75rem; margin: 0;">${getInitials(name)}</div>
+                                        <span style="font-size:0.85rem; font-weight:500; color: var(--text-primary);">${name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${mod.team.length === 0 ? '<span style="font-size:0.85rem;color:var(--text-muted)">No developers assigned</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+}
 
 </script>
 </body>
