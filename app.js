@@ -2386,6 +2386,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLanding();
     renderHeaderStats();
     initUploadListeners();
+    // Auto-start in presentation mode
+    togglePresentationMode();
 });
 
 // ============================================
