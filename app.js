@@ -2606,36 +2606,36 @@ function renderSlide() {
             const clientStatus = getClientReviewStatus(mod);
 
             html += `
-                <div class="pres-card" onclick="goToSlide(${idx + 1})" style="border-left: 4px solid ${mod.color}">
-                    <div class="pres-card-header">
-                        <div class="pres-card-title">${mod.name}</div>
-                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 32px; height: 32px; font-size: 1rem; margin: 0; line-height: 1;">${mod.icon}</div>
+                <div class="new-pres-card" onclick="goToSlide(${idx + 1})" style="border-left: 5px solid ${mod.color}">
+                    <div class="pres-card-header" style="border: none; padding-bottom: 0;">
+                        <div class="pres-card-title" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">${mod.name}</div>
+                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 36px; height: 36px; font-size: 1.1rem; margin: 0; line-height: 1;">${mod.icon}</div>
                     </div>
-                    <div class="pres-card-body">
-                        <div class="pres-kpi-item">
-                            <div class="pres-kpi-label">Pages Done</div>
-                            <div class="pres-kpi-val" style="color: var(--color-done)">${donePages} / ${totalPages}</div>
+                    <div class="new-pres-card-grid">
+                        <div class="new-kpi-box">
+                            <div class="new-kpi-label">PAGES DONE</div>
+                            <div class="new-kpi-val" style="color: var(--color-done)">${donePages} / ${totalPages}</div>
                         </div>
-                        <div class="pres-kpi-item">
-                            <div class="pres-kpi-label">Days Required</div>
-                            <div class="pres-kpi-val" style="color: #4f46e5">${mod.timeNeeded || 'NA'}</div>
+                        <div class="new-kpi-box">
+                            <div class="new-kpi-label">DAYS REQUIRED</div>
+                            <div class="new-kpi-val" style="color: #4f46e5">${mod.timeNeeded || 'NA'}</div>
                         </div>
-                        <div class="pres-kpi-item">
-                            <div class="pres-kpi-label">Internal Reviews</div>
-                            <div class="pres-kpi-val">${internalPts} pts (${internalStatus})</div>
+                        <div class="new-kpi-box">
+                            <div class="new-kpi-label">INTERNAL REVIEWS</div>
+                            <div class="new-kpi-val" style="color: var(--text-primary)">${internalPts} pts (${internalStatus})</div>
                         </div>
-                        <div class="pres-kpi-item">
-                            <div class="pres-kpi-label">Client Reviews</div>
-                            <div class="pres-kpi-val">${clientPts} pts (${clientStatus})</div>
+                        <div class="new-kpi-box">
+                            <div class="new-kpi-label">CLIENT REVIEWS</div>
+                            <div class="new-kpi-val" style="color: var(--text-primary)">${clientPts} pts (${clientStatus})</div>
                         </div>
                     </div>
-                    <div style="margin-top: 0.5rem;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.72rem; color: var(--text-secondary); font-weight:600;">
+                    <div class="new-pres-progress-container">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--text-secondary); font-weight:700;">
                             <span>Dynamic Development</span>
                             <span>${progress}%</span>
                         </div>
-                        <div class="progress-bar" style="height: 5px;">
-                            <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                        <div class="progress-bar" style="height: 4px; background: rgba(0,0,0,0.06);">
+                            <div class="progress-fill" style="width: ${progress}%; background: ${mod.color}"></div>
                         </div>
                     </div>
                 </div>

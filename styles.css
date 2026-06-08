@@ -2059,10 +2059,20 @@ body {
    TEAM REVIEW STYLES
    ========================================= */
 .dev-review-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
     gap: 1rem;
     padding-bottom: 2rem;
+    /* Hide scrollbar for cleaner look if preferred, but keep it functional */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-progress) transparent;
+}
+
+/* Ensure child elements (cards) don't shrink and maintain a specific width */
+.dev-review-grid > * {
+    flex: 0 0 340px;
 }
 
 .dev-review-card {
@@ -2257,4 +2267,56 @@ body {
     .dev-review-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* =========================================
+   REDESIGNED OVERVIEW CARDS (SLIDE 1)
+   ========================================= */
+.new-pres-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.2rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+.new-pres-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.new-pres-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+.new-kpi-box {
+    background: rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.dark-mode .new-kpi-box {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.05);
+}
+.new-kpi-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.new-kpi-val {
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+.new-pres-progress-container {
+    margin-top: 0.25rem;
 }
