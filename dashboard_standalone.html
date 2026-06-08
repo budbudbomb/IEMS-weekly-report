@@ -5320,6 +5320,16 @@ function renderSlide() {
                             </div>
                         </div>
                     </div>
+                    <!-- Dependencies card -->
+                    <div class="info-card" style="margin: 0; height: auto;">
+                        <div class="ic-header">
+                            <div class="ic-icon" style="background: rgba(239,68,68,0.12); color: #ef4444">⚠️</div>
+                            <div class="ic-title">Dependencies & Blockers</div>
+                        </div>
+                        <div class="ic-body" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+                            ${mod.dependency && mod.dependency !== '-' ? mod.dependency.replace(/\n/g, '<br>') : '<span style="font-style: italic; opacity: 0.8;">No active dependencies or blockers.</span>'}
+                        </div>
+                    </div>
 
                     <!-- Team card -->
                     <div class="info-card" style="margin: 0; height: auto;">
