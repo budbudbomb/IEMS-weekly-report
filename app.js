@@ -781,83 +781,71 @@ const TEAM_REVIEW_DATA = [
         developer: 'Ashmit',
         l1Review: 'Done',
         l2Ind: '2/2',
-        l2Team: '',
-        unitTesting: '5/5',
+        unitTesting: '4/5',
         coordination: '5/5',
         ownership: '5/5',
         accountability: '5/5',
         taskFilled: '19/21',
-        quality: 'On point',
         utilization: '90%',
-        remark: "There were a couple of days when the dev's utilization was not 100% as only simple review points were being implemented in Samadhan. However, now with Sugamta, the Dev has clear requirements to stay completely occupied for at least 2 weeks."
+        remark: "There were a couple of days when the dev's utilization was not 100% as only simple review points were being implemented in Samadhan. However, now with Sugamta, the he has clear requirements to stay completely occupied for at least 2 weeks."
     },
     {
         developer: 'Jay malviya',
         l1Review: 'Done',
         l2Ind: '2/2',
-        l2Team: '1/2',
-        unitTesting: '5/5',
+        unitTesting: '4/5',
         coordination: '5/5',
         ownership: '5/5',
         accountability: '5/5',
         taskFilled: '19/21',
-        quality: 'On point',
         utilization: '90%',
-        remark: 'There were a couple of days before I personally started reviewed Preksha, there was not sufficient work to keep him completely occupied. Would like to highlight that during that time Jay voluntarily went for the L2 review. Now with the new requirement of "Candidate\'s" expenditure, he\'ll be entirely occupied for at least 8-10 days'
+        remark: 'There were a couple of days before I personally started reviewed Preksha, there was not sufficient work to keep him completely occupied. However, I would like to highlight that during that time Jay voluntarily went for the L2 review. Now with the new requirement of "Candidate\'s" expenditure, he\'ll be entirely occupied for at least 8-10 days. Another, plus point with him is that he\'s willing to understand the entire flow of the module rather than just focusing on the assigned pages'
     },
     {
         developer: 'Kapil Nagar',
         l1Review: 'Done',
         l2Ind: '1/2',
-        l2Team: '',
         unitTesting: '5/5',
         coordination: '5/5',
         ownership: '5/5',
         accountability: '5/5',
         taskFilled: '17/19',
-        quality: 'On point',
         utilization: '100%',
-        remark: ''
+        remark: 'It\'s worth pointing out that in order to simplify the Candidate\'s form in "Expenditure" module - Kapil went out of his way to create a version all by himself without any help.'
     },
     {
         developer: 'Nayan Lakhra',
         l1Review: 'Done',
         l2Ind: '0/2',
-        l2Team: '',
         unitTesting: '-',
-        coordination: '5/5',
-        ownership: '5/5',
-        accountability: '5/5',
+        coordination: '-',
+        ownership: '-',
+        accountability: '-',
         taskFilled: '1/1',
-        quality: 'On point',
         utilization: '100%',
-        remark: ''
+        remark: "Recently joined the IEMS team. So far all good with him. Need to spend more time with him in order to leave a remark. L2 review doesn't apply for him in IEMS project"
     },
     {
         developer: 'Arjun Kushwah',
         l1Review: 'Done',
         l2Ind: '1/2',
-        l2Team: '',
         unitTesting: '3/5',
         coordination: '5/5',
         ownership: '5/5',
         accountability: '5/5',
         taskFilled: '20/21',
-        quality: 'On point',
         utilization: '100%',
-        remark: ''
+        remark: 'Quick exection but can improve on Unit testing'
     },
     {
         developer: 'Mahaveer Sisodiya',
         l1Review: 'Done',
         l2Ind: '1/2',
-        l2Team: '',
         unitTesting: '5/5',
         coordination: '5/5',
         ownership: '5/5',
         accountability: '5/5',
         taskFilled: '16/17',
-        quality: 'On point',
         utilization: '100%',
         remark: 'Was on leave until 10th'
     }
@@ -1119,10 +1107,9 @@ function renderTeamReview(targetId = 'team-page-content') {
         let initials = getInitials(dev.developer);
         
         let unitTestColor = dev.unitTesting === '5/5' ? 'var(--color-done)' : (dev.unitTesting === '-' ? 'var(--text-muted)' : 'var(--color-progress)');
-        let coordColor = dev.coordination === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
-        let ownColor = dev.ownership === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
-        let accColor = dev.accountability === '5/5' ? 'var(--color-done)' : 'var(--color-progress)';
-        let qualColor = dev.quality === 'On point' ? 'var(--color-done)' : 'var(--color-progress)';
+        let coordColor = dev.coordination === '5/5' ? 'var(--color-done)' : (dev.coordination === '-' ? 'var(--text-muted)' : 'var(--color-progress)');
+        let ownColor = dev.ownership === '5/5' ? 'var(--color-done)' : (dev.ownership === '-' ? 'var(--text-muted)' : 'var(--color-progress)');
+        let accColor = dev.accountability === '5/5' ? 'var(--color-done)' : (dev.accountability === '-' ? 'var(--text-muted)' : 'var(--color-progress)');
         
         // Parse tasks "19/21" -> progress bar
         let taskProgress = 0;
@@ -1151,7 +1138,7 @@ function renderTeamReview(targetId = 'team-page-content') {
                 </div>
             </div>
             
-            <div class="dev-metrics-grid">
+            <div class="dev-metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
                 <div class="dev-metric">
                     <span class="m-label">L1 Review</span>
                     <span class="m-val ${dev.l1Review === 'Done' ? 'm-done' : ''}">${dev.l1Review || '-'}</span>
@@ -1159,14 +1146,6 @@ function renderTeamReview(targetId = 'team-page-content') {
                 <div class="dev-metric">
                     <span class="m-label">L2 Individual</span>
                     <span class="m-val">${dev.l2Ind || '-'}</span>
-                </div>
-                <div class="dev-metric">
-                    <span class="m-label">L2 Team</span>
-                    <span class="m-val">${dev.l2Team || '-'}</span>
-                </div>
-                <div class="dev-metric">
-                    <span class="m-label">Quality of Tasks</span>
-                    <span class="m-val" style="color: ${qualColor}">${dev.quality || '-'}</span>
                 </div>
             </div>
             
@@ -1216,6 +1195,18 @@ function renderTeamReview(targetId = 'team-page-content') {
     });
     
     html += '</div>';
+
+    // Append Personal Footnote about Task Quality / API checking
+    html += `
+    <div style="max-width: 1200px; margin: 2rem auto 0; padding: 1.25rem 1.5rem; border-radius: 8px; background: rgba(0,0,0,0.02); border-left: 4px solid var(--border-subtle);">
+        <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin: 0; font-style: italic;">
+            Regarding the "Quality of the tasks filled" I don't think I'm best fit when it comes to understand the technical explanations mentioned in the "remark" in the portal. 
+            The best I can do is to ensure is ask the developers to share a screenshot of the frontend so that I can verify the changes/additions done. 
+            For the Backend, "Akash" once mentioned a tool that can check if APIs are working as per the task assigned or not.
+        </p>
+    </div>
+    `;
+
     container.innerHTML = html;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
