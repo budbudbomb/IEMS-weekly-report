@@ -40,26 +40,26 @@ const JUNE_COMMITMENTS = [
     {
         moduleId: 'ipbms',
         goals: [
-            'Blocker : Secure a sample of the hardware asap and start testing',
-            'Client review : Present the module to Priyanka ma\\'am by wednesday and get her approval',
-            'QA : Start by Monday coming week',
-            'Database Audit : By coming week',
-            'Security Audit : Once the Hardware testing is done',
-            'UAT : As soon as client reviews are implemented and approved'
+            "Blocker : Secure a sample of the hardware asap and start testing",
+            "Client review : Present the module to Priyanka ma'am by wednesday and get her approval",
+            "QA : Start by Monday coming week",
+            "Database Audit : By coming week",
+            "Security Audit : Once the Hardware testing is done",
+            "UAT : As soon as client reviews are implemented and approved"
         ]
     },
     {
         moduleId: 'sugamta',
         goals: [
-            'Dependency : Secure APIs to fetch Sector-Polling booth mapping data',
-            'Requirement gathering : Aiming to to be done by Friday this week',
-            'Static screens : Get Shakya sir\\'s review on Static screens and check with him about presenting to the DEOs',
-            'Dynamic development : Aiming to be done by Monday last week of June',
-            'Internal and Client reviews : Aiming to be done by the end of the last week of June',
-            'QA : Aiming to be done by the Monday 2nd week of July',
-            'Database Audit : Aiming to be done by last week of June',
-            'Security Audit : Aiming to be done by 2nd week of July',
-            'UAT : As soon as client reviews are implemented and approved'
+            "Dependency : Secure APIs to fetch Sector-Polling booth mapping data",
+            "Requirement gathering : Aiming to to be done by Friday this week",
+            "Static screens : Get Shakya sir's review on Static screens and check with him about presenting to the DEOs",
+            "Dynamic development : Aiming to be done by Monday last week of June",
+            "Internal and Client reviews : Aiming to be done by the end of the last week of June",
+            "QA : Aiming to be done by the Monday 2nd week of July",
+            "Database Audit : Aiming to be done by last week of June",
+            "Security Audit : Aiming to be done by 2nd week of July",
+            "UAT : As soon as client reviews are implemented and approved"
         ]
     },
     {
