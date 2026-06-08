@@ -1554,7 +1554,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
         finalStatus: 'In progress',
-        businessDevelopment: '',
+        remark: '',
         dependency: '',
         clientReviewPoints: [],
         documentation: { processFlow: 'Done', userManual: 'Done', conceptNote: '-' },
@@ -1771,7 +1771,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Approved' },
         finalStatus: 'In progress',
-        businessDevelopment: 'Malviya sir reviewed it once, gave some changes which were implemented. But he doesn\'t give any formal approval. Pradeep sir has approved it. He asked to show it to Sanju ma\'am but Sanju ma\'am said that she has no knowledge of this domain',
+        remark: 'Malviya sir reviewed it once, gave some changes which were implemented. But he doesn\'t give any formal approval. Pradeep sir has approved it. He asked to show it to Sanju ma\'am but Sanju ma\'am said that she has no knowledge of this domain',
         dependency: '',
         clientReviewPoints: [],
         documentation: { processFlow: 'Done', userManual: 'Done', conceptNote: '-' },
@@ -1871,7 +1871,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: '-', presentation: '-', status: '-' },
         finalStatus: 'In Progress',
-        businessDevelopment: 'All approved from Pradeep sir. He asked to show it to Sanju ma\'am (given that she\'s the IT head) or Shrivastava sir',
+        remark: 'All approved from Pradeep sir. He asked to show it to Sanju ma\'am (given that she\'s the IT head) or Shrivastava sir',
         dependency: '',
         clientReviewPoints: [],
         documentation: { processFlow: 'Partial', userManual: 'Partial', conceptNote: '-' },
@@ -1985,7 +1985,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
         staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'Done' },
         finalStatus: 'In progress',
-        businessDevelopment: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
+        remark: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
         dependency: 'Dependency\nAPIs to fetch Polling booth info Sector wise:\n- Polling booth name\n- Polling booth number\n- Polling booth sthan/Bhawan',
         clientReviewPoints: [],
         documentation: { processFlow: 'In progress', userManual: '-', conceptNote: '-' },
@@ -2082,7 +2082,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
         finalStatus: 'In progress',
-        businessDevelopment: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module',
+        remark: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module',
         dependency: 'Dependency: Securing a sample of the device and testing it.\n\nPriyanka ji said, that Utkarsh sir should convey to Sanju ma\'am that dept will need to purchase 1 sample for quick development of the module.',
         clientReviewPoints: [
             '✓ "Matdan Khojein" shouldn\'t be clickable until "Matdan ke dauran ki jankariyan" is filled (Done)',
@@ -2183,7 +2183,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Reviewed internally' },
         finalStatus: 'In progress',
-        businessDevelopment: 'Got the requirement from Mukul Gupta (DySecretary). The app needs to go live by Monday',
+        remark: 'Got the requirement from Mukul Gupta (DySecretary). The app needs to go live by Monday',
         dependency: '',
         clientReviewPoints: [],
         documentation: { processFlow: '-', userManual: '-', conceptNote: '-' },
@@ -2416,10 +2416,10 @@ function renderLanding() {
                 </div>
             </div>
             <div class="card-progress">
-                ${mod.id === 'expenditure' ? mod.userTypes.map(ut => {
+                ${mod.userTypes.map((ut, idx) => {
                     const utProgress = calculateUserTypeProgress(ut);
                     return `
-                        <div class="user-type-progress-item" style="margin-bottom: 0.6rem;">
+                        <div class="user-type-progress-item" style="margin-bottom: ${idx === mod.userTypes.length - 1 ? '0' : '0.6rem'};">
                             <div class="progress-bar" style="height: 5px;">
                                 <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
                             </div>
@@ -2429,15 +2429,7 @@ function renderLanding() {
                             </div>
                         </div>
                     `;
-                }).join('') : `
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progress}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
-                    </div>
-                    <div class="progress-label">
-                        <span>Development Progress</span>
-                        <span>${progress}%</span>
-                    </div>
-                `}
+                }).join('')}
             </div>
             <div class="card-footer">
                 <div class="team-avatars">
@@ -2625,23 +2617,19 @@ function renderOverview(container) {
             </div>
             <div class="ic-body">
                 ${mod.userTypes.map(ut => {
-                    const pageCount = ut.categories.reduce((sum, cat) => sum + cat.pages.length, 0);
-                    if (mod.id === 'expenditure') {
-                        const utProgress = calculateUserTypeProgress(ut);
-                        return `
-                            <div style="margin-bottom: 0.8rem;">
-                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.8rem;">
-                                    <span>${ut.name}</span>
-                                    <span class="label" style="font-weight: 500;">${utProgress.percent}% (${utProgress.done}/${utProgress.total} done)</span>
-                                </div>
-                                <div class="progress-bar" style="height: 4px; background: rgba(255, 255, 255, 0.04);">
-                                    <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
-                                </div>
+                    const utProgress = calculateUserTypeProgress(ut);
+                    const timeStr = ut.timeNeeded && ut.timeNeeded !== '-' && ut.timeNeeded !== 'NA' ? ` • ${ut.timeNeeded}` : '';
+                    return `
+                        <div style="margin-bottom: 0.8rem;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 0.25rem; font-size: 0.8rem;">
+                                <span>${ut.name}<span style="color:var(--text-muted); font-size:0.75rem;">${timeStr}</span></span>
+                                <span class="label" style="font-weight: 500;">${utProgress.percent}% (${utProgress.done}/${utProgress.total} done)</span>
                             </div>
-                        `;
-                    } else {
-                        return `<p style="display:flex;justify-content:space-between"><span>${ut.name}</span><span class="label">${pageCount} pages</span></p>`;
-                    }
+                            <div class="progress-bar" style="height: 4px; background: rgba(255, 255, 255, 0.04);">
+                                <div class="progress-fill" style="width: ${utProgress.percent}%; background: linear-gradient(90deg, ${mod.color}, ${mod.color}99)"></div>
+                            </div>
+                        </div>
+                    `;
                 }).join('')}
             </div>
         </div>
@@ -2649,15 +2637,15 @@ function renderOverview(container) {
 
     html += `</div>`;
 
-    // Business Development
-    if (mod.businessDevelopment) {
+    // Remarks
+    if (mod.remark) {
         html += `
             <div class="alert-card alert-info" style="margin-bottom:1rem">
                 <div class="alert-title">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                    Business Development
+                    Remarks
                 </div>
-                <div class="alert-body">${mod.businessDevelopment.replace(/\n/g, '<br>')}</div>
+                <div class="alert-body">${mod.remark.replace(/\n/g, '<br>')}</div>
             </div>
         `;
     }
@@ -2671,44 +2659,6 @@ function renderOverview(container) {
                     Dependency / Blocker
                 </div>
                 <div class="alert-body">${mod.dependency.replace(/\n/g, '<br>')}</div>
-            </div>
-        `;
-    }
-
-    // Per User-Type Static Screens (if they differ)
-    const hasUserTypeInfo = mod.userTypes.some(ut => ut.staticScreens || ut.reqGathering);
-    if (hasUserTypeInfo) {
-        html += `
-            <div class="section-header" style="margin-top:1rem">
-                <div class="section-icon">📊</div>
-                <div>
-                    <div class="section-title">Per User-Type Overview</div>
-                    <div class="section-subtitle">Requirement gathering and static screen status by user type</div>
-                </div>
-            </div>
-            <div class="table-section">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>User Type</th>
-                            <th class="text-center col-status">Req. Gathering</th>
-                            <th class="text-center col-status">Static Creation</th>
-                            <th class="text-center col-status">Static Presentation</th>
-                            <th class="text-center col-status">Static Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${mod.userTypes.filter(ut => ut.staticScreens || ut.reqGathering).map(ut => `
-                            <tr>
-                                <td>${ut.name}</td>
-                                <td class="text-center col-status">${getStatusBadge(ut.reqGathering || mod.requirementGathering)}</td>
-                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.creation : mod.staticScreens.creation)}</td>
-                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.presentation : mod.staticScreens.presentation)}</td>
-                                <td class="text-center col-status">${getStatusBadge(ut.staticScreens ? ut.staticScreens.status : mod.staticScreens.status)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
             </div>
         `;
     }
@@ -3294,6 +3244,24 @@ function isCategoryHeader(row, colIdx) {
     if (!pageVal) return false;
     
     const devVal = (row[colIdx.dynamicDev] || '').toString().trim();
+    const isEmptyOrHyphen = (val) => val === '' || val === '-';
+    
+    // Precise check for category names
+    const pName = pageVal.toLowerCase();
+    const categories = [
+        'profile', 'main pages', 'reports', 'other pages', 'dashboard & management',
+        'route planning', 'vehicle requisition', 'vehicle management', 'scanning',
+        'registration', 'complaint management', 'user management', 'application & reports',
+        'core'
+    ];
+    if (categories.some(cat => pName === cat || pName.startsWith(cat))) {
+        // If it has development status, it's an actual page row, not a header
+        if (!isEmptyOrHyphen(devVal)) {
+            return false;
+        }
+        return true;
+    }
+    
     const intRevVal = (row[colIdx.internalReviewReview] || '').toString().trim();
     const intStatusVal = (row[colIdx.internalReviewStatus] || '').toString().trim();
     const cliRevVal = (row[colIdx.clientReviewReview] || '').toString().trim();
@@ -3301,8 +3269,6 @@ function isCategoryHeader(row, colIdx) {
     
     const reqVal = (row[colIdx.reqGathering] || '').toString().trim();
     const finalVal = (row[colIdx.finalStatus] || '').toString().trim();
-    
-    const isEmptyOrHyphen = (val) => val === '' || val === '-';
     
     // Category headers are typically blank in almost all other fields
     if (isEmptyOrHyphen(devVal) && isEmptyOrHyphen(intRevVal) && isEmptyOrHyphen(intStatusVal) && 
@@ -3312,6 +3278,27 @@ function isCategoryHeader(row, colIdx) {
     }
     
     return false;
+}
+
+function parseTimeToDays(str) {
+    if (!str) return [0, 0];
+    const s = str.toString().toLowerCase().trim();
+    const clean = s.replace(/[^a-z]/g, '');
+    if (clean === '' || clean === 'na' || clean === 'none' || clean === 'notapplicable' || clean === 'notavailable') {
+        return [0, 0];
+    }
+    const matches = s.match(/\d+/g);
+    if (!matches || matches.length === 0) {
+        return [0, 0];
+    }
+    if (matches.length >= 2) {
+        const min = parseInt(matches[0], 10);
+        const max = parseInt(matches[1], 10);
+        return [min, max];
+    } else {
+        const val = parseInt(matches[0], 10);
+        return [val, val];
+    }
 }
 
 // Excel data parser
@@ -3357,7 +3344,7 @@ function parseExcelToModules(workbook) {
         crClientReview: 14,
         crApproval: 15,
         finalStatus: 16,
-        businessDevelopment: 17,
+        remark: 17,
         dependency: 18,
         docProcessFlow: 19,
         docUserManual: 20,
@@ -3368,23 +3355,30 @@ function parseExcelToModules(workbook) {
     // Generate combined headers to handle multi-row and merged group headers
     const row1 = rows[headerRowIndex] || [];
     const row2 = rows[headerRowIndex + 1] || [];
+    const row3 = rows[headerRowIndex + 2] || [];
     const combinedHeaders = [];
-    const maxCols = Math.max(row1.length, row2.length);
+    const maxCols = Math.max(row1.length, row2.length, row3.length);
     
-    let currentGroupHeader = '';
+    let group1 = '';
+    let group2 = '';
     for (let c = 0; c < maxCols; c++) {
         const val1 = (row1[c] || '').toString().trim();
         if (val1 !== '') {
-            currentGroupHeader = val1;
+            group1 = val1;
+            group2 = ''; // Reset group2 when a new group1 starts
         }
         const val2 = (row2[c] || '').toString().trim();
-        
-        // Combine group header (from row 1) and sub-header (from row 2)
-        let combined = currentGroupHeader;
-        if (val2 !== '' && val2.toLowerCase() !== currentGroupHeader.toLowerCase()) {
-            combined += ' ' + val2;
+        if (val2 !== '') {
+            group2 = val2;
         }
-        combinedHeaders.push(combined.toLowerCase().trim());
+        const val3 = (row3[c] || '').toString().trim();
+        
+        let parts = [];
+        if (group1) parts.push(group1);
+        if (group2 && group2.toLowerCase() !== group1.toLowerCase()) parts.push(group2);
+        if (val3 && val3.toLowerCase() !== (group2 || group1).toLowerCase()) parts.push(val3);
+        
+        combinedHeaders.push(parts.join(' ').toLowerCase().trim());
     }
 
     // Attempt to map headers based on keywords
@@ -3392,21 +3386,21 @@ function parseExcelToModules(workbook) {
         if (s.includes('module')) colIdx.module = idx;
         else if (s.includes('user type') || s.includes('usertype')) colIdx.userType = idx;
         else if (s === 'pages' || s === 'page' || s.includes('page name')) colIdx.pages = idx;
-        else if (s.includes('requirement') || s.includes('requiemernt')) colIdx.reqGathering = idx;
+        else if ((s.includes('requirement') || s.includes('requiement') || s.includes('requiemernt')) && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.reqGathering = idx;
         else if (s.includes('static') && s.includes('creation')) colIdx.staticScreensCreation = idx;
         else if (s.includes('static') && s.includes('presentation')) colIdx.staticScreensPresentation = idx;
         else if (s.includes('static') && s.includes('status')) colIdx.staticScreensStatus = idx;
-        else if (s.includes('dynamic')) colIdx.dynamicDev = idx;
-        else if (s.includes('internal') && s.includes('review') && !s.includes('status')) colIdx.internalReviewReview = idx;
-        else if (s.includes('internal') && s.includes('status')) colIdx.internalReviewStatus = idx;
-        else if (s.includes('client') && s.includes('review') && !s.includes('status')) colIdx.clientReviewReview = idx;
-        else if (s.includes('client') && s.includes('status')) colIdx.clientReviewStatus = idx;
+        else if (s.includes('dynamic') && !s.includes('status') && !s.includes('review') && !s.includes('detail') && !s.includes('approval') && !s.includes('cr')) colIdx.dynamicDev = idx;
+        else if (s.includes('internal') && s.includes('review') && !s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.internalReviewReview = idx;
+        else if (s.includes('internal') && s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.internalReviewStatus = idx;
+        else if (s.includes('client') && s.includes('review') && !s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.clientReviewReview = idx;
+        else if (s.includes('client') && s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.clientReviewStatus = idx;
         else if (s.includes('cr') && s.includes('detail')) colIdx.crDetails = idx;
         else if (s.includes('cr') && s.includes('dev')) colIdx.crDevStatus = idx;
         else if (s.includes('cr') && s.includes('client')) colIdx.crClientReview = idx;
         else if (s.includes('cr') && s.includes('approval')) colIdx.crApproval = idx;
         else if (s.includes('final') && s.includes('status')) colIdx.finalStatus = idx;
-        else if (s.includes('business') || s.includes('bd') || s.includes('biz')) colIdx.businessDevelopment = idx;
+        else if (s.includes('remark')) colIdx.remark = idx;
         else if (s.includes('dependency') || s.includes('blocker')) colIdx.dependency = idx;
         else if (s.includes('process') && s.includes('flow')) colIdx.docProcessFlow = idx;
         else if (s.includes('user') && s.includes('manual')) colIdx.docUserManual = idx;
@@ -3415,7 +3409,7 @@ function parseExcelToModules(workbook) {
     });
 
     const parsedModules = {};
-    const dataStartRowIndex = headerRowIndex + 1;
+    const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
     let currentUserTypeName = '';
     let currentCategoryName = 'General';
@@ -3428,6 +3422,7 @@ function parseExcelToModules(workbook) {
         // Merged cells carrying forward values
         const moduleVal = row[colIdx.module];
         const userTypeVal = row[colIdx.userType];
+        const pageVal = row[colIdx.pages];
 
         if (moduleVal && moduleVal.toString().trim() !== '') {
             currentModuleName = moduleVal.toString().trim();
@@ -3435,75 +3430,6 @@ function parseExcelToModules(workbook) {
         if (userTypeVal && userTypeVal.toString().trim() !== '') {
             currentUserTypeName = userTypeVal.toString().trim();
         }
-
-        if (!currentModuleName) {
-            continue;
-        }
-
-        const pageVal = row[colIdx.pages];
-        if (pageVal) {
-            const pageName = pageVal.toString().trim();
-            if (pageName !== '' && pageName.toLowerCase() === 'project setup') {
-                const id = getModuleId(currentModuleName);
-                if (!parsedModules[id]) {
-                    const visuals = getVisuals(id, currentModuleName);
-                    parsedModules[id] = {
-                        id: id,
-                        name: currentModuleName,
-                        icon: visuals.icon,
-                        color: visuals.color,
-                        requirementGathering: row[colIdx.reqGathering] || '-',
-                        staticScreens: {
-                            creation: row[colIdx.staticScreensCreation] || '-',
-                            presentation: row[colIdx.staticScreensPresentation] || '-',
-                            status: row[colIdx.staticScreensStatus] || '-'
-                        },
-                        finalStatus: row[colIdx.finalStatus] || '-',
-                        businessDevelopment: row[colIdx.businessDevelopment] || '',
-                        dependency: row[colIdx.dependency] || '',
-                        clientReviewPoints: (MODULES[id] && MODULES[id].clientReviewPoints) ? [...MODULES[id].clientReviewPoints] : [],
-                        documentation: {
-                            processFlow: row[colIdx.docProcessFlow] || '-',
-                            userManual: row[colIdx.docUserManual] || '-',
-                            conceptNote: '-'
-                        },
-                        team: parseTeam(row[colIdx.team]),
-                        timeNeeded: row[colIdx.timeNeeded] || '',
-                        userTypes: []
-                    };
-                }
-                
-                const mod = parsedModules[id];
-                mod.projectSetup = row[colIdx.dynamicDev] || 'Not started';
-
-                // Update module level fields if they were '-' but now have values
-                if (row[colIdx.reqGathering] && mod.requirementGathering === '-') mod.requirementGathering = row[colIdx.reqGathering];
-                if (row[colIdx.staticScreensCreation] && mod.staticScreens.creation === '-') mod.staticScreens.creation = row[colIdx.staticScreensCreation];
-                if (row[colIdx.staticScreensPresentation] && mod.staticScreens.presentation === '-') mod.staticScreens.presentation = row[colIdx.staticScreensPresentation];
-                if (row[colIdx.staticScreensStatus] && mod.staticScreens.status === '-') mod.staticScreens.status = row[colIdx.staticScreensStatus];
-                if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
-                if (row[colIdx.businessDevelopment] && mod.businessDevelopment === '') mod.businessDevelopment = row[colIdx.businessDevelopment];
-                if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
-                if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
-                if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
-                if (row[colIdx.timeNeeded] && mod.timeNeeded === '') mod.timeNeeded = row[colIdx.timeNeeded];
-
-                const newTeam = parseTeam(row[colIdx.team]);
-                newTeam.forEach(member => {
-                    if (!mod.team.includes(member)) mod.team.push(member);
-                });
-
-                continue;
-            }
-        }
-
-        if (!currentUserTypeName) {
-            continue; // Skip until we have both contexts
-        }
-
-        if (!pageVal) continue;
-        const pageName = pageVal.toString().trim();
-        if (pageName === '') continue;
 
         const id = getModuleId(currentModuleName);
         if (!parsedModules[id]) {
@@ -3520,7 +3446,7 @@ function parseExcelToModules(workbook) {
                     status: row[colIdx.staticScreensStatus] || '-'
                 },
                 finalStatus: row[colIdx.finalStatus] || '-',
-                businessDevelopment: row[colIdx.businessDevelopment] || '',
+                remark: row[colIdx.remark] || '',
                 dependency: row[colIdx.dependency] || '',
                 clientReviewPoints: (MODULES[id] && MODULES[id].clientReviewPoints) ? [...MODULES[id].clientReviewPoints] : [],
                 documentation: {
@@ -3542,7 +3468,7 @@ function parseExcelToModules(workbook) {
         if (row[colIdx.staticScreensPresentation] && mod.staticScreens.presentation === '-') mod.staticScreens.presentation = row[colIdx.staticScreensPresentation];
         if (row[colIdx.staticScreensStatus] && mod.staticScreens.status === '-') mod.staticScreens.status = row[colIdx.staticScreensStatus];
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
-        if (row[colIdx.businessDevelopment] && mod.businessDevelopment === '') mod.businessDevelopment = row[colIdx.businessDevelopment];
+        if (row[colIdx.remark] && mod.remark === '') mod.remark = row[colIdx.remark];
         if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
         if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
         if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
@@ -3553,16 +3479,17 @@ function parseExcelToModules(workbook) {
             if (!mod.team.includes(member)) mod.team.push(member);
         });
 
-        // Reset category if user type changes
-        if (currentUserTypeName !== lastUserTypeName) {
-            currentCategoryName = 'General';
-            lastUserTypeName = currentUserTypeName;
+        // Project setup check
+        if (pageVal) {
+            const pageName = pageVal.toString().trim();
+            if (pageName !== '' && pageName.toLowerCase() === 'project setup') {
+                mod.projectSetup = row[colIdx.dynamicDev] || 'Not started';
+                continue;
+            }
         }
 
-        // Category header detection
-        if (isCategoryHeader(row, colIdx)) {
-            currentCategoryName = pageName;
-            continue;
+        if (!currentUserTypeName) {
+            continue; // Skip until we have both contexts
         }
 
         // Find or create user type
@@ -3576,6 +3503,7 @@ function parseExcelToModules(workbook) {
                     presentation: row[colIdx.staticScreensPresentation] || '-',
                     status: row[colIdx.staticScreensStatus] || '-'
                 },
+                timeNeeded: row[colIdx.timeNeeded] || '-',
                 categories: []
             };
             mod.userTypes.push(ut);
@@ -3584,6 +3512,23 @@ function parseExcelToModules(workbook) {
             if (row[colIdx.staticScreensCreation] && ut.staticScreens.creation === '-') ut.staticScreens.creation = row[colIdx.staticScreensCreation];
             if (row[colIdx.staticScreensPresentation] && ut.staticScreens.presentation === '-') ut.staticScreens.presentation = row[colIdx.staticScreensPresentation];
             if (row[colIdx.staticScreensStatus] && ut.staticScreens.status === '-') ut.staticScreens.status = row[colIdx.staticScreensStatus];
+            if (row[colIdx.timeNeeded] && ut.timeNeeded === '-') ut.timeNeeded = row[colIdx.timeNeeded];
+        }
+
+        // Reset category if user type changes
+        if (currentUserTypeName !== lastUserTypeName) {
+            currentCategoryName = 'General';
+            lastUserTypeName = currentUserTypeName;
+        }
+
+        if (!pageVal) continue;
+        const pageName = pageVal.toString().trim();
+        if (pageName === '') continue;
+
+        // Category header detection
+        if (isCategoryHeader(row, colIdx)) {
+            currentCategoryName = pageName;
+            continue;
         }
 
         // Find or create category in this user type
@@ -3624,11 +3569,37 @@ function parseExcelToModules(workbook) {
         cat.pages.push(page);
     }
 
-    // Filter out empty categories
+    // Filter out empty categories and calculate dynamic timeNeeded sums
     Object.values(parsedModules).forEach(mod => {
         mod.userTypes.forEach(ut => {
             ut.categories = ut.categories.filter(c => c.pages.length > 0);
         });
+
+        // Sum user type time estimations
+        let totalMin = 0;
+        let totalMax = 0;
+        let anyUserTypeTimeSet = false;
+
+        mod.userTypes.forEach(ut => {
+            if (ut.timeNeeded && ut.timeNeeded !== '-') {
+                const [min, max] = parseTimeToDays(ut.timeNeeded);
+                if (min > 0 || max > 0) {
+                    totalMin += min;
+                    totalMax += max;
+                    anyUserTypeTimeSet = true;
+                }
+            }
+        });
+
+        if (anyUserTypeTimeSet) {
+            if (totalMin === totalMax) {
+                mod.timeNeeded = `${totalMin} day${totalMin !== 1 ? 's' : ''}`;
+            } else {
+                mod.timeNeeded = `${totalMin}-${totalMax} days`;
+            }
+        } else if (mod.timeNeeded === '' || mod.timeNeeded === '-') {
+            mod.timeNeeded = 'NA';
+        }
     });
 
     return parsedModules;
