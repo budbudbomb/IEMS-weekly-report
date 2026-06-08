@@ -1100,7 +1100,7 @@ function showTeamReview() {
 function renderTeamReview(targetId = 'team-page-content') {
     const container = document.getElementById(targetId);
     
-    let html = '<div class="dev-review-grid">';
+    let html = '<div class="dev-review-grid" style="padding-bottom: 0.5rem; align-items: stretch;">';
     
     TEAM_REVIEW_DATA.forEach(dev => {
         let avatarColor = getAvatarColor(dev.developer);
@@ -1188,7 +1188,7 @@ function renderTeamReview(targetId = 'team-page-content') {
             
             <div class="dev-remark">
                 <div class="rem-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Remark</div>
-                <div class="rem-body">${dev.remark ? dev.remark : '<em>No remarks provided.</em>'}</div>
+                <div class="rem-body" style="font-size: 0.85rem; line-height: 1.4;">${dev.remark ? dev.remark : '<em>No remarks provided.</em>'}</div>
             </div>
         </div>
         `;
@@ -1198,10 +1198,10 @@ function renderTeamReview(targetId = 'team-page-content') {
 
     // Append Personal Footnote about Task Quality / API checking
     html += `
-    <div style="max-width: 1200px; margin: 2rem auto 0; padding: 1.25rem 1.5rem; border-radius: 8px; background: rgba(0,0,0,0.02); border-left: 4px solid var(--border-subtle);">
-        <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin: 0; font-style: italic;">
-            Regarding the "Quality of the tasks filled" I don't think I'm best fit when it comes to understand the technical explanations mentioned in the "remark" in the portal. 
-            The best I can do is to ensure is ask the developers to share a screenshot of the frontend so that I can verify the changes/additions done. 
+    <div style="max-width: 1200px; margin: 1rem auto 0; padding: 1rem 1.5rem; border-radius: 8px; background: rgba(0,0,0,0.03); border-left: 4px solid var(--border-subtle);">
+        <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0; font-style: italic;">
+            <strong style="color: var(--text-primary);">Note:</strong> Regarding the "Quality of the tasks filled", I don't think I'm best fit when it comes to understanding the technical explanations mentioned in the "remark" in the portal. 
+            The best I can do is ask the developers to share a screenshot of the frontend so that I can verify the changes/additions done. 
             For the Backend, "Akash" once mentioned a tool that can check if APIs are working as per the task assigned or not.
         </p>
     </div>
@@ -2742,7 +2742,7 @@ function renderSlide() {
         container.innerHTML = html;
     } else if (currentSlideIndex === MODULE_ORDER.length + 1) {
         let html = `
-            <div class="landing-hero" style="padding: 1rem 0 1.5rem;">
+            <div class="landing-hero" style="padding: 0.25rem 0 0.5rem;">
                 <h2 class="hero-title" style="font-size: 2rem;">Team Review</h2>
                 <p class="hero-subtitle">Overall performance metrics and KPIs for the development team</p>
             </div>
