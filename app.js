@@ -2702,7 +2702,7 @@ function renderSlide() {
     if (currentSlideIndex === 0) {
         let html = `
             <div class="landing-hero" style="padding: 1rem 0 2rem;">
-                <h2 class="hero-title" style="font-size: 2rem;">Project Modules Presentation</h2>
+                <h2 class="hero-title" style="font-size: 2rem;">IEMS Modules</h2>
                 <p class="hero-subtitle">High-level executive status overview across all systems</p>
             </div>
             <div class="pres-grid">
