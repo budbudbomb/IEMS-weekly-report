@@ -3353,11 +3353,14 @@ function calculateUserTypeProgress(ut) {
 }
 
 function countClientReviewPoints(mod) {
-    let count = (mod.clientReviewPoints || []).length;
+    let count = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
-                if (p.clientReview && p.clientReview.review && p.clientReview.review !== '-' && p.clientReview.review !== '') count++;
+                const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
+                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                    count++;
+                }
             });
         });
     });
@@ -5100,13 +5103,21 @@ function renderSlide() {
                             <div class="new-kpi-label">DAYS REQUIRED</div>
                             <div class="new-kpi-val" style="color: #4f46e5">${mod.timeNeeded || 'NA'}</div>
                         </div>
-                        <div class="new-kpi-box">
+                        <div class="new-kpi-box" style="justify-content: space-between;">
                             <div class="new-kpi-label">INTERNAL REVIEWS</div>
-                            <div class="new-kpi-val" style="color: var(--text-primary)">${internalPts} pts (${internalStatus})</div>
+                            <div style="display: flex; align-items: center;">
+                                <div class="new-kpi-val" style="color: var(--text-primary); flex: 1; min-width: max-content;">${internalPts} pts</div>
+                                <div style="width: 2px; height: 1.2rem; background: rgba(0,0,0,0.1); margin: 0 0.5rem; flex-shrink: 0;"></div>
+                                <div class="new-kpi-val" style="color: var(--text-primary); flex: 1; font-size: 0.85rem; line-height: 1.1;">(${internalStatus})</div>
+                            </div>
                         </div>
-                        <div class="new-kpi-box">
+                        <div class="new-kpi-box" style="justify-content: space-between;">
                             <div class="new-kpi-label">CLIENT REVIEWS</div>
-                            <div class="new-kpi-val" style="color: var(--text-primary)">${clientPts} pts (${clientStatus})</div>
+                            <div style="display: flex; align-items: center;">
+                                <div class="new-kpi-val" style="color: var(--text-primary); flex: 1; min-width: max-content;">${clientPts} pts</div>
+                                <div style="width: 2px; height: 1.2rem; background: rgba(0,0,0,0.1); margin: 0 0.5rem; flex-shrink: 0;"></div>
+                                <div class="new-kpi-val" style="color: var(--text-primary); flex: 1; font-size: 0.85rem; line-height: 1.1;">(${clientStatus})</div>
+                            </div>
                         </div>
                     </div>
                     <div class="new-pres-progress-container">
@@ -5207,34 +5218,6 @@ function renderSlide() {
                             </div>
                         `;
                     }).join('')}
-                </div>
-            </div>
-
-            <!-- KPIs below tracker -->
-            <div style="display: flex; gap: 0.75rem; margin: 1.5rem 0 1.5rem 0; flex-wrap: wrap;">
-                <div class="skpi-box">
-                    <div class="skpi-label">PAGES DONE</div>
-                    <div class="skpi-val" style="color: var(--color-done);">${donePages} / ${totalPages}</div>
-                </div>
-                <div class="skpi-box">
-                    <div class="skpi-label">INTERNAL REVIEW POINTS</div>
-                    <div class="skpi-val">${internalPts} pts</div>
-                </div>
-                <div class="skpi-box">
-                    <div class="skpi-label">INTERNAL REVIEW STATUS</div>
-                    <div class="skpi-val">${internalStatus}</div>
-                </div>
-                <div class="skpi-box">
-                    <div class="skpi-label">CLIENT REVIEW POINTS</div>
-                    <div class="skpi-val">${clientPts} pts</div>
-                </div>
-                <div class="skpi-box">
-                    <div class="skpi-label">CLIENT REVIEW STATUS</div>
-                    <div class="skpi-val">${clientStatus}</div>
-                </div>
-                <div class="skpi-box">
-                    <div class="skpi-label">DAYS REQUIRED</div>
-                    <div class="skpi-val" style="color: #4f46e5;">${mod.timeNeeded || 'NA'}</div>
                 </div>
             </div>
 
