@@ -2320,3 +2320,31 @@ body {
 .new-pres-progress-container {
     margin-top: 0.25rem;
 }
+
+/* =========================================
+   SLIDE 2-7 KPI STRIP
+   ========================================= */
+.skpi-box {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 120px;
+    box-shadow: var(--shadow-sm);
+}
+.skpi-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.skpi-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}

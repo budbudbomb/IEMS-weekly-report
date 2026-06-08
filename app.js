@@ -2661,6 +2661,10 @@ function renderSlide() {
         const totalPages = countPages(mod);
         const donePages = countDonePages(mod);
         const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+        const internalPts = countInternalReviewPoints(mod);
+        const internalStatus = getInternalReviewStatus(mod);
+        const clientPts = countClientReviewPoints(mod);
+        const clientStatus = getClientReviewStatus(mod);
 
         const trackerSteps = [
             'Requirement Gathering',
@@ -2723,6 +2727,34 @@ function renderSlide() {
                             </div>
                         `;
                     }).join('')}
+                </div>
+            </div>
+
+            <!-- KPIs below tracker -->
+            <div style="display: flex; gap: 0.75rem; margin: 1.5rem 0 1.5rem 0; flex-wrap: wrap;">
+                <div class="skpi-box">
+                    <div class="skpi-label">PAGES DONE</div>
+                    <div class="skpi-val" style="color: var(--color-done);">${donePages} / ${totalPages}</div>
+                </div>
+                <div class="skpi-box">
+                    <div class="skpi-label">INTERNAL REVIEW POINTS</div>
+                    <div class="skpi-val">${internalPts} pts</div>
+                </div>
+                <div class="skpi-box">
+                    <div class="skpi-label">INTERNAL REVIEW STATUS</div>
+                    <div class="skpi-val">${internalStatus}</div>
+                </div>
+                <div class="skpi-box">
+                    <div class="skpi-label">CLIENT REVIEW POINTS</div>
+                    <div class="skpi-val">${clientPts} pts</div>
+                </div>
+                <div class="skpi-box">
+                    <div class="skpi-label">CLIENT REVIEW STATUS</div>
+                    <div class="skpi-val">${clientStatus}</div>
+                </div>
+                <div class="skpi-box">
+                    <div class="skpi-label">DAYS REQUIRED</div>
+                    <div class="skpi-val" style="color: #4f46e5;">${mod.timeNeeded || 'NA'}</div>
                 </div>
             </div>
 
