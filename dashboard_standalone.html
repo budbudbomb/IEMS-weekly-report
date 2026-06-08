@@ -2588,7 +2588,7 @@ const DEFAULT_MODULES = {
     preksha: {
         id: 'preksha',
         name: 'Preksha',
-        icon: 'प्र',
+        icon: '🗳️',
         color: '#6366f1',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
@@ -2805,7 +2805,7 @@ const DEFAULT_MODULES = {
     samadhan: {
         id: 'samadhan',
         name: 'Samadhan',
-        icon: 'स',
+        icon: '🤝',
         color: '#10b981',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Approved' },
@@ -2905,7 +2905,7 @@ const DEFAULT_MODULES = {
     expenditure: {
         id: 'expenditure',
         name: 'Expenditure',
-        icon: 'E',
+        icon: '💳',
         color: '#f59e0b',
         requirementGathering: 'Done',
         staticScreens: { creation: '-', presentation: '-', status: '-' },
@@ -3019,9 +3019,9 @@ const DEFAULT_MODULES = {
     sugamta: {
         id: 'sugamta',
         name: 'Sugamta',
-        icon: 'सु',
+        icon: '🚐',
         color: '#f43f5e',
-        requirementGathering: 'Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
+        requirementGathering: 'In Progress - Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
         staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'In Progress' },
         finalStatus: 'In progress',
         remark: 'Sanju ma\'am is mainly interested in this module. She won\'t review Preksha alone. Aiming to present Election Observer in the coming week while conveying the progress in Pithasin module.\nNeed to visit Shakya sir to get his review on the Static screen (as he gave a few suggestions regarding the module)',
@@ -3116,7 +3116,7 @@ const DEFAULT_MODULES = {
     ipbms: {
         id: 'ipbms',
         name: 'IPBMS',
-        icon: 'IP',
+        icon: '📍',
         color: '#8b5cf6',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
@@ -3217,7 +3217,7 @@ const DEFAULT_MODULES = {
     evm: {
         id: 'evm',
         name: 'EVM Tracking & Management',
-        icon: 'EV',
+        icon: '⚡',
         color: '#06b6d4',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Reviewed internally' },
@@ -4464,12 +4464,12 @@ function getModuleId(name) {
 
 // Preset visuals map
 const EXISTING_VISUALS = {
-    preksha: { color: '#6366f1', icon: 'प्र' },
-    samadhan: { color: '#10b981', icon: 'स' },
-    expenditure: { color: '#f59e0b', icon: 'व्य' },
-    sugamta: { color: '#f43f5e', icon: 'सु' },
-    ipbms: { color: '#8b5cf6', icon: 'प' },
-    evm: { color: '#06b6d4', icon: 'EV' }
+    preksha: { color: '#6366f1', icon: '🗳️' },
+    samadhan: { color: '#10b981', icon: '🤝' },
+    expenditure: { color: '#f59e0b', icon: '💳' },
+    sugamta: { color: '#f43f5e', icon: '🚐' },
+    ipbms: { color: '#8b5cf6', icon: '📍' },
+    evm: { color: '#06b6d4', icon: '⚡' }
 };
 
 const PRESET_COLORS = ['#3b82f6', '#ec4899', '#14b8a6', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4'];
@@ -5303,63 +5303,71 @@ function renderSlide() {
                 <h2 class="hero-title" style="font-size: 2rem;">CMMI5 Readiness: Documentation</h2>
                 <p class="hero-subtitle">Current status of required documents for Level 5 compliance.</p>
             </div>
-            
-            <div class="slide-details-grid" style="max-width: 900px; margin: 0 auto;">
-                
+
+            <div style="max-width: 860px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+
                 <!-- Left Column: Document Status Table -->
-                <div class="slide-details-left" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden;">
                     <table style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
-                            <tr style="background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle);">
-                                <th style="padding: 0.25rem 0.4rem; color: #06b6d4; font-weight: 800; font-size: 0.62rem; width: 60%;">Document Name</th>
-                                <th style="padding: 0.25rem 0.4rem; color: #06b6d4; font-weight: 800; font-size: 0.62rem;">Current Status</th>
+                            <tr style="background: rgba(6,182,212,0.06); border-bottom: 2px solid var(--border-subtle);">
+                                <th style="padding: 0.75rem 1rem; color: #06b6d4; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.02em;">Document Name</th>
+                                <th style="padding: 0.75rem 1rem; color: #06b6d4; font-weight: 800; font-size: 0.78rem;">Current Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Project Plan</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">Project Plan</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: rgba(245,158,11,0.15); color: #b45309; padding: 0.2rem 0.55rem; font-size: 0.75rem;">⏳ Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">DPR</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-done-bg); color: var(--color-done); padding: 0.08rem 0.35rem; font-size: 0.6rem;">Prepared</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">DPR</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: var(--color-done-bg); color: var(--color-done); padding: 0.2rem 0.55rem; font-size: 0.75rem;">✓ Prepared</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">RTM</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">RTM</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: rgba(245,158,11,0.15); color: #b45309; padding: 0.2rem 0.55rem; font-size: 0.75rem;">⏳ Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Concept note</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; padding: 0.08rem 0.35rem; font-size: 0.6rem;">Pending</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">Concept note</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: rgba(245,158,11,0.15); color: #b45309; padding: 0.2rem 0.55rem; font-size: 0.75rem;">⏳ Pending</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">BRD</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.08rem 0.35rem; font-size: 0.6rem;">To be started</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">BRD</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.2rem 0.55rem; font-size: 0.75rem;">◌ To be started</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">SRS</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.08rem 0.35rem; font-size: 0.6rem;">To be started</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">SRS</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: var(--bg-page); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 0.2rem 0.55rem; font-size: 0.75rem;">◌ To be started</span></td>
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">Process flows</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.08rem 0.35rem; font-size: 0.6rem;">In progress</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">Process flows</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.2rem 0.55rem; font-size: 0.75rem;">◐ In progress</span></td>
                             </tr>
                             <tr>
-                                <td style="padding: 0.25rem 0.4rem; font-weight: 700; color: var(--text-primary); font-size: 0.68rem;">User Manuals</td>
-                                <td style="padding: 0.25rem 0.4rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.08rem 0.35rem; font-size: 0.6rem;">In progress</span></td>
+                                <td style="padding: 0.65rem 1rem; font-weight: 600; color: var(--text-primary); font-size: 0.85rem;">User Manuals</td>
+                                <td style="padding: 0.65rem 1rem;"><span class="status-badge" style="background: var(--color-progress-bg); color: var(--color-progress); padding: 0.2rem 0.55rem; font-size: 0.75rem;">◐ In progress</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Right Column: Note Card -->
-                <div class="slide-details-right">
-                    <!-- Note Card -->
-                    <div class="info-card" style="padding: 0.45rem 0.65rem; border-radius: var(--radius-md); background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.15); box-shadow: var(--shadow-sm);">
-                        <p style="color: var(--text-primary); font-size: 0.68rem; line-height: 1.3; margin: 0;">
-                            <span style="font-weight: 800; color: #ec4899; display: block; margin-bottom: 0.2rem; font-size: 0.72rem;">Note:</span> 
+
+                <!-- Right Column: Note + Legend -->
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="padding: 1.1rem 1.25rem; border-radius: 12px; background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.2); box-shadow: var(--shadow-sm);">
+                        <p style="color: var(--text-primary); font-size: 0.88rem; line-height: 1.6; margin: 0;">
+                            <span style="font-weight: 800; color: #ec4899; display: block; margin-bottom: 0.4rem; font-size: 0.92rem;">📌 Note:</span>
                             While the <strong>DPR</strong> was already created, I need to learn to create the other category of documents required for CMMI5.
                         </p>
+                    </div>
+                    <div style="padding: 1rem 1.25rem; border-radius: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
+                        <div style="font-weight: 700; color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.6rem; letter-spacing: 0.04em; text-transform: uppercase;">Legend</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem;"><span style="color: var(--color-done);">✓</span> <span style="color: var(--text-secondary);">Prepared / Done</span></div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem;"><span style="color: var(--color-progress);">◐</span> <span style="color: var(--text-secondary);">In Progress</span></div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem;"><span style="color: #b45309;">⏳</span> <span style="color: var(--text-secondary);">Pending (to be started soon)</span></div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem;"><span style="color: var(--text-muted);">◌</span> <span style="color: var(--text-secondary);">Not yet started</span></div>
+                        </div>
                     </div>
                 </div>
 
