@@ -2896,9 +2896,8 @@ function renderSlide() {
                 <div>
                     <h2 class="hero-title" style="font-size: 2rem; display: flex; align-items: center; gap: 0.75rem;">
                         <span class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 44px; height: 44px; font-size: 1.4rem; margin: 0; display: inline-flex; line-height: 1;">${mod.icon}</span>
-                        ${mod.name} Status
+                        ${mod.name}
                     </h2>
-                    <p class="hero-subtitle">Detailed engineering milestone tracker and page checklist</p>
                 </div>
                 <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); background: var(--bg-glass); border: 1px solid var(--border-subtle); padding: 0.4rem 1rem; border-radius: var(--radius-md);">
                     Estimate: <span style="color: ${mod.color}">${mod.timeNeeded || 'NA'}</span>
@@ -2924,6 +2923,7 @@ function renderSlide() {
                                 </div>
                                 <div class="tracker-label">
                                     ${step}
+                                    ${status === 'skipped' ? '<br><span style="font-size: 0.6rem; opacity: 0.65; font-weight: 600; display: block; margin-top: 1px;">(Skipped)</span>' : ''}
                                 </div>
                             </div>
                         `;
