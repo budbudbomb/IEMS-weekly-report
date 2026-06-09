@@ -71,13 +71,25 @@ const JUNE_COMMITMENTS = [
 ];
 
 // ============================================
+// SVG INFOGRAPHIC ICONS
+// ============================================
+const ICONS = {
+    preksha: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+    samadhan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path></svg>`,
+    expenditure: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
+    sugamta: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>`,
+    ipbms: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
+    evm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="15" y2="6"></line><line x1="9" y1="10" x2="15" y2="10"></line><line x1="9" y1="14" x2="15" y2="14"></line><circle cx="12" cy="18" r="1"></circle></svg>`
+};
+
+// ============================================
 // DEFAULT MODULE DATA
 // ============================================
 const DEFAULT_MODULES = {
     preksha: {
         id: 'preksha',
         name: 'Preksha',
-        icon: '🗳️',
+        icon: ICONS.preksha,
         color: '#6366f1',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
@@ -294,7 +306,7 @@ const DEFAULT_MODULES = {
     samadhan: {
         id: 'samadhan',
         name: 'Samadhan',
-        icon: '🤝',
+        icon: ICONS.samadhan,
         color: '#10b981',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Approved' },
@@ -394,7 +406,7 @@ const DEFAULT_MODULES = {
     expenditure: {
         id: 'expenditure',
         name: 'Expenditure',
-        icon: '💳',
+        icon: ICONS.expenditure,
         color: '#f59e0b',
         requirementGathering: 'Done',
         staticScreens: { creation: '-', presentation: '-', status: '-' },
@@ -508,7 +520,7 @@ const DEFAULT_MODULES = {
     sugamta: {
         id: 'sugamta',
         name: 'Sugamta',
-        icon: '🚐',
+        icon: ICONS.sugamta,
         color: '#f43f5e',
         requirementGathering: 'In Progress - Got the requirement for everything related to the commutation of "polling parties" in "Panchayat elections"\n\nPending For :\n- Nagariya Elections\n- Sector Officer\n- Sector Magistrate',
         staticScreens: { creation: 'In Progress', presentation: 'Done - Client has asked to add (Vehicle fitness and Insurance check)', status: 'In Progress' },
@@ -605,7 +617,7 @@ const DEFAULT_MODULES = {
     ipbms: {
         id: 'ipbms',
         name: 'IPBMS',
-        icon: '📍',
+        icon: ICONS.ipbms,
         color: '#8b5cf6',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
@@ -706,7 +718,7 @@ const DEFAULT_MODULES = {
     evm: {
         id: 'evm',
         name: 'EVM Tracking & Management',
-        icon: '⚡',
+        icon: ICONS.evm,
         color: '#06b6d4',
         requirementGathering: 'Done',
         staticScreens: { creation: 'Done', presentation: 'Done', status: 'Reviewed internally' },
@@ -859,6 +871,15 @@ try {
     const savedData = localStorage.getItem('project_dashboard_modules');
     if (savedData) {
         MODULES = JSON.parse(savedData);
+        // Force up-to-date SVG icons and color schemes from our presets
+        for (const mid in MODULES) {
+            if (ICONS[mid]) {
+                MODULES[mid].icon = ICONS[mid];
+            }
+            if (EXISTING_VISUALS[mid]) {
+                MODULES[mid].color = EXISTING_VISUALS[mid].color;
+            }
+        }
     }
 } catch (e) {
     console.error('Error loading data from localStorage', e);
@@ -1953,12 +1974,12 @@ function getModuleId(name) {
 
 // Preset visuals map
 const EXISTING_VISUALS = {
-    preksha: { color: '#6366f1', icon: '🗳️' },
-    samadhan: { color: '#10b981', icon: '🤝' },
-    expenditure: { color: '#f59e0b', icon: '💳' },
-    sugamta: { color: '#f43f5e', icon: '🚐' },
-    ipbms: { color: '#8b5cf6', icon: '📍' },
-    evm: { color: '#06b6d4', icon: '⚡' }
+    preksha: { color: '#6366f1', icon: ICONS.preksha },
+    samadhan: { color: '#10b981', icon: ICONS.samadhan },
+    expenditure: { color: '#f59e0b', icon: ICONS.expenditure },
+    sugamta: { color: '#f43f5e', icon: ICONS.sugamta },
+    ipbms: { color: '#8b5cf6', icon: ICONS.ipbms },
+    evm: { color: '#06b6d4', icon: ICONS.evm }
 };
 
 const PRESET_COLORS = ['#3b82f6', '#ec4899', '#14b8a6', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4'];
@@ -2505,6 +2526,13 @@ function getClientReviewStatus(mod) {
 }
 
 function getStepStatus(mod, stepName) {
+    // Sugamta overrides as explicitly requested: both show as in-progress
+    if (mod.id === 'sugamta') {
+        if (stepName === 'Requirement Gathering' || stepName === 'Static screens') {
+            return 'in-progress';
+        }
+    }
+
     const finalDone = mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done';
     
     switch (stepName) {
