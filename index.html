@@ -3533,7 +3533,7 @@ function renderLanding() {
         card.innerHTML = `
             <div class="card-accent"></div>
             <div class="card-header">
-                <div class="card-icon">${mod.icon}</div>
+                <div class="card-icon">${ICONS[mod.id] || mod.icon}</div>
                 ${getStatusBadge(mod.finalStatus)}
             </div>
             <div class="card-title">${mod.name}</div>
@@ -3750,7 +3750,7 @@ function renderDetailHeader() {
     const crs = countCRs(mod);
 
     document.getElementById('detail-header').innerHTML = `
-        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}30">${mod.icon}</div>
+        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}30">${ICONS[mod.id] || mod.icon}</div>
         <div class="detail-info">
             <div class="detail-title">${mod.name}</div>
             <div class="detail-meta">
@@ -5262,7 +5262,7 @@ function renderSlide() {
                 <div class="new-pres-card" onclick="goToSlide(${idx + 1})" style="border-left: 5px solid ${mod.color}">
                     <div class="pres-card-header" style="border: none; padding-bottom: 0;">
                         <div class="pres-card-title" style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">${mod.name}</div>
-                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 36px; height: 36px; font-size: 1.1rem; margin: 0; line-height: 1;">${mod.icon}</div>
+                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 36px; height: 36px; font-size: 1.1rem; margin: 0; line-height: 1;">${ICONS[mid] || mod.icon}</div>
                     </div>
                     <div class="new-pres-card-grid">
                         <div class="new-kpi-box">
@@ -5442,7 +5442,7 @@ function renderSlide() {
             <div class="landing-hero" style="padding: 1rem 0 1.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
                 <div>
                     <h2 class="hero-title" style="font-size: 2rem; display: flex; align-items: center; gap: 0.75rem;">
-                        <span class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 44px; height: 44px; font-size: 1.4rem; margin: 0; display: inline-flex; line-height: 1;">${mod.icon}</span>
+                        <span class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 44px; height: 44px; font-size: 1.4rem; margin: 0; display: inline-flex; line-height: 1;">${ICONS[mod.id] || mod.icon}</span>
                         ${mod.name}
                     </h2>
                 </div>
@@ -5610,7 +5610,7 @@ function renderJuneCommitments(containerId) {
             <div class="new-pres-card" style="border-top: 4px solid ${mod.color}; padding: 1rem; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.75rem; box-shadow: var(--shadow-md); min-height: 0; overflow: hidden;">
                 <div class="pres-card-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; flex-shrink: 0;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
-                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 32px; height: 32px; font-size: 1rem; margin: 0; line-height: 1;">${mod.icon}</div>
+                        <div class="detail-module-icon" style="background: ${mod.color}15; color: ${mod.color}; border: 1px solid ${mod.color}25; width: 32px; height: 32px; font-size: 1rem; margin: 0; line-height: 1;">${ICONS[mod.id] || mod.icon}</div>
                         <div class="pres-card-title" style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${mod.name}</div>
                     </div>
                 </div>
