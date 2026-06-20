@@ -3478,82 +3478,94 @@ function countInternalReviewPoints(mod) {
     return fallbackCount;
 }
 
+function resolveReviewStatus(statuses) {
+    // Apply the 5 rules:
+    // 1. pending + done (no in-progress) → In Progress
+    // 2. all pending → Pending
+    // 3. all done → Done
+    // 4. in-progress + done → In Progress
+    // 5. all in-progress → In Progress
+    const real = statuses.map(s => s.toLowerCase().trim()).filter(s => s && s !== '-' && s !== '');
+    if (real.length === 0) return null; // no data
+    const hasProgress  = real.some(s => s.includes('progress'));
+    const hasPending   = real.some(s => s.includes('pending') || s.includes('not started'));
+    const hasDone      = real.some(s => s.includes('done') || s.includes('approved') || s.includes('complete'));
+    const hasSkipped   = real.some(s => s.includes('skip'));
+
+    if (hasProgress) return 'In Progress';                    // rules 4 & 5
+    if (hasPending && hasDone) return 'In Progress';          // rule 1
+    if (hasPending && !hasDone && !hasProgress) return 'Pending'; // rule 2
+    if (hasDone && !hasPending && !hasProgress) return 'Done';    // rule 3
+    if (hasSkipped) return 'Skipped';
+    // Fallback: return the first real value capitalised
+    return real[0].charAt(0).toUpperCase() + real[0].slice(1);
+}
+
 function getInternalReviewStatus(mod) {
-    // 1. Prefer user-type level status (merged cell from Excel)
-    //    Rules: if ANY ut has 'In Progress' → In Progress; else if any has 'Pending' → Pending; else Done
+    // Collect all non-empty statuses from user-type level (merged cells) first
     const utStatuses = mod.userTypes
-        .map(ut => (ut.internalReviewStatus || '').toLowerCase().trim())
+        .map(ut => (ut.internalReviewStatus || '').trim())
         .filter(s => s && s !== '-');
 
     if (utStatuses.length > 0) {
-        if (utStatuses.some(s => s.includes('progress'))) return 'In Progress';
-        if (utStatuses.some(s => s.includes('pending'))) return 'Pending';
-        if (utStatuses.every(s => s.includes('done') || s.includes('approved'))) return 'Done';
-        // All same non-standard value → return it capitalised
-        const first = mod.userTypes.find(ut => (ut.internalReviewStatus || '').trim());
-        if (first) return first.internalReviewStatus;
+        const resolved = resolveReviewStatus(utStatuses);
+        if (resolved) return resolved;
     }
 
-    // 2. Fallback: scan page-level statuses
-    let hasInProgress = false, hasPending = false, hasDone = false, pointsCount = 0;
+    // Fallback: collect page-level statuses (ALL pages, including those without review text,
+    // because the status merged cell may be on a page row that has no review text)
+    const pageStatuses = [];
+    let hasAnyReview = false;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.internalReview.review || '').trim();
-                const s = (p.internalReview.status || '').toLowerCase().trim();
-                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
-                    pointsCount++;
-                    if (s.includes('progress')) hasInProgress = true;
-                    else if (s.includes('pending')) hasPending = true;
-                    else if (s.includes('done') || s.includes('approved')) hasDone = true;
-                }
+                const s = (p.internalReview.status || '').trim();
+                if (r && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') hasAnyReview = true;
+                if (s && s !== '-') pageStatuses.push(s);
             });
         });
     });
 
-    if (pointsCount === 0) return 'Done';
-    if (hasInProgress) return 'In Progress';
-    if (hasPending) return 'Pending';
-    if (hasDone) return 'Done';
-    return 'In Progress';
+    if (pageStatuses.length > 0) {
+        const resolved = resolveReviewStatus(pageStatuses);
+        if (resolved) return resolved;
+    }
+    if (!hasAnyReview) return 'Done'; // No review points at all → done
+    return 'Pending'; // Has review content but no status recorded
 }
 
 function getClientReviewStatus(mod) {
-    // 1. Prefer user-type level status (merged cell from Excel)
+    // Collect all non-empty statuses from user-type level (merged cells) first
     const utStatuses = mod.userTypes
-        .map(ut => (ut.clientReviewStatus || '').toLowerCase().trim())
+        .map(ut => (ut.clientReviewStatus || '').trim())
         .filter(s => s && s !== '-');
 
     if (utStatuses.length > 0) {
-        if (utStatuses.some(s => s.includes('progress'))) return 'In Progress';
-        if (utStatuses.some(s => s.includes('pending'))) return 'Pending';
-        if (utStatuses.every(s => s.includes('done') || s.includes('approved'))) return 'Done';
-        const first = mod.userTypes.find(ut => (ut.clientReviewStatus || '').trim());
-        if (first) return first.clientReviewStatus;
+        const resolved = resolveReviewStatus(utStatuses);
+        if (resolved) return resolved;
     }
 
-    // 2. Fallback: scan page-level statuses
-    let hasInProgress = false, hasPending = false, hasDone = false, pointsCount = 0;
+    // Fallback: collect ALL page-level statuses
+    const pageStatuses = [];
+    let hasAnyReview = false;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
-                const s = (p.clientReview && p.clientReview.status) ? p.clientReview.status.trim().toLowerCase() : '';
-                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
-                    pointsCount++;
-                    if (s.includes('progress')) hasInProgress = true;
-                    else if (s.includes('pending')) hasPending = true;
-                    else if (s.includes('done') || s.includes('approved')) hasDone = true;
-                }
+                const s = (p.clientReview && p.clientReview.status) ? p.clientReview.status.trim() : '';
+                if (r && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') hasAnyReview = true;
+                if (s && s !== '-') pageStatuses.push(s);
             });
         });
     });
 
-    if (pointsCount === 0) return 'Done';
-    if (hasInProgress) return 'In Progress';
-    if (hasPending) return 'Pending';
-    if (hasDone) return 'Approved';
-    return 'In Progress';
+    if (pageStatuses.length > 0) {
+        const resolved = resolveReviewStatus(pageStatuses);
+        if (resolved) return resolved;
+    }
+    if (!hasAnyReview) return 'Done';
+    return 'Pending';
 }
 
 function getStepStatus(mod, stepName) {
