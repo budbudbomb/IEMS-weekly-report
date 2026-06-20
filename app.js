@@ -2518,6 +2518,8 @@ function parseExcelToModules(workbook) {
                 categories: [],
                 internalReviewPoints: 0,
                 clientReviewPoints: 0,
+                internalReviewStatus: '',
+                clientReviewStatus: '',
                 qaBugs: 0,
                 qaBugsFixed: 0
             };
@@ -2547,13 +2549,23 @@ function parseExcelToModules(workbook) {
         if (ut.qaBugs === undefined) ut.qaBugs = 0;
         if (ut.qaBugsFixed === undefined) ut.qaBugsFixed = 0;
 
+        // Review points: only capture the value ONCE per user type (merged cell — first occurrence wins)
         if (colIdx.internalReviewPoints !== -1 && row[colIdx.internalReviewPoints] !== undefined && row[colIdx.internalReviewPoints] !== '') {
             const val = parseInt(row[colIdx.internalReviewPoints]) || 0;
-            if (val > 0) ut.internalReviewPoints += val;
+            if (val > 0 && ut.internalReviewPoints === 0) ut.internalReviewPoints = val; // set once
         }
         if (colIdx.clientReviewPoints !== -1 && row[colIdx.clientReviewPoints] !== undefined && row[colIdx.clientReviewPoints] !== '') {
             const val = parseInt(row[colIdx.clientReviewPoints]) || 0;
-            if (val > 0) ut.clientReviewPoints += val;
+            if (val > 0 && ut.clientReviewPoints === 0) ut.clientReviewPoints = val; // set once
+        }
+        // Review status: capture once per user type (merged cell)
+        if (colIdx.internalReviewStatus !== -1 && !ut.internalReviewStatus) {
+            const s = (row[colIdx.internalReviewStatus] || '').toString().trim();
+            if (s && s !== '-') ut.internalReviewStatus = s;
+        }
+        if (colIdx.clientReviewStatus !== -1 && !ut.clientReviewStatus) {
+            const s = (row[colIdx.clientReviewStatus] || '').toString().trim();
+            if (s && s !== '-') ut.clientReviewStatus = s;
         }
         if (colIdx.qaBugs !== -1 && row[colIdx.qaBugs] !== undefined && row[colIdx.qaBugs] !== '') {
             const val = parseInt(row[colIdx.qaBugs]) || 0;
@@ -3457,17 +3469,28 @@ function countInternalReviewPoints(mod) {
 }
 
 function getInternalReviewStatus(mod) {
-    let hasInProgress = false;
-    let hasPending = false;
-    let hasDone = false;
-    let pointsCount = 0;
-    
+    // 1. Prefer user-type level status (merged cell from Excel)
+    //    Rules: if ANY ut has 'In Progress' → In Progress; else if any has 'Pending' → Pending; else Done
+    const utStatuses = mod.userTypes
+        .map(ut => (ut.internalReviewStatus || '').toLowerCase().trim())
+        .filter(s => s && s !== '-');
+
+    if (utStatuses.length > 0) {
+        if (utStatuses.some(s => s.includes('progress'))) return 'In Progress';
+        if (utStatuses.some(s => s.includes('pending'))) return 'Pending';
+        if (utStatuses.every(s => s.includes('done') || s.includes('approved'))) return 'Done';
+        // All same non-standard value → return it capitalised
+        const first = mod.userTypes.find(ut => (ut.internalReviewStatus || '').trim());
+        if (first) return first.internalReviewStatus;
+    }
+
+    // 2. Fallback: scan page-level statuses
+    let hasInProgress = false, hasPending = false, hasDone = false, pointsCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.internalReview.review || '').trim();
                 const s = (p.internalReview.status || '').toLowerCase().trim();
-                
                 if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
                     pointsCount++;
                     if (s.includes('progress')) hasInProgress = true;
@@ -3477,7 +3500,7 @@ function getInternalReviewStatus(mod) {
             });
         });
     });
-    
+
     if (pointsCount === 0) return 'Done';
     if (hasInProgress) return 'In Progress';
     if (hasPending) return 'Pending';
@@ -3486,17 +3509,26 @@ function getInternalReviewStatus(mod) {
 }
 
 function getClientReviewStatus(mod) {
-    let hasInProgress = false;
-    let hasPending = false;
-    let hasDone = false;
-    let pointsCount = 0;
-    
+    // 1. Prefer user-type level status (merged cell from Excel)
+    const utStatuses = mod.userTypes
+        .map(ut => (ut.clientReviewStatus || '').toLowerCase().trim())
+        .filter(s => s && s !== '-');
+
+    if (utStatuses.length > 0) {
+        if (utStatuses.some(s => s.includes('progress'))) return 'In Progress';
+        if (utStatuses.some(s => s.includes('pending'))) return 'Pending';
+        if (utStatuses.every(s => s.includes('done') || s.includes('approved'))) return 'Done';
+        const first = mod.userTypes.find(ut => (ut.clientReviewStatus || '').trim());
+        if (first) return first.clientReviewStatus;
+    }
+
+    // 2. Fallback: scan page-level statuses
+    let hasInProgress = false, hasPending = false, hasDone = false, pointsCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
                 const s = (p.clientReview && p.clientReview.status) ? p.clientReview.status.trim().toLowerCase() : '';
-                
                 if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
                     pointsCount++;
                     if (s.includes('progress')) hasInProgress = true;
@@ -3506,7 +3538,7 @@ function getClientReviewStatus(mod) {
             });
         });
     });
-    
+
     if (pointsCount === 0) return 'Done';
     if (hasInProgress) return 'In Progress';
     if (hasPending) return 'Pending';
