@@ -2496,6 +2496,7 @@ function parseExcelToModules(workbook) {
                     processFlow: row[colIdx.docProcessFlow] || '-',
                     userManual: row[colIdx.docUserManual] || '-'
                 },
+                dependency: row[colIdx.dependency] || '',
                 categories: [],
                 internalReviewPoints: 0,
                 clientReviewPoints: 0,
@@ -2509,6 +2510,7 @@ function parseExcelToModules(workbook) {
             if (row[colIdx.staticScreensPresentation] && ut.staticScreens.presentation === '-') ut.staticScreens.presentation = row[colIdx.staticScreensPresentation];
             if (row[colIdx.staticScreensStatus] && ut.staticScreens.status === '-') ut.staticScreens.status = row[colIdx.staticScreensStatus];
             if (row[colIdx.timeNeeded] && ut.timeNeeded === '-') ut.timeNeeded = row[colIdx.timeNeeded];
+            if (row[colIdx.dependency] && !ut.dependency) ut.dependency = row[colIdx.dependency];
             
             if (!ut.documentation) {
                 ut.documentation = { processFlow: '-', userManual: '-' };
