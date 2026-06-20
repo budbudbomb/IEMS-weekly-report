@@ -2670,18 +2670,45 @@ function parseExcelToModules(workbook) {
 
         const applicableUTs = mod.userTypes.filter(ut => !isExemptUT(ut.name));
         if (applicableUTs.length > 0) {
+            // Recompute requirementGathering
             const allReqs = applicableUTs.map(ut => (ut.reqGathering || '-').toLowerCase().trim());
-            const hasInProgress = allReqs.some(r => r.includes('progress') || r.includes('pending'));
-            const allDone = allReqs.every(r => r === 'done');
-            const allNA = allReqs.every(r => r === 'na' || r === '-' || r === '');
+            const hasReqInProgress = allReqs.some(r => r.includes('progress') || r.includes('pending'));
+            const allReqDone = allReqs.every(r => r === 'done');
+            const allReqNA = allReqs.every(r => r === 'na' || r === '-' || r === '');
 
-            if (!allNA) {
-                if (allDone) {
+            if (!allReqNA) {
+                if (allReqDone) {
                     mod.requirementGathering = 'Done';
-                } else if (hasInProgress) {
+                } else if (hasReqInProgress) {
                     mod.requirementGathering = 'In Progress';
                 }
             }
+
+            // Recompute staticScreens from applicable user types only
+            const ssCreations = applicableUTs.map(ut => ((ut.staticScreens && ut.staticScreens.creation) || '-').toLowerCase().trim());
+            const ssPresentations = applicableUTs.map(ut => ((ut.staticScreens && ut.staticScreens.presentation) || '-').toLowerCase().trim());
+            const ssStatuses = applicableUTs.map(ut => ((ut.staticScreens && ut.staticScreens.status) || '-').toLowerCase().trim());
+
+            const resolveField = (values) => {
+                const real = values.filter(v => v !== 'na' && v !== '-' && v !== '');
+                if (real.length === 0) return null; // all NA/blank → leave as is
+                const hasProgress = real.some(v => v.includes('progress') || v.includes('in progress'));
+                const allDone = real.every(v => v === 'done');
+                const hasSkipped = real.some(v => v.includes('skip'));
+                if (allDone) return 'Done';
+                if (hasProgress) return 'In Progress';
+                if (hasSkipped) return 'Skipped';
+                // Return the most informative non-NA value
+                return real[0].charAt(0).toUpperCase() + real[0].slice(1);
+            };
+
+            const newCreation = resolveField(ssCreations);
+            const newPresentation = resolveField(ssPresentations);
+            const newStatus = resolveField(ssStatuses);
+
+            if (newCreation !== null) mod.staticScreens.creation = newCreation;
+            if (newPresentation !== null) mod.staticScreens.presentation = newPresentation;
+            if (newStatus !== null) mod.staticScreens.status = newStatus;
         }
     });
 
