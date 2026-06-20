@@ -2660,6 +2660,29 @@ function parseExcelToModules(workbook) {
         } else if (mod.timeNeeded === '' || mod.timeNeeded === '-') {
             mod.timeNeeded = 'NA';
         }
+        // Recompute requirementGathering ignoring user types where it's N/A by design
+        // ("User management" and "Baseline data" variants never have requirement gathering)
+        const EXEMPT_UT_PATTERNS = ['user management', 'user manag', 'baseline data'];
+        const isExemptUT = (name) => {
+            const n = (name || '').toLowerCase();
+            return EXEMPT_UT_PATTERNS.some(p => n.includes(p));
+        };
+
+        const applicableUTs = mod.userTypes.filter(ut => !isExemptUT(ut.name));
+        if (applicableUTs.length > 0) {
+            const allReqs = applicableUTs.map(ut => (ut.reqGathering || '-').toLowerCase().trim());
+            const hasInProgress = allReqs.some(r => r.includes('progress') || r.includes('pending'));
+            const allDone = allReqs.every(r => r === 'done');
+            const allNA = allReqs.every(r => r === 'na' || r === '-' || r === '');
+
+            if (!allNA) {
+                if (allDone) {
+                    mod.requirementGathering = 'Done';
+                } else if (hasInProgress) {
+                    mod.requirementGathering = 'In Progress';
+                }
+            }
+        }
     });
 
     return parsedModules;
