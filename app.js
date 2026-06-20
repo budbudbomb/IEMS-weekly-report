@@ -2392,6 +2392,10 @@ function parseExcelToModules(workbook) {
     let currentCategoryName = 'General';
     let lastUserTypeName = '';
 
+    // User types where Requirement Gathering and Static Screens don't apply
+    const EXEMPT_UT_PATTERNS = ['user management', 'user manag', 'baseline data'];
+    const isExemptUT = (name) => EXEMPT_UT_PATTERNS.some(p => (name || '').toLowerCase().includes(p));
+
     let inheritedProps = null;
 
     for (let r = dataStartRowIndex; r < rows.length; r++) {
@@ -2443,9 +2447,23 @@ function parseExcelToModules(workbook) {
 
         // Update module level fields if they were '-' but now have values
         if (row[colIdx.reqGathering] && mod.requirementGathering === '-') mod.requirementGathering = row[colIdx.reqGathering];
-        if (row[colIdx.staticScreensCreation] && mod.staticScreens.creation === '-') mod.staticScreens.creation = row[colIdx.staticScreensCreation];
-        if (row[colIdx.staticScreensPresentation] && mod.staticScreens.presentation === '-') mod.staticScreens.presentation = row[colIdx.staticScreensPresentation];
-        if (row[colIdx.staticScreensStatus] && mod.staticScreens.status === '-') mod.staticScreens.status = row[colIdx.staticScreensStatus];
+        // Static screens: update if still '-'; also override 'NA' if the current user type is not exempt (User Mgmt / Baseline Data)
+        {
+            const _exempt = EXEMPT_UT_PATTERNS.some(p => (currentUserTypeName || '').toLowerCase().includes(p));
+            const _overrideNA = !_exempt; // for real user types, allow overriding an NA set by exempt rows
+            const ssFields = [
+                { col: 'staticScreensCreation',    key: 'creation'    },
+                { col: 'staticScreensPresentation', key: 'presentation' },
+                { col: 'staticScreensStatus',       key: 'status'      }
+            ];
+            ssFields.forEach(({ col, key }) => {
+                const raw = (row[colIdx[col]] || '').toString().trim();
+                const cur = (mod.staticScreens[key] || '').toLowerCase();
+                if (!raw) return;
+                if (cur === '-') { mod.staticScreens[key] = raw; return; }
+                if (_overrideNA && cur === 'na' && raw.toLowerCase() !== 'na') { mod.staticScreens[key] = raw; }
+            });
+        }
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
         if (row[colIdx.remark] && row[colIdx.remark].toString().trim()) {
             const newRemark = row[colIdx.remark].toString().trim();
@@ -2660,14 +2678,6 @@ function parseExcelToModules(workbook) {
         } else if (mod.timeNeeded === '' || mod.timeNeeded === '-') {
             mod.timeNeeded = 'NA';
         }
-        // Recompute requirementGathering ignoring user types where it's N/A by design
-        // ("User management" and "Baseline data" variants never have requirement gathering)
-        const EXEMPT_UT_PATTERNS = ['user management', 'user manag', 'baseline data'];
-        const isExemptUT = (name) => {
-            const n = (name || '').toLowerCase();
-            return EXEMPT_UT_PATTERNS.some(p => n.includes(p));
-        };
-
         const applicableUTs = mod.userTypes.filter(ut => !isExemptUT(ut.name));
         if (applicableUTs.length > 0) {
             // Recompute requirementGathering
