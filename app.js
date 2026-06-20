@@ -998,13 +998,17 @@ function countClientReviewPoints(mod) {
         return count;
     }
 
-    // 3. Fallback to counting pages with non-empty review text
+    // 3. Fallback: count bullet-point lines in review text
     let fallbackCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
-                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
+                if (!r || r === '-' || r.toLowerCase() === 'none' || r.toLowerCase() === 'no issues') return;
+                const bullets = r.split('\n').filter(line => /^\s*[-•*]/.test(line));
+                if (bullets.length > 0) {
+                    fallbackCount += bullets.length;
+                } else {
                     fallbackCount++;
                 }
             });
@@ -3453,14 +3457,20 @@ function countInternalReviewPoints(mod) {
         return count;
     }
 
-    // 3. Fallback to counting pages with non-empty review text
+    // 3. Fallback: count bullet-point lines in review text (lines starting with '-' or '•')
+    //    This correctly handles merged 'No of review points' cells that weren't detected.
     let fallbackCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.internalReview.review || '').trim();
-                if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
-                    fallbackCount++;
+                if (!r || r === '-' || r.toLowerCase() === 'none' || r.toLowerCase() === 'no issues') return;
+                // Count lines starting with '-' or '•' as individual points
+                const bullets = r.split('\n').filter(line => /^\s*[-•*]/.test(line));
+                if (bullets.length > 0) {
+                    fallbackCount += bullets.length;
+                } else {
+                    fallbackCount++; // treat entire review as 1 point if no bullets
                 }
             });
         });
