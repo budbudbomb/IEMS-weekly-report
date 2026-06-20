@@ -2389,6 +2389,41 @@ function parseExcelToModules(workbook) {
         else if (s.includes('time') || s.includes('duration') || s.includes('need')) colIdx.timeNeeded = idx;
     });
 
+    // Positional fallback: if client review columns weren't detected by keyword,
+    // find the 2nd occurrence of review-sub-column patterns (1st=internal, 2nd=client)
+    if (colIdx.clientReviewPoints === -1 || colIdx.clientReviewReview === -1 || colIdx.clientReviewStatus === -1) {
+        const reviewPtsIdx = [];
+        const reviewTxtIdx = [];
+        const reviewStsIdx = [];
+        combinedHeaders.forEach((s, idx) => {
+            if (s.includes('review') && (s.includes('no') || s.includes('point') || s.includes('pts')) && !s.includes('static') && !s.includes('dynamic') && !s.includes('final') && !s.includes('remark')) {
+                reviewPtsIdx.push(idx);
+            }
+            if (s.includes('review') && s.includes('status') && !s.includes('static') && !s.includes('qa') && !s.includes('final') && !s.includes('cr')) {
+                reviewStsIdx.push(idx);
+            }
+        });
+        // Find pure 'review'-only sub-columns (no keywords like status/points/no/module/user/page/static/dynamic)
+        combinedHeaders.forEach((s, idx) => {
+            if (!s.includes('status') && !s.includes('no') && !s.includes('point') && !s.includes('pts')
+                && !s.includes('static') && !s.includes('dynamic') && !s.includes('requirement')
+                && !s.includes('user') && !s.includes('module') && !s.includes('page') && !s.includes('final')
+                && !s.includes('remark') && !s.includes('dependency') && !s.includes('team') && !s.includes('time')
+                && !s.includes('doc') && !s.includes('manual') && !s.includes('flow') && !s.includes('qa')
+                && !s.includes('change') && !s.includes('cr') && !s.includes('approval') && !s.includes('live')
+                && s.includes('review')) {
+                reviewTxtIdx.push(idx);
+            }
+        });
+        if (colIdx.internalReviewPoints === -1 && reviewPtsIdx[0] !== undefined) colIdx.internalReviewPoints = reviewPtsIdx[0];
+        if (colIdx.clientReviewPoints  === -1 && reviewPtsIdx[1] !== undefined) colIdx.clientReviewPoints  = reviewPtsIdx[1];
+        if (colIdx.internalReviewReview === -1 && reviewTxtIdx[0] !== undefined) colIdx.internalReviewReview = reviewTxtIdx[0];
+        if (colIdx.clientReviewReview   === -1 && reviewTxtIdx[1] !== undefined) colIdx.clientReviewReview   = reviewTxtIdx[1];
+        if (colIdx.internalReviewStatus === -1 && reviewStsIdx[0] !== undefined) colIdx.internalReviewStatus = reviewStsIdx[0];
+        if (colIdx.clientReviewStatus   === -1 && reviewStsIdx[1] !== undefined) colIdx.clientReviewStatus   = reviewStsIdx[1];
+        console.log('[PARSER] Positional fallback:', { reviewPtsIdx, reviewTxtIdx, reviewStsIdx, clientPts: colIdx.clientReviewPoints, clientRev: colIdx.clientReviewReview, clientSts: colIdx.clientReviewStatus });
+    }
+
     const parsedModules = {};
     const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
@@ -2746,6 +2781,15 @@ function parseExcelToModules(workbook) {
             else if (anySkipped) mod.staticScreens.status = 'Skipped';
             else if (newCreation !== null || newPresentation !== null) mod.staticScreens.status = 'In Progress';
         }
+    });
+
+    // DEBUG: log colIdx and review points for all modules
+    console.log('[PARSER DEBUG] colIdx:', JSON.stringify(colIdx));
+    Object.values(parsedModules).forEach(m => {
+        console.log(`[PARSER DEBUG] Module: ${m.name}`);
+        m.userTypes.forEach(ut => {
+            console.log(`  UT: ${ut.name} | intPts=${ut.internalReviewPoints} | clPts=${ut.clientReviewPoints} | intStatus=${ut.internalReviewStatus} | clStatus=${ut.clientReviewStatus}`);
+        });
     });
 
     return parsedModules;
