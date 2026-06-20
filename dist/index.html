@@ -6414,9 +6414,19 @@ function showQuickReport() {
                             <div class="qr-meta-label" style="color: ${mod.color};">
                                 <span class="qr-meta-icon">⚠️</span> Dependency / Blocker
                             </div>
-                            <div class="qr-meta-text">${mod.dependency && mod.dependency.trim() && mod.dependency !== '-'
-                                ? mod.dependency.replace(/\n/g, '<br>')
-                                : '<em>No active dependencies or blockers.</em>'}</div>
+                            <div class="qr-meta-text">${(() => {
+                                const modDep = (mod.dependency || '').trim();
+                                const utDeps = (mod.userTypes || [])
+                                    .filter(ut => ut.dependency && ut.dependency.trim())
+                                    .map(ut => ({ name: ut.name, dep: ut.dependency.trim() }));
+                                if (!modDep && utDeps.length === 0) return '<em>No active dependencies or blockers.</em>';
+                                let out = '';
+                                if (modDep) out += `<div style="margin-bottom:${utDeps.length ? '0.5rem' : '0'}">${modDep.replace(/\n/g, '<br>')}</div>`;
+                                utDeps.forEach(({ name, dep }) => {
+                                    out += `<div style="margin-bottom:0.35rem"><span style="font-weight:600;opacity:0.75;">${name}:</span> ${dep.replace(/\n/g, '<br>')}</div>`;
+                                });
+                                return out;
+                            })()}</div>
                         </div>
                         <div class="qr-meta-box qr-doc-box" style="border-color: ${mod.color}25; background: ${mod.color}05;">
                             <div class="qr-meta-label" style="color: ${mod.color};">
