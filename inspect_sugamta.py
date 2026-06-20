@@ -1,0 +1,116 @@
+import zipfile
+import xml.etree.ElementTree as ET
+import os
+
+def parse_shared_strings(z):
+    try:
+        xml_content = z.read('xl/sharedStrings.xml')
+        root = ET.fromstring(xml_content)
+        strings = []
+        for s_node in root.findall('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si'):
+            t_nodes = s_node.findall('.//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t')
+            strings.append(''.join(t.text for t in t_nodes if t.text))
+        return strings
+    except KeyError:
+        return []
+
+def get_sheet_rows(z, shared_strings):
+    try:
+        xml_content = z.read('xl/worksheets/sheet1.xml')
+    except KeyError:
+        sheets = [f for f in z.namelist() if f.startswith('xl/worksheets/sheet')]
+        if not sheets:
+            return []
+        xml_content = z.read(sheets[0])
+
+    root = ET.fromstring(xml_content)
+    rows = []
+    
+    def cell_to_coords(ref):
+        col_str = ''
+        row_str = ''
+        for char in ref:
+            if char.isalpha():
+                col_str += char
+            else:
+                row_str += char
+        col = 0
+        for char in col_str:
+            col = col * 26 + (ord(char.upper()) - ord('A') + 1)
+        return col - 1, int(row_str) - 1
+
+    for row_node in root.findall('.//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row'):
+        row_idx = int(row_node.get('r')) - 1
+        while len(rows) <= row_idx:
+            rows.append([])
+            
+        row_cells = {}
+        max_col_idx = -1
+        for cell_node in row_node.findall('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c'):
+            ref = cell_node.get('r')
+            col_idx, _ = cell_to_coords(ref)
+            max_col_idx = max(max_col_idx, col_idx)
+            
+            val_node = cell_node.find('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}v')
+            val = ''
+            if val_node is not None:
+                val = val_node.text
+                cell_type = cell_node.get('t')
+                if cell_type == 's':
+                    idx = int(val)
+                    if idx < len(shared_strings):
+                        val = shared_strings[idx]
+            row_cells[col_idx] = val
+            
+        row_list = [''] * (max_col_idx + 1)
+        for col_idx, val in row_cells.items():
+            row_list[col_idx] = val
+        rows[row_idx] = row_list
+        
+    return rows
+
+def main():
+    file_paths = [
+        r"C:\Users\Dell\Downloads\IEMS weekly report (4).xlsx",
+        r"C:\Users\Dell\Downloads\IEMS weekly report (2).xlsx",
+        r"C:\Users\Dell\Downloads\IEMS weekly report (1).xlsx",
+        r"C:\Users\Dell\Downloads\IEMS weekly report.xlsx"
+    ]
+    
+    xlsx_path = ""
+    for p in file_paths:
+        if os.path.exists(p):
+            xlsx_path = p
+            break
+            
+    if not xlsx_path:
+        print("No Excel file found in Downloads!")
+        return
+
+    with zipfile.ZipFile(xlsx_path, 'r') as z:
+        shared_strings = parse_shared_strings(z)
+        rows = get_sheet_rows(z, shared_strings)
+        
+        output_path = r"C:\Users\Dell\.gemini\antigravity-ide\scratch\project-dashboard\xlsx_inspect_output.txt"
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(f"Parsing: {xlsx_path}\n")
+            f.write(f"Total rows read: {len(rows)}\n\n")
+            
+            # Print column headers
+            for idx in range(min(3, len(rows))):
+                f.write(f"Row {idx+1} (Header): {' | '.join(rows[idx])}\n")
+            
+            f.write("\n--- Sugamta Rows ---\n")
+            current_mod = ""
+            for r, row in enumerate(rows):
+                if len(row) > 0 and str(row[0]).strip() != '':
+                    current_mod = str(row[0]).strip()
+                if "sugamta" in current_mod.lower():
+                    # Format as non-empty items
+                    row_str = " | ".join(f"{c_idx}:{val}" for c_idx, val in enumerate(row) if str(val).strip() != '')
+                    f.write(f"Row {r+1}: {row_str}\n")
+                    
+        print("Success! Written output to xlsx_inspect_output.txt")
+
+if __name__ == '__main__':
+    main()

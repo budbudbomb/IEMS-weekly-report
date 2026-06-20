@@ -1,0 +1,13 @@
+{
+  "name": "project-dashboard",
+  "version": "1.0.0",
+  "description": "Project Dashboard",
+  "main": "app.js",
+  "scripts": {
+    "dev": "serve .",
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

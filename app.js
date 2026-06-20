@@ -82,6 +82,17 @@ const ICONS = {
     evm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 60%; height: 60%; display: block;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="15" y2="6"></line><line x1="9" y1="10" x2="15" y2="10"></line><line x1="9" y1="14" x2="15" y2="14"></line><circle cx="12" cy="18" r="1"></circle></svg>`
 };
 
+// Preset visuals map
+const EXISTING_VISUALS = {
+    preksha: { color: '#6366f1', icon: ICONS.preksha },
+    samadhan: { color: '#10b981', icon: ICONS.samadhan },
+    expenditure: { color: '#f59e0b', icon: ICONS.expenditure },
+    sugamta: { color: '#f43f5e', icon: ICONS.sugamta },
+    ipbms: { color: '#8b5cf6', icon: ICONS.ipbms },
+    evm: { color: '#06b6d4', icon: ICONS.evm }
+};
+
+
 // ============================================
 // DEFAULT MODULE DATA
 // ============================================
@@ -94,7 +105,7 @@ const DEFAULT_MODULES = {
         requirementGathering: 'Done',
         staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
         finalStatus: 'In progress',
-        remark: '',
+        remark: '<strong>Roll observer:</strong> Shared with the currently appointed "Roll Observers" for testing\n<strong>Election Observer:</strong> Need to get it reviewed from Sanju ma\'am on Monday',
         dependency: '',
         clientReviewPoints: [],
         documentation: { processFlow: 'Done', userManual: 'Done', conceptNote: '-' },
@@ -215,6 +226,7 @@ const DEFAULT_MODULES = {
             {
                 name: 'Election Observer',
                 reqGathering: 'Done',
+                dependency: 'Review by "Narendra sir" and "Sondhiya sir"',
                 staticScreens: { creation: 'Skipped', presentation: 'Skipped', status: 'Not done' },
                 categories: [
                     {
@@ -954,18 +966,51 @@ function calculateUserTypeProgress(ut) {
 }
 
 function countClientReviewPoints(mod) {
+    // 1. Check if any userType has explicit points parsed
+    let hasUTExplicitPoints = false;
+    let utCount = 0;
+    mod.userTypes.forEach(ut => {
+        if (ut.clientReviewPoints !== undefined && ut.clientReviewPoints > 0) {
+            hasUTExplicitPoints = true;
+            utCount += ut.clientReviewPoints;
+        }
+    });
+    if (hasUTExplicitPoints) {
+        return utCount;
+    }
+
+    // 2. Check if any pages have explicit points
     let count = 0;
+    let hasExplicitPoints = false;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.clientReview && typeof p.clientReview.points === 'number') {
+                    count += p.clientReview.points;
+                    if (p.clientReview.points > 0) {
+                        hasExplicitPoints = true;
+                    }
+                }
+            });
+        });
+    });
+    if (hasExplicitPoints) {
+        return count;
+    }
+
+    // 3. Fallback to counting pages with non-empty review text
+    let fallbackCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.clientReview && p.clientReview.review) ? p.clientReview.review.trim() : '';
                 if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
-                    count++;
+                    fallbackCount++;
                 }
             });
         });
     });
-    return count;
+    return fallbackCount;
 }
 
 function countCRs(mod) {
@@ -974,6 +1019,34 @@ function countCRs(mod) {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 if (p.changeRequest && p.changeRequest.details && p.changeRequest.details !== 'None' && p.changeRequest.details !== '-') count++;
+            });
+        });
+    });
+    return count;
+}
+
+function countBugs(mod) {
+    // 1. Check if any userType has explicit bugs parsed
+    let hasUTBugs = false;
+    let utCount = 0;
+    mod.userTypes.forEach(ut => {
+        if (ut.qaBugs !== undefined && ut.qaBugs > 0) {
+            hasUTBugs = true;
+            utCount += ut.qaBugs;
+        }
+    });
+    if (hasUTBugs) {
+        return utCount;
+    }
+
+    // 2. Sum pages bugs
+    let count = 0;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.qa && typeof p.qa.bugs === 'number') {
+                    count += p.qa.bugs;
+                }
             });
         });
     });
@@ -1088,6 +1161,7 @@ function showModule(moduleId) {
     document.getElementById('landing-page').classList.add('hidden');
     document.getElementById('detail-page').classList.remove('hidden');
     document.getElementById('team-page').classList.add('hidden');
+    document.getElementById('quick-report-page').classList.add('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
 
@@ -1103,6 +1177,7 @@ function showLanding() {
     document.getElementById('landing-page').classList.remove('hidden');
     document.getElementById('detail-page').classList.add('hidden');
     document.getElementById('team-page').classList.add('hidden');
+    document.getElementById('quick-report-page').classList.add('hidden');
     document.getElementById('back-btn').classList.add('hidden');
     document.getElementById('page-title').classList.remove('hidden');
 }
@@ -1112,6 +1187,7 @@ function showTeamReview() {
     document.getElementById('landing-page').classList.add('hidden');
     document.getElementById('detail-page').classList.add('hidden');
     document.getElementById('team-page').classList.remove('hidden');
+    document.getElementById('quick-report-page').classList.add('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
     renderTeamReview();
@@ -1275,10 +1351,12 @@ function renderDetailHeader() {
 }
 
 function renderTabs() {
+    const bugCount = countBugs(currentModule);
     const tabs = [
         { id: 'overview', label: 'Overview', icon: '📋' },
         { id: 'development', label: 'Dynamic Development', icon: '⚡' },
         { id: 'review', label: 'Review', icon: '🔍' },
+        { id: 'qa', label: 'QA', icon: '🧪', count: bugCount > 0 ? bugCount : undefined },
         { id: 'changes', label: 'Change Requests', icon: '🔄', count: countCRs(currentModule) },
         { id: 'documentation', label: 'Documentation', icon: '📄' },
         { id: 'team', label: 'Team', icon: '👥', count: currentModule.team.length }
@@ -1287,7 +1365,7 @@ function renderTabs() {
     document.getElementById('tabs-nav').innerHTML = tabs.map(tab => `
         <button class="tab-btn ${currentTab === tab.id ? 'active' : ''}" onclick="switchTab('${tab.id}')" id="tab-${tab.id}">
             ${tab.label}
-            ${tab.count !== undefined ? `<span class="tab-count">${tab.count}</span>` : ''}
+            ${tab.count !== undefined ? `<span class="tab-count ${tab.id === 'qa' ? 'status-bug' : ''}" style="${tab.id === 'qa' ? 'background: var(--color-bug); color: white;' : ''}">${tab.count}</span>` : ''}
         </button>
     `).join('');
 }
@@ -1306,6 +1384,7 @@ function renderTabContent() {
         case 'overview': renderOverview(container); break;
         case 'development': renderDevelopment(container); break;
         case 'review': renderReview(container); break;
+        case 'qa': renderQA(container); break;
         case 'changes': renderChanges(container); break;
         case 'documentation': renderDocumentation(container); break;
         case 'team': renderTeam(container); break;
@@ -1468,6 +1547,18 @@ function renderDevelopment(container) {
                 </div>
         `;
 
+        if (ut.dependency) {
+            html += `
+                <div class="alert-card" style="margin: 0 1.25rem 1rem 1.25rem;">
+                    <div class="alert-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Dependency / Blocker
+                    </div>
+                    <div class="alert-body">${ut.dependency.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }
+
         ut.categories.forEach(cat => {
             html += `
                 <div class="category-group">
@@ -1543,6 +1634,18 @@ function renderReview(container) {
                 </div>
         `;
 
+        if (ut.dependency) {
+            html += `
+                <div class="alert-card" style="margin: 0 1.25rem 1rem 1.25rem;">
+                    <div class="alert-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Dependency / Blocker
+                    </div>
+                    <div class="alert-body">${ut.dependency.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }
+
         ut.categories.forEach(cat => {
             html += `
                 <div class="category-group">
@@ -1551,8 +1654,10 @@ function renderReview(container) {
                         <thead>
                             <tr>
                                 <th>Page</th>
+                                <th class="text-center" style="width: 80px;">Int. Pts</th>
                                 <th class="col-review">Internal Review</th>
                                 <th class="text-center col-status">Internal Status</th>
+                                <th class="text-center" style="width: 80px;">Cli. Pts</th>
                                 <th class="col-review">Client Review</th>
                                 <th class="text-center col-status">Client Status</th>
                             </tr>
@@ -1566,12 +1671,18 @@ function renderReview(container) {
                                             ${page.name}
                                         </div>
                                     </td>
+                                    <td class="text-center font-semibold" style="vertical-align: middle;">
+                                        ${(page.internalReview.points !== undefined && page.internalReview.points > 0) ? page.internalReview.points : '—'}
+                                    </td>
                                     <td class="col-review">
                                         ${page.internalReview.review && page.internalReview.review !== '-' 
                                             ? `<div class="review-text">${page.internalReview.review}</div>` 
                                             : '<span class="status-badge status-na">—</span>'}
                                     </td>
                                     <td class="text-center col-status">${getStatusBadge(page.internalReview.status)}</td>
+                                    <td class="text-center font-semibold" style="vertical-align: middle;">
+                                        ${(page.clientReview.points !== undefined && page.clientReview.points > 0) ? page.clientReview.points : '—'}
+                                    </td>
                                     <td class="col-review">
                                         ${page.clientReview.review && page.clientReview.review !== '-' 
                                             ? `<div class="review-text">${page.clientReview.review}</div>` 
@@ -1580,6 +1691,83 @@ function renderReview(container) {
                                     <td class="text-center col-status">${getStatusBadge(page.clientReview.status)}</td>
                                 </tr>
                             `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function renderQA(container) {
+    const mod = currentModule;
+    let html = `
+        <div class="section-header">
+            <div class="section-icon">🧪</div>
+            <div>
+                <div class="section-title">QA Status & Bugs</div>
+                <div class="section-subtitle">QA verification progress and active bug tracking per page</div>
+            </div>
+        </div>
+    `;
+
+    mod.userTypes.forEach(ut => {
+        const utPages = [];
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                utPages.push(p);
+            });
+        });
+        
+        if (utPages.length === 0) return;
+
+        html += `
+            <div class="user-type-group">
+                <div class="user-type-header">
+                    <div class="user-type-icon">${getInitials(ut.name)}</div>
+                    <div class="user-type-name">${ut.name}</div>
+                </div>
+        `;
+
+        ut.categories.forEach(cat => {
+            if (cat.pages.length === 0) return;
+            html += `
+                <div class="category-group">
+                    <div class="category-label">${cat.name}</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th class="text-center col-status">QA Status</th>
+                                <th class="text-center" style="width: 150px;">No. of Bugs</th>
+                                <th class="text-center" style="width: 150px;">Bugs Fixed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cat.pages.map(page => {
+                                const qa = page.qa || { status: '-', bugs: 0, fixed: 0 };
+                                return `
+                                <tr>
+                                    <td>
+                                        <div class="page-name">
+                                            <div class="page-dot" style="background: ${getPageDotColor(page.dynamicDev)}"></div>
+                                            ${page.name}
+                                        </div>
+                                    </td>
+                                    <td class="text-center col-status">${getStatusBadge(qa.status)}</td>
+                                    <td class="text-center font-bold" style="color: ${qa.bugs > 0 ? 'var(--color-bug, #e11d48)' : 'var(--text-muted)'};">
+                                        ${qa.bugs || '0'}
+                                    </td>
+                                    <td class="text-center font-bold" style="color: ${qa.fixed > 0 ? 'var(--color-done, #16a34a)' : 'var(--text-muted)'};">
+                                        ${qa.fixed || '0'}
+                                    </td>
+                                </tr>
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -1683,14 +1871,30 @@ function renderDocumentation(container) {
 
     // Per user-type documentation if available (Samadhan DEO/RO have individual doc statuses)
     const docNotes = [];
-    if (mod.id === 'samadhan') {
-        docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: '-' });
-        docNotes.push({ userType: 'RO', processFlow: 'Pending', userManual: '-' });
-        docNotes.push({ userType: 'Admin', processFlow: 'Pending', userManual: '-' });
+    
+    if (mod.userTypes && mod.userTypes.length > 0) {
+        mod.userTypes.forEach(ut => {
+            const processFlow = (ut.documentation && ut.documentation.processFlow) ? ut.documentation.processFlow.toString().trim() : '-';
+            const userManual = (ut.documentation && ut.documentation.userManual) ? ut.documentation.userManual.toString().trim() : '-';
+            if (processFlow !== '-' || userManual !== '-') {
+                docNotes.push({
+                    userType: ut.name,
+                    processFlow: processFlow,
+                    userManual: userManual
+                });
+            }
+        });
     }
-    if (mod.id === 'expenditure') {
-        docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: 'Done' });
-        docNotes.push({ userType: 'Candidate', processFlow: 'Pending', userManual: 'Pending' });
+
+    if (docNotes.length === 0) {
+        if (mod.id === 'samadhan') {
+            docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: '-' });
+            docNotes.push({ userType: 'RO', processFlow: 'Pending', userManual: '-' });
+            docNotes.push({ userType: 'Admin', processFlow: 'Pending', userManual: '-' });
+        } else if (mod.id === 'expenditure') {
+            docNotes.push({ userType: 'DEO', processFlow: 'Done', userManual: 'Done' });
+            docNotes.push({ userType: 'Candidate', processFlow: 'Pending', userManual: 'Pending' });
+        }
     }
 
     if (docNotes.length > 0) {
@@ -1972,15 +2176,6 @@ function getModuleId(name) {
         .replace(/(^-|-$)/g, '');
 }
 
-// Preset visuals map
-const EXISTING_VISUALS = {
-    preksha: { color: '#6366f1', icon: ICONS.preksha },
-    samadhan: { color: '#10b981', icon: ICONS.samadhan },
-    expenditure: { color: '#f59e0b', icon: ICONS.expenditure },
-    sugamta: { color: '#f43f5e', icon: ICONS.sugamta },
-    ipbms: { color: '#8b5cf6', icon: ICONS.ipbms },
-    evm: { color: '#06b6d4', icon: ICONS.evm }
-};
 
 const PRESET_COLORS = ['#3b82f6', '#ec4899', '#14b8a6', '#f43f5e', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4'];
 let colorIndex = 0;
@@ -2078,7 +2273,7 @@ function parseExcelToModules(workbook) {
         headerRowIndex = 1; // Default fallback to index 1 (row 2 in excel)
     }
 
-    // Default mapping (Columns A to W)
+    // Default mapping (Columns A to W and shifted indices)
     let colIdx = {
         module: 0,
         userType: 1,
@@ -2088,10 +2283,15 @@ function parseExcelToModules(workbook) {
         staticScreensPresentation: 5,
         staticScreensStatus: 6,
         dynamicDev: 7,
+        internalReviewPoints: -1,
         internalReviewReview: 8,
         internalReviewStatus: 9,
+        clientReviewPoints: -1,
         clientReviewReview: 10,
         clientReviewStatus: 11,
+        qaStatus: -1,
+        qaBugs: -1,
+        qaBugsFixed: -1,
         crDetails: 12,
         crDevStatus: 13,
         crClientReview: 14,
@@ -2144,10 +2344,15 @@ function parseExcelToModules(workbook) {
         else if (s.includes('static') && s.includes('presentation')) colIdx.staticScreensPresentation = idx;
         else if (s.includes('static') && s.includes('status')) colIdx.staticScreensStatus = idx;
         else if (s.includes('dynamic') && !s.includes('status') && !s.includes('review') && !s.includes('detail') && !s.includes('approval') && !s.includes('cr')) colIdx.dynamicDev = idx;
-        else if (s.includes('internal') && s.includes('review') && !s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.internalReviewReview = idx;
-        else if (s.includes('internal') && s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.internalReviewStatus = idx;
-        else if (s.includes('client') && s.includes('review') && !s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.clientReviewReview = idx;
-        else if (s.includes('client') && s.includes('status') && !s.includes('change') && !s.includes('cr') && !s.includes('new') && !s.includes('approval')) colIdx.clientReviewStatus = idx;
+        else if (s.includes('internal') && (s.includes('point') || s.includes('no') || s.includes('pts'))) colIdx.internalReviewPoints = idx;
+        else if (s.includes('internal') && s.includes('status')) colIdx.internalReviewStatus = idx;
+        else if (s.includes('internal') && s.includes('review') && !s.includes('status') && !s.includes('point') && !s.includes('no') && !s.includes('pts')) colIdx.internalReviewReview = idx;
+        else if (s.includes('client') && (s.includes('point') || s.includes('no') || s.includes('pts'))) colIdx.clientReviewPoints = idx;
+        else if (s.includes('client') && s.includes('status')) colIdx.clientReviewStatus = idx;
+        else if (s.includes('client') && s.includes('review') && !s.includes('status') && !s.includes('point') && !s.includes('no') && !s.includes('pts')) colIdx.clientReviewReview = idx;
+        else if (s.includes('qa') && s.includes('status')) colIdx.qaStatus = idx;
+        else if (s.includes('qa') && (s.includes('bug') || s.includes('no')) && !s.includes('fixed')) colIdx.qaBugs = idx;
+        else if (s.includes('qa') && s.includes('fixed')) colIdx.qaBugsFixed = idx;
         else if (s.includes('cr') && s.includes('detail')) colIdx.crDetails = idx;
         else if (s.includes('cr') && s.includes('dev')) colIdx.crDevStatus = idx;
         else if (s.includes('cr') && s.includes('client')) colIdx.crClientReview = idx;
@@ -2201,7 +2406,7 @@ function parseExcelToModules(workbook) {
                     status: row[colIdx.staticScreensStatus] || '-'
                 },
                 finalStatus: row[colIdx.finalStatus] || '-',
-                remark: row[colIdx.remark] || '',
+                remark: '',
                 dependency: row[colIdx.dependency] || '',
                 clientReviewPoints: (MODULES[id] && MODULES[id].clientReviewPoints) ? [...MODULES[id].clientReviewPoints] : [],
                 documentation: {
@@ -2223,7 +2428,16 @@ function parseExcelToModules(workbook) {
         if (row[colIdx.staticScreensPresentation] && mod.staticScreens.presentation === '-') mod.staticScreens.presentation = row[colIdx.staticScreensPresentation];
         if (row[colIdx.staticScreensStatus] && mod.staticScreens.status === '-') mod.staticScreens.status = row[colIdx.staticScreensStatus];
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
-        if (row[colIdx.remark] && mod.remark === '') mod.remark = row[colIdx.remark];
+        if (row[colIdx.remark] && row[colIdx.remark].toString().trim()) {
+            const newRemark = row[colIdx.remark].toString().trim();
+            const prefix = currentUserTypeName ? `<strong>${currentUserTypeName}:</strong> ` : '';
+            const formattedRemark = prefix + newRemark;
+            if (!mod.remark) {
+                mod.remark = formattedRemark;
+            } else if (!mod.remark.includes(newRemark)) {
+                mod.remark += '\n' + formattedRemark;
+            }
+        }
         if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
         if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
         if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
@@ -2259,7 +2473,15 @@ function parseExcelToModules(workbook) {
                     status: row[colIdx.staticScreensStatus] || '-'
                 },
                 timeNeeded: row[colIdx.timeNeeded] || '-',
-                categories: []
+                documentation: {
+                    processFlow: row[colIdx.docProcessFlow] || '-',
+                    userManual: row[colIdx.docUserManual] || '-'
+                },
+                categories: [],
+                internalReviewPoints: 0,
+                clientReviewPoints: 0,
+                qaBugs: 0,
+                qaBugsFixed: 0
             };
             mod.userTypes.push(ut);
         } else {
@@ -2268,6 +2490,39 @@ function parseExcelToModules(workbook) {
             if (row[colIdx.staticScreensPresentation] && ut.staticScreens.presentation === '-') ut.staticScreens.presentation = row[colIdx.staticScreensPresentation];
             if (row[colIdx.staticScreensStatus] && ut.staticScreens.status === '-') ut.staticScreens.status = row[colIdx.staticScreensStatus];
             if (row[colIdx.timeNeeded] && ut.timeNeeded === '-') ut.timeNeeded = row[colIdx.timeNeeded];
+            
+            if (!ut.documentation) {
+                ut.documentation = { processFlow: '-', userManual: '-' };
+            }
+            if (row[colIdx.docProcessFlow] && row[colIdx.docProcessFlow] !== '-' && (ut.documentation.processFlow === '-' || ut.documentation.processFlow === '')) {
+                ut.documentation.processFlow = row[colIdx.docProcessFlow];
+            }
+            if (row[colIdx.docUserManual] && row[colIdx.docUserManual] !== '-' && (ut.documentation.userManual === '-' || ut.documentation.userManual === '')) {
+                ut.documentation.userManual = row[colIdx.docUserManual];
+            }
+        }
+
+        // Accumulate user-type level review points and QA bugs/fixed if present in current row
+        if (ut.internalReviewPoints === undefined) ut.internalReviewPoints = 0;
+        if (ut.clientReviewPoints === undefined) ut.clientReviewPoints = 0;
+        if (ut.qaBugs === undefined) ut.qaBugs = 0;
+        if (ut.qaBugsFixed === undefined) ut.qaBugsFixed = 0;
+
+        if (colIdx.internalReviewPoints !== -1 && row[colIdx.internalReviewPoints] !== undefined && row[colIdx.internalReviewPoints] !== '') {
+            const val = parseInt(row[colIdx.internalReviewPoints]) || 0;
+            if (val > 0) ut.internalReviewPoints += val;
+        }
+        if (colIdx.clientReviewPoints !== -1 && row[colIdx.clientReviewPoints] !== undefined && row[colIdx.clientReviewPoints] !== '') {
+            const val = parseInt(row[colIdx.clientReviewPoints]) || 0;
+            if (val > 0) ut.clientReviewPoints += val;
+        }
+        if (colIdx.qaBugs !== -1 && row[colIdx.qaBugs] !== undefined && row[colIdx.qaBugs] !== '') {
+            const val = parseInt(row[colIdx.qaBugs]) || 0;
+            if (val > 0) ut.qaBugs += val;
+        }
+        if (colIdx.qaBugsFixed !== -1 && row[colIdx.qaBugsFixed] !== undefined && row[colIdx.qaBugsFixed] !== '') {
+            const val = parseInt(row[colIdx.qaBugsFixed]) || 0;
+            if (val > 0) ut.qaBugsFixed += val;
         }
 
         // Reset category if user type changes
@@ -2304,16 +2559,36 @@ function parseExcelToModules(workbook) {
 
         // Parse page properties
         const activeRow = inheritedProps || row;
+        
+        let intPts = 0;
+        if (colIdx.internalReviewPoints !== -1) {
+            const v = activeRow[colIdx.internalReviewPoints] || row[colIdx.internalReviewPoints];
+            intPts = parseInt(v) || 0;
+        }
+        
+        let clPts = 0;
+        if (colIdx.clientReviewPoints !== -1) {
+            const v = activeRow[colIdx.clientReviewPoints] || row[colIdx.clientReviewPoints];
+            clPts = parseInt(v) || 0;
+        }
+
         const page = {
             name: pageName,
             dynamicDev: activeRow[colIdx.dynamicDev] || (row[colIdx.dynamicDev] || '-'),
             internalReview: {
                 review: activeRow[colIdx.internalReviewReview] || (row[colIdx.internalReviewReview] || '-'),
-                status: activeRow[colIdx.internalReviewStatus] || (row[colIdx.internalReviewStatus] || '-')
+                status: activeRow[colIdx.internalReviewStatus] || (row[colIdx.internalReviewStatus] || '-'),
+                points: intPts
             },
             clientReview: {
                 review: activeRow[colIdx.clientReviewReview] || (row[colIdx.clientReviewReview] || '-'),
-                status: activeRow[colIdx.clientReviewStatus] || (row[colIdx.clientReviewStatus] || '-')
+                status: activeRow[colIdx.clientReviewStatus] || (row[colIdx.clientReviewStatus] || '-'),
+                points: clPts
+            },
+            qa: {
+                status: colIdx.qaStatus !== -1 ? (activeRow[colIdx.qaStatus] || row[colIdx.qaStatus] || '-') : '-',
+                bugs: colIdx.qaBugs !== -1 ? (parseInt(activeRow[colIdx.qaBugs] || row[colIdx.qaBugs]) || 0) : 0,
+                fixed: colIdx.qaBugsFixed !== -1 ? (parseInt(activeRow[colIdx.qaBugsFixed] || row[colIdx.qaBugsFixed]) || 0) : 0
             },
             changeRequest: null
         };
@@ -2411,6 +2686,582 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
+// QUICK REPORT VIEW
+// ============================================
+
+function getPhaseDetail(mod, stepName) {
+    const totalPages = countPages(mod);
+    const donePages = countDonePages(mod);
+    const status = getStepStatus(mod, stepName);
+
+    switch (stepName) {
+        case 'Requirement Gathering': {
+            const req = (mod.requirementGathering || '-').toString();
+            if (req.length > 60) {
+                return req.substring(0, 55) + '…';
+            }
+            return req;
+        }
+        case 'Static screens': {
+            const ss = mod.staticScreens;
+            const parts = [];
+            if (ss.creation && ss.creation !== '-') parts.push(`Creation: ${ss.creation}`);
+            if (ss.presentation && ss.presentation !== '-') parts.push(`Presentation: ${ss.presentation}`);
+            if (ss.status && ss.status !== '-') parts.push(`Status: ${ss.status}`);
+            return parts.length > 0 ? parts.join(' · ') : 'Not applicable';
+        }
+        case 'Dynamic Development': {
+            const pct = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+            return `<strong>${donePages}/${totalPages}</strong> pages done (${pct}%)`;
+        }
+        case 'Internal review': {
+            const pts = countInternalReviewPoints(mod);
+            const intStatus = getInternalReviewStatus(mod);
+            return `${pts} review points · ${intStatus}`;
+        }
+        case 'Client review': {
+            const pts = countClientReviewPoints(mod);
+            const clStatus = getClientReviewStatus(mod);
+            return `${pts} review points · ${clStatus}`;
+        }
+        case 'QA': {
+            let bugs = 0;
+            let fixed = 0;
+            
+            // Check if userType has explicit bug counts
+            let hasUTBugs = false;
+            mod.userTypes.forEach(ut => {
+                if (ut.qaBugs !== undefined && ut.qaBugs > 0) {
+                    hasUTBugs = true;
+                    bugs += ut.qaBugs;
+                    fixed += (ut.qaBugsFixed || 0);
+                }
+            });
+            
+            if (!hasUTBugs) {
+                mod.userTypes.forEach(ut => {
+                    ut.categories.forEach(cat => {
+                        cat.pages.forEach(p => {
+                            if (p.qa) {
+                                bugs += (p.qa.bugs || 0);
+                                fixed += (p.qa.fixed || 0);
+                            }
+                        });
+                    });
+                });
+            }
+            
+            let bugDetail = '';
+            if (bugs > 0) {
+                bugDetail = `<br><span style="font-size:0.62rem; color:var(--text-muted); font-weight:600;">${bugs} bugs (${fixed} fixed)</span>`;
+            }
+
+            if (status === 'done') return `Completed${bugDetail}`;
+            if (status === 'in-progress') return `In progress${bugDetail}`;
+            return `Not started${bugDetail}`;
+        }
+        case 'Final Review': {
+            if (status === 'done') return 'Completed';
+            if (status === 'in-progress') return 'In progress';
+            return 'Awaiting QA';
+        }
+        case 'Security implementation': {
+            if (status === 'done') return 'Completed';
+            if (status === 'in-progress') return 'In progress';
+            return 'Awaiting review';
+        }
+        case 'UAT': {
+            if (status === 'done') return 'Completed';
+            if (status === 'in-progress') return 'In progress';
+            return 'Awaiting security';
+        }
+        case 'Go Live': {
+            if (status === 'done') return 'Deployed';
+            if (status === 'in-progress') return 'In progress';
+            return 'Pending';
+        }
+        default:
+            return '-';
+    }
+}
+
+function getStatusDotColor(status) {
+    switch (status) {
+        case 'done': return 'var(--color-done)';
+        case 'in-progress': return 'var(--color-progress)';
+        case 'skipped': return 'var(--color-skipped)';
+        case 'not-started': return '#cbd5e1';
+        default: return '#cbd5e1';
+    }
+}
+
+function showQuickReport() {
+    // Hide all other pages
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('detail-page').classList.add('hidden');
+    document.getElementById('team-page').classList.add('hidden');
+    document.getElementById('presentation-page').classList.add('hidden');
+    document.getElementById('quick-report-page').classList.remove('hidden');
+    document.getElementById('back-btn').classList.remove('hidden');
+    document.getElementById('page-title').classList.add('hidden');
+
+    // Reset presentation mode if active
+    if (presentationMode) {
+        presentationMode = false;
+        document.body.style.overflow = '';
+        document.body.classList.remove('presentation-active');
+        const btn = document.getElementById('pres-toggle-btn');
+        if (btn) {
+            btn.innerHTML = '<span>🎬 Presentation Mode</span>';
+            btn.style.background = 'rgba(99, 102, 241, 0.12)';
+            btn.style.color = '#4f46e5';
+            btn.style.borderColor = 'rgba(99, 102, 241, 0.25)';
+            btn.style.display = '';
+        }
+    }
+
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) uploadBtn.classList.remove('hidden');
+
+    const container = document.getElementById('qr-content');
+
+    const trackerSteps = [
+        'Requirement Gathering',
+        'Static screens',
+        'Dynamic Development',
+        'Internal review',
+        'Client review',
+        'QA',
+        'Final Review',
+        'Security implementation',
+        'UAT',
+        'Go Live'
+    ];
+
+    let html = '';
+
+    MODULE_ORDER.forEach(mid => {
+        const mod = MODULES[mid];
+        if (!mod) return;
+
+        const totalPages = countPages(mod);
+        const donePages = countDonePages(mod);
+        const progress = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+
+        // Calculate tracker fill
+        let lastDoneIndex = -1;
+        const stepsStatus = trackerSteps.map((step, sIdx) => {
+            const status = getStepStatus(mod, step);
+            if (status === 'done') lastDoneIndex = sIdx;
+            return status;
+        });
+        const fillPercent = trackerSteps.length > 1 ? (Math.max(0, lastDoneIndex) / (trackerSteps.length - 1)) * 100 : 0;
+
+        html += `
+            <div class="qr-module-row">
+                <!-- Vertical Sidebar -->
+                <div class="qr-module-sidebar" style="--mod-color: ${mod.color}; --mod-color-alpha: ${mod.color}cc;">
+                    <div class="qr-module-name">${mod.name}</div>
+                </div>
+
+                <!-- Content Area -->
+                <div class="qr-module-content">
+                    <!-- Module Header -->
+                    <div class="qr-module-header">
+                        <div class="qr-module-header-left">
+                            <div class="qr-module-icon" style="background: ${mod.color}12; color: ${mod.color}; border: 1px solid ${mod.color}25;">
+                                ${ICONS[mod.id] || mod.icon}
+                            </div>
+                            <div class="qr-module-title">${mod.name}</div>
+                        </div>
+                        <div class="qr-module-meta">
+                            <span class="qr-team-label">Team involved:</span>
+                            <div class="qr-team-avatars">
+                                ${mod.team.length > 0
+                                    ? mod.team.map(name => {
+                                        return `<div class="qr-team-badge" style="background: ${mod.color}10; color: ${mod.color}; border: 1px solid ${mod.color}25;">${name.trim()}</div>`;
+                                    }).join('')
+                                    : '<span class="qr-team-unassigned">Unassigned</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compact Horizontal Tracker -->
+                    <div class="qr-tracker">
+                        <div class="qr-tracker-wrapper">
+                            <div class="qr-tracker-line">
+                                ${(() => {
+                                    const n = trackerSteps.length;
+                                    let segs = '';
+                                    
+                                    // Find last reached index (done, skipped, or in-progress)
+                                    let lastReachedIndex = -1;
+                                    for (let k = 0; k < n; k++) {
+                                        const status = stepsStatus[k];
+                                        if (status === 'done' || status === 'skipped' || status === 'in-progress') {
+                                            lastReachedIndex = k;
+                                        }
+                                    }
+                                    
+                                    for (let i = 0; i < n - 1; i++) {
+                                        if (i >= lastReachedIndex) {
+                                            continue; // Not reached yet (remains grey)
+                                        }
+                                        const leftPct  = (i / (n - 1)) * 100;
+                                        const widthPct = (1 / (n - 1)) * 100;
+                                        
+                                        // Determine if we have passed through an "in progress" phase at or before step i
+                                        let hasPassedInProgress = false;
+                                        for (let k = 0; k <= i; k++) {
+                                            if (stepsStatus[k] === 'in-progress') {
+                                                hasPassedInProgress = true;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        const fill = hasPassedInProgress ? 'var(--color-progress)' : 'var(--color-done)';
+                                        segs += `<div class="qr-tracker-seg" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%;background:${fill};"></div>`;
+                                    }
+                                    return segs;
+                                })()}
+                            </div>
+                            ${trackerSteps.map((step, sIdx) => {
+                                const status = stepsStatus[sIdx];
+                                let icon = sIdx + 1;
+                                if (status === 'done') icon = '✓';
+                                else if (status === 'in-progress') icon = '◐';
+
+                                return `
+                                    <div class="qr-tracker-step ${status}">
+                                        <div class="qr-tracker-dot">${icon}</div>
+                                        <div class="qr-tracker-label">${step}${status === 'skipped' ? '<br><span style="font-size:0.5rem;opacity:0.6;">(Skipped)</span>' : ''}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Phase Detail Boxes -->
+                    <div class="qr-phase-grid">
+                        ${trackerSteps.map((step, sIdx) => {
+                            const status = stepsStatus[sIdx];
+                            const detail = getPhaseDetail(mod, step);
+                            const dotColor = getStatusDotColor(status);
+
+                            return `
+                                <div class="qr-phase-box qr-phase-${status}">
+                                    <div class="qr-phase-box-header">
+                                        <div class="qr-phase-box-title">${step}</div>
+                                        <div class="qr-phase-status-icon">${
+                                            status === 'done'
+                                            ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#16a34a"/><path d="M4 7.2l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                                            : status === 'in-progress'
+                                            ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#d97706"/><circle cx="7" cy="7" r="2.2" fill="#fff"/></svg>`
+                                            : status === 'skipped'
+                                            ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" stroke="#94a3b8" stroke-width="1"/><path d="M4.5 9.5l5-5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/></svg>`
+                                            : `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" stroke="#cbd5e1" stroke-width="1"/><path d="M7 4.5V7.2l1.8 1.3" stroke="#94a3b8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                                        }</div>
+                                    </div>
+                                    <div class="qr-phase-box-detail">${detail}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <!-- Meta info row: Dependency + Documentation + Remark -->
+                    <div class="qr-meta-row">
+                        <div class="qr-meta-box qr-dep-box" style="border-color: ${mod.color}25; background: ${mod.color}05;">
+                            <div class="qr-meta-label" style="color: ${mod.color};">
+                                <span class="qr-meta-icon">⚠️</span> Dependency / Blocker
+                            </div>
+                            <div class="qr-meta-text">${mod.dependency && mod.dependency.trim() && mod.dependency !== '-'
+                                ? mod.dependency.replace(/\n/g, '<br>')
+                                : '<em>No active dependencies or blockers.</em>'}</div>
+                        </div>
+                        <div class="qr-meta-box qr-doc-box" style="border-color: ${mod.color}25; background: ${mod.color}05;">
+                            <div class="qr-meta-label" style="color: ${mod.color};">
+                                <span class="qr-meta-icon">📄</span> Documentation
+                            </div>
+                            <div class="qr-doc-grid" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                ${(() => {
+                                    const utDocs = [];
+                                    if (mod.userTypes && mod.userTypes.length > 0) {
+                                        mod.userTypes.forEach(ut => {
+                                            const pf = (ut.documentation && ut.documentation.processFlow) ? ut.documentation.processFlow.toString().trim() : '-';
+                                            const um = (ut.documentation && ut.documentation.userManual) ? ut.documentation.userManual.toString().trim() : '-';
+                                            if (pf !== '-' || um !== '-') {
+                                                utDocs.push({ name: ut.name, processFlow: pf, userManual: um });
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Fallback to default mock data if empty
+                                    if (utDocs.length === 0) {
+                                        if (mod.id === 'samadhan') {
+                                            utDocs.push({ name: 'DEO', processFlow: 'Done', userManual: '-' });
+                                            utDocs.push({ name: 'RO', processFlow: 'Pending', userManual: '-' });
+                                            utDocs.push({ name: 'Admin', processFlow: 'Pending', userManual: '-' });
+                                        } else if (mod.id === 'expenditure') {
+                                            utDocs.push({ name: 'DEO', processFlow: 'Done', userManual: 'Done' });
+                                            utDocs.push({ name: 'Candidate', processFlow: 'Pending', userManual: 'Pending' });
+                                        } else {
+                                            utDocs.push({
+                                                name: 'All Users',
+                                                processFlow: (mod.documentation && mod.documentation.processFlow) ? mod.documentation.processFlow : '-',
+                                                userManual: (mod.documentation && mod.documentation.userManual) ? mod.documentation.userManual : '-'
+                                            });
+                                        }
+                                    }
+                                    
+                                    return utDocs.map((d, index) => {
+                                        const pfStatus = d.processFlow !== '-' && d.processFlow !== '' ? d.processFlow : 'Pending';
+                                        const umStatus = d.userManual !== '-' && d.userManual !== '' ? d.userManual : 'Pending';
+                                        
+                                        const pfClass = pfStatus.toLowerCase().includes('done') || pfStatus.toLowerCase().includes('approve') || pfStatus.toLowerCase().includes('complete') ? 'qr-doc-done' : 'qr-doc-pending';
+                                        const umClass = umStatus.toLowerCase().includes('done') || umStatus.toLowerCase().includes('approve') || umStatus.toLowerCase().includes('complete') ? 'qr-doc-done' : 'qr-doc-pending';
+                                        
+                                        return `
+                                            <div class="qr-doc-ut-section" style="display: flex; flex-direction: column; gap: 0.12rem; ${index > 0 ? 'border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 0.25rem; margin-top: 0.1rem;' : ''}">
+                                                <div class="qr-doc-ut-name" style="font-weight: 700; font-size: 0.62rem; color: ${mod.color}; opacity: 0.85; margin-bottom: 0.05rem;">${d.name}</div>
+                                                <div class="qr-doc-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;">
+                                                    <span class="qr-doc-key" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: 500;">Process Flow</span>
+                                                    <span class="qr-doc-val ${pfClass}">${pfStatus}</span>
+                                                </div>
+                                                <div class="qr-doc-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;">
+                                                    <span class="qr-doc-key" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: 500;">User Manual</span>
+                                                    <span class="qr-doc-val ${umClass}">${umStatus}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('');
+                                })()}
+                            </div>
+                        </div>
+                        <div class="qr-meta-box qr-remark-box-inline" style="border-color: ${mod.color}25; background: ${mod.color}05;">
+                            <div class="qr-meta-label" style="color: ${mod.color};">
+                                <span class="qr-meta-icon">💬</span> Remark
+                            </div>
+                            <div class="qr-meta-text">${mod.remark ? mod.remark.replace(/\n/g, '<br>') : '<em>No remarks registered.</em>'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function downloadQuickReportPDF() {
+    const modal = document.getElementById('print-modal');
+    if (modal) {
+        modal.classList.add('active');
+        selectPrintOption('landscape');
+    } else {
+        window.print();
+    }
+}
+
+function closePrintModal() {
+    const modal = document.getElementById('print-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function selectPrintOption(option) {
+    const cards = document.querySelectorAll('.print-option-card');
+    cards.forEach(card => {
+        const input = card.querySelector('input');
+        if (input.value === option) {
+            input.checked = true;
+            card.style.borderColor = '#6366f1';
+            card.style.background = 'rgba(99, 102, 241, 0.05)';
+        } else {
+            input.checked = false;
+            card.style.borderColor = '';
+            card.style.background = '';
+        }
+    });
+}
+
+function confirmPrintLayout() {
+    const selectedLayout = document.querySelector('input[name="print-layout-option"]:checked').value;
+    
+    // Remove old style tag if exists
+    let dynamicStyle = document.getElementById('dynamic-print-rules');
+    if (dynamicStyle) {
+        dynamicStyle.remove();
+    }
+    
+    dynamicStyle = document.createElement('style');
+    dynamicStyle.id = 'dynamic-print-rules';
+    
+    if (selectedLayout === 'landscape') {
+        dynamicStyle.innerHTML = `
+            @media print {
+                @page {
+                    size: A4 landscape;
+                    margin: 6mm 8mm;
+                }
+                .qr-module-row {
+                    display: flex !important;
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                    margin-bottom: 0.2rem !important;
+                }
+                /* Reset existing break rules first */
+                .qr-module-row:nth-of-type(2n),
+                .qr-module-row:nth-of-type(3n) {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                /* Force exactly 2 modules per page in Landscape */
+                .qr-module-row:nth-of-type(2n) {
+                    page-break-after: always !important;
+                    break-after: page !important;
+                }
+                .qr-module-row:last-of-type {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                .qr-meta-row {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr 2fr !important;
+                    grid-template-rows: auto !important;
+                    gap: 0.3rem !important;
+                }
+                .qr-dep-box, .qr-doc-box, .qr-remark-box-inline {
+                    grid-column: auto !important;
+                    grid-row: auto !important;
+                }
+                .qr-module-sidebar {
+                    display: flex !important;
+                    flex-shrink: 0 !important;
+                    width: 32px !important;
+                    min-width: 32px !important;
+                    overflow: hidden !important;
+                    position: relative !important;
+                    background: var(--mod-color) !important;
+                }
+                .qr-module-name {
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    writing-mode: horizontal-tb !important;
+                    text-orientation: unset !important;
+                    transform: translate(-50%, -50%) rotate(-90deg) !important;
+                    font-size: 0.45rem !important;
+                    letter-spacing: 0.04em !important;
+                    padding: 0 !important;
+                    white-space: nowrap !important;
+                    max-width: 180px !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    text-align: center !important;
+                }
+                .qr-team-label {
+                    font-size: 0.52rem !important;
+                    color: #475569 !important;
+                }
+                .qr-tracker {
+                    padding: 0.3rem 0 !important;
+                }
+            }
+        `;
+    } else {
+        dynamicStyle.innerHTML = `
+            @media print {
+                @page {
+                    size: A4 portrait;
+                    margin: 6mm 8mm;
+                }
+                .qr-module-row {
+                    display: flex !important;
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                    margin-bottom: 0.2rem !important;
+                }
+                /* Reset existing break rules first */
+                .qr-module-row:nth-of-type(2n),
+                .qr-module-row:nth-of-type(3n) {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                /* Force exactly 3 modules per page in Portrait */
+                .qr-module-row:nth-of-type(3n) {
+                    page-break-after: always !important;
+                    break-after: page !important;
+                }
+                .qr-module-row:last-of-type {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                .qr-meta-row {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1.6fr !important;
+                    grid-template-rows: auto auto !important;
+                    gap: 0.25rem !important;
+                }
+                .qr-dep-box {
+                    grid-column: 1 !important;
+                    grid-row: 1 !important;
+                }
+                .qr-doc-box {
+                    grid-column: 1 !important;
+                    grid-row: 2 !important;
+                }
+                .qr-remark-box-inline {
+                    grid-column: 2 !important;
+                    grid-row: 1 / span 2 !important;
+                }
+                .qr-module-sidebar {
+                    display: flex !important;
+                    flex-shrink: 0 !important;
+                    width: 32px !important;
+                    min-width: 32px !important;
+                    overflow: hidden !important;
+                    position: relative !important;
+                    background: var(--mod-color) !important;
+                }
+                .qr-module-name {
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    writing-mode: horizontal-tb !important;
+                    text-orientation: unset !important;
+                    transform: translate(-50%, -50%) rotate(-90deg) !important;
+                    font-size: 0.45rem !important;
+                    letter-spacing: 0.04em !important;
+                    padding: 0 !important;
+                    white-space: nowrap !important;
+                    max-width: 180px !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    text-align: center !important;
+                }
+                .qr-team-label {
+                    font-size: 0.52rem !important;
+                    color: #475569 !important;
+                }
+                .qr-tracker {
+                    padding: 0.3rem 0 !important;
+                }
+            }
+        `;
+    }
+    
+    document.head.appendChild(dynamicStyle);
+    
+    // Close modal
+    closePrintModal();
+    
+    // Trigger print
+    window.print();
+}
+
+// ============================================
 // PRESENTATION MODE STATE & HELPERS
 // ============================================
 let presentationMode = false;
@@ -2431,10 +3282,14 @@ function startPresentationMode() {
     const btn = document.getElementById('pres-toggle-btn');
     if (landingPage) landingPage.classList.add('hidden');
     if (detailPage) detailPage.classList.add('hidden');
+    const qrPage = document.getElementById('quick-report-page');
+    if (qrPage) qrPage.classList.add('hidden');
     if (backBtn) backBtn.classList.add('hidden');
     if (pageTitle) pageTitle.classList.remove('hidden');
     if (uploadBtn) uploadBtn.classList.add('hidden');
     if (btn) btn.style.display = 'none';
+    const qrBtn = document.getElementById('quick-report-btn');
+    if (qrBtn) qrBtn.style.display = 'none';
     if (presPage) presPage.classList.remove('hidden');
     currentSlideIndex = 0;
     renderSlide();
@@ -2453,18 +3308,51 @@ document.addEventListener('keydown', (e) => {
 });
 
 function countInternalReviewPoints(mod) {
+    // 1. Check if any userType has explicit points parsed
+    let hasUTExplicitPoints = false;
+    let utCount = 0;
+    mod.userTypes.forEach(ut => {
+        if (ut.internalReviewPoints !== undefined && ut.internalReviewPoints > 0) {
+            hasUTExplicitPoints = true;
+            utCount += ut.internalReviewPoints;
+        }
+    });
+    if (hasUTExplicitPoints) {
+        return utCount;
+    }
+
+    // 2. Check if any pages have explicit points
     let count = 0;
+    let hasExplicitPoints = false;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(p => {
+                if (p.internalReview && typeof p.internalReview.points === 'number') {
+                    count += p.internalReview.points;
+                    if (p.internalReview.points > 0) {
+                        hasExplicitPoints = true;
+                    }
+                }
+            });
+        });
+    });
+    if (hasExplicitPoints) {
+        return count;
+    }
+
+    // 3. Fallback to counting pages with non-empty review text
+    let fallbackCount = 0;
     mod.userTypes.forEach(ut => {
         ut.categories.forEach(cat => {
             cat.pages.forEach(p => {
                 const r = (p.internalReview.review || '').trim();
                 if (r !== '' && r !== '-' && r.toLowerCase() !== 'none' && r.toLowerCase() !== 'no issues') {
-                    count++;
+                    fallbackCount++;
                 }
             });
         });
     });
-    return count;
+    return fallbackCount;
 }
 
 function getInternalReviewStatus(mod) {
@@ -2597,6 +3485,37 @@ function getStepStatus(mod, stepName) {
             return 'in-progress';
         case 'QA':
             if (finalDone) return 'done';
+            
+            let qaTotal = 0;
+            let qaDoneCount = 0;
+            let qaNotStartedCount = 0;
+            let hasQABugs = false;
+            
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        if (p.qa) {
+                            qaTotal++;
+                            const s = (p.qa.status || '').toLowerCase().trim();
+                            if (s === 'done' || s === 'completed' || s === 'approved') {
+                                qaDoneCount++;
+                            } else if (s === '-' || s === '' || s === 'not started') {
+                                qaNotStartedCount++;
+                            }
+                            if (p.qa.bugs > 0) {
+                                hasQABugs = true;
+                            }
+                        }
+                    });
+                });
+            });
+            
+            if (qaTotal > 0) {
+                if (qaDoneCount === qaTotal && !hasQABugs) return 'done';
+                if (qaNotStartedCount === qaTotal && !hasQABugs) return 'not-started';
+                return 'in-progress';
+            }
+            
             if (mod.id === 'preksha' || mod.id === 'samadhan') return 'in-progress';
             if (getStepStatus(mod, 'Client review') === 'done') return 'in-progress';
             return 'not-started';
@@ -2633,6 +3552,7 @@ function togglePresentationMode() {
 
     if (presentationMode) {
         document.body.style.overflow = 'hidden';
+        document.body.classList.add('presentation-active');
         btn.innerHTML = '<span>📊 Dashboard Mode</span>';
         btn.style.background = 'rgba(16, 185, 129, 0.12)';
         btn.style.color = '#10b981';
@@ -2640,9 +3560,12 @@ function togglePresentationMode() {
 
         landingPage.classList.add('hidden');
         detailPage.classList.add('hidden');
+        document.getElementById('quick-report-page').classList.add('hidden');
         backBtn.classList.add('hidden');
         pageTitle.classList.remove('hidden');
         if (uploadBtn) uploadBtn.classList.add('hidden');
+        const qrBtn1 = document.getElementById('quick-report-btn');
+        if (qrBtn1) qrBtn1.style.display = 'none';
         presPage.classList.remove('hidden');
 
         // Context-aware slide index
@@ -2655,6 +3578,7 @@ function togglePresentationMode() {
         renderSlide();
     } else {
         document.body.style.overflow = '';
+        document.body.classList.remove('presentation-active');
         btn.innerHTML = '<span>🎬 Presentation Mode</span>';
         btn.style.background = 'rgba(99, 102, 241, 0.12)';
         btn.style.color = '#4f46e5';
@@ -2662,6 +3586,8 @@ function togglePresentationMode() {
 
         presPage.classList.add('hidden');
         if (uploadBtn) uploadBtn.classList.remove('hidden');
+        const qrBtn2 = document.getElementById('quick-report-btn');
+        if (qrBtn2) qrBtn2.style.display = '';
         
         if (currentSlideIndex >= 1 && currentSlideIndex <= MODULE_ORDER.length) {
             const mid = MODULE_ORDER[currentSlideIndex - 1];

@@ -34,6 +34,9 @@
                 </div>
                 <div class="header-right">
                     <div class="header-stats" id="header-stats"></div>
+                    <button class="back-btn" id="quick-report-btn" onclick="showQuickReport()" style="background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.25); margin-right: 8px;">
+                        <span>📋 Quick Report</span>
+                    </button>
                     <button class="back-btn" id="pres-toggle-btn" onclick="togglePresentationMode()" style="background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-color: rgba(99, 102, 241, 0.25); margin-right: 8px;">
                         <span>🎬 Presentation Mode</span>
                     </button>
@@ -105,6 +108,23 @@
             </div>
         </main>
 
+        <!-- Quick Report Page -->
+        <main class="quick-report-page hidden" id="quick-report-page">
+            <div class="qr-toolbar" id="qr-toolbar">
+                <div class="qr-toolbar-left">
+                    <h2 class="qr-toolbar-title">Quick Report</h2>
+                    <span class="qr-toolbar-subtitle">Executive module status overview — optimized for print</span>
+                </div>
+                <button class="qr-download-btn" id="qr-download-btn" onclick="downloadQuickReportPDF()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download PDF
+                </button>
+            </div>
+            <div class="qr-content" id="qr-content">
+                <!-- Modules will be rendered here -->
+            </div>
+        </main>
+
         <!-- Upload Modal -->
         <div class="modal-overlay" id="upload-modal">
             <div class="modal-container">
@@ -125,6 +145,47 @@
                     </button>
                     <button class="back-btn" onclick="closeUploadModal()">
                         Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Print Layout Selection Modal -->
+        <div class="modal-overlay" id="print-modal">
+            <div class="modal-container" style="max-width: 480px; padding: 1.75rem;">
+                <div class="modal-header" style="margin-bottom: 1.25rem;">
+                    <h3 class="modal-title" style="font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;">PDF Export Settings</h3>
+                    <button class="modal-close" onclick="closePrintModal()">&times;</button>
+                </div>
+                
+                <div style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 1.25rem;">
+                    Select your preferred orientation and layout for printing or saving the Quick Report as a PDF.
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.75rem;">
+                    <div class="print-option-card" onclick="selectPrintOption('landscape')" style="border: 2px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.9rem 1.1rem; cursor: pointer; display: flex; align-items: flex-start; gap: 0.75rem; transition: var(--transition);">
+                        <input type="radio" name="print-layout-option" value="landscape" checked style="margin-top: 0.25rem; cursor: pointer;" onclick="event.stopPropagation(); selectPrintOption('landscape');">
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">Landscape Mode (Recommended)</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.3;">Fits exactly <strong>2 modules per page</strong>. Maximizes horizontal space to prevent word wrapping and layout splitting.</div>
+                        </div>
+                    </div>
+
+                    <div class="print-option-card" onclick="selectPrintOption('portrait')" style="border: 2px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.9rem 1.1rem; cursor: pointer; display: flex; align-items: flex-start; gap: 0.75rem; transition: var(--transition);">
+                        <input type="radio" name="print-layout-option" value="portrait" style="margin-top: 0.25rem; cursor: pointer;" onclick="event.stopPropagation(); selectPrintOption('portrait');">
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">Portrait Mode</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.3;">Fits exactly <strong>3 modules per page</strong>. Compact, space-saving stacked layout suitable for portrait viewing.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button class="back-btn" onclick="closePrintModal()" style="margin: 0; padding: 0.5rem 1.2rem; font-size: 0.85rem;">
+                        Cancel
+                    </button>
+                    <button class="qr-download-btn" onclick="confirmPrintLayout()" style="margin: 0; padding: 0.5rem 1.4rem; font-size: 0.85rem; height: auto;">
+                        Export PDF
                     </button>
                 </div>
             </div>
