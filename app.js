@@ -2453,8 +2453,8 @@ function parseExcelToModules(workbook) {
             const _overrideNA = !_exempt; // for real user types, allow overriding an NA set by exempt rows
             const ssFields = [
                 { col: 'staticScreensCreation',    key: 'creation'    },
-                { col: 'staticScreensPresentation', key: 'presentation' },
-                { col: 'staticScreensStatus',       key: 'status'      }
+                { col: 'staticScreensPresentation', key: 'presentation' }
+                // Note: staticScreensStatus is per-page — derived in post-processing, not read per row
             ];
             ssFields.forEach(({ col, key }) => {
                 const raw = (row[colIdx[col]] || '').toString().trim();
@@ -2718,7 +2718,17 @@ function parseExcelToModules(workbook) {
 
             if (newCreation !== null) mod.staticScreens.creation = newCreation;
             if (newPresentation !== null) mod.staticScreens.presentation = newPresentation;
-            if (newStatus !== null) mod.staticScreens.status = newStatus;
+
+            // Derive status from creation + presentation (don't use per-page status column)
+            const c = (mod.staticScreens.creation || '').toLowerCase();
+            const p = (mod.staticScreens.presentation || '').toLowerCase();
+            const bothDone = c === 'done' && p === 'done';
+            const anyProgress = c.includes('progress') || p.includes('progress');
+            const anySkipped = c.includes('skip') || p.includes('skip');
+            if (bothDone) mod.staticScreens.status = 'Done';
+            else if (anyProgress) mod.staticScreens.status = 'In Progress';
+            else if (anySkipped) mod.staticScreens.status = 'Skipped';
+            else if (newCreation !== null || newPresentation !== null) mod.staticScreens.status = 'In Progress';
         }
     });
 
