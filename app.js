@@ -2564,18 +2564,13 @@ function parseExcelToModules(workbook) {
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
         if (row[colIdx.remark] && row[colIdx.remark].toString().trim()) {
             const newRemark = row[colIdx.remark].toString().trim();
-            // Store raw text per-UT (no prefix — prefix decision is made in render based on merge level)
-            if (ut && !ut.remark) ut.remark = newRemark;
-            // Accumulate on mod as raw text (no UT prefix baked in)
+            // Accumulate on mod as raw text (no UT prefix — prefix decision is made in render)
             if (!mod.remark) {
                 mod.remark = newRemark;
             } else if (!mod.remark.includes(newRemark)) {
                 mod.remark += '\n' + newRemark;
             }
         }
-        // Tag each UT with its remark merge group
-        const _remarkMergeGid = _remarkMergeMap[r];
-        if (_remarkMergeGid && ut && !ut._remarkMergeGid) ut._remarkMergeGid = _remarkMergeGid;
         if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
         if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
         if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
@@ -2689,6 +2684,14 @@ function parseExcelToModules(workbook) {
         // Tag each user type with its QA merge group (if any)
         const _qaMergeGid = _qaMergeMap[r];
         if (_qaMergeGid && ut && !ut._qaMergeGid) ut._qaMergeGid = _qaMergeGid;
+        // Tag each user type with its remark merge group (if any)
+        const _remarkMergeGid = _remarkMergeMap[r];
+        if (_remarkMergeGid && !ut._remarkMergeGid) ut._remarkMergeGid = _remarkMergeGid;
+        // Store raw remark text on UT (no prefix — decided in render)
+        if (!ut.remark) {
+            const remVal = (row[colIdx.remark] || '').toString().trim();
+            if (remVal) ut.remark = remVal;
+        }
 
         // Reset category if user type changes
         if (currentUserTypeName !== lastUserTypeName) {
