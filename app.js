@@ -2992,20 +2992,7 @@ function getPhaseDetail(mod, stepName) {
             return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(clStatus)}">${clStatus}</span></div>`;
         }
         case 'QA': {
-            // ── Per-UT breakdown: reuse the same key-value row style as Static Screens
-            if (mod._qaGroups && mod._qaGroups.length > 0 && !mod._qaModuleLevel) {
-                const rowsHtml = mod._qaGroups.map(g => {
-                    const label = g.utNames.join(' + ');
-                    const bugText = g.bugs > 0
-                        ? `${g.bugs} bugs${g.fixed > 0 ? ` (${g.fixed}✓)` : ''}`
-                        : '–';
-                    const bugClass = g.bugs > 0 ? 'qr-sub-progress' : 'qr-sub-na';
-                    return `<div class="qr-sub-row"><span class="qr-sub-key">${label}</span><span class="qr-sub-val ${bugClass}">${bugText}</span></div>`;
-                }).join('');
-                return `<div class="qr-sub-rows">${rowsHtml}</div>`;
-            }
-
-            // ── Module-level: big bug count + status pill (same as Review cards)
+            // Always show the same format: big bug count + "bugs found" + fixed pill
             let bugs = 0, fixed = 0;
             if (mod._qaGroups && mod._qaGroups.length > 0) {
                 bugs  = mod._qaGroups.reduce((s, g) => s + (g.bugs  || 0), 0);
