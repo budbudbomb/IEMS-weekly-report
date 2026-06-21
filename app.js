@@ -2978,7 +2978,8 @@ function getPhaseDetail(mod, stepName) {
         }
         case 'Dynamic Development': {
             const pct = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
-            return `<strong>${donePages}/${totalPages}</strong> pages done (${pct}%)`;
+            const pctClass = pct >= 100 ? 'qr-review-done' : pct > 0 ? 'qr-review-progress' : 'qr-review-neutral';
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pct}%</span><span class="qr-review-pts-label">complete</span></div><span class="qr-review-status-pill ${pctClass}">${donePages} / ${totalPages} pages</span></div>`;
         }
         case 'Internal review': {
             const pts = countInternalReviewPoints(mod);
@@ -2991,25 +2992,25 @@ function getPhaseDetail(mod, stepName) {
             return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(clStatus)}">${clStatus}</span></div>`;
         }
         case 'QA': {
-            // ── Per-UT breakdown when QA is split by user type ──────────────
+            // ── Per-UT breakdown: reuse the same key-value row style as Static Screens
             if (mod._qaGroups && mod._qaGroups.length > 0 && !mod._qaModuleLevel) {
                 const rowsHtml = mod._qaGroups.map(g => {
                     const label = g.utNames.join(' + ');
                     const bugText = g.bugs > 0
-                        ? `${g.bugs} bugs${g.fixed > 0 ? ` (${g.fixed} fixed)` : ''}`
+                        ? `${g.bugs} bugs${g.fixed > 0 ? ` (${g.fixed}✓)` : ''}`
                         : '–';
-                    return `<div class="qr-qa-row"><span class="qr-qa-ut">${label}</span><span class="qr-qa-badge">${bugText}</span></div>`;
+                    const bugClass = g.bugs > 0 ? 'qr-sub-progress' : 'qr-sub-na';
+                    return `<div class="qr-sub-row"><span class="qr-sub-key">${label}</span><span class="qr-sub-val ${bugClass}">${bugText}</span></div>`;
                 }).join('');
-                return `<div class="qr-qa-rows">${rowsHtml}</div>`;
+                return `<div class="qr-sub-rows">${rowsHtml}</div>`;
             }
 
-            // ── Module-level (merged or no breakdown) ───────────────────────
+            // ── Module-level: big bug count + status pill (same as Review cards)
             let bugs = 0, fixed = 0;
             if (mod._qaGroups && mod._qaGroups.length > 0) {
                 bugs  = mod._qaGroups.reduce((s, g) => s + (g.bugs  || 0), 0);
                 fixed = mod._qaGroups.reduce((s, g) => s + (g.fixed || 0), 0);
             } else {
-                // Fallback: legacy logic
                 let hasUTBugs = false;
                 mod.userTypes.forEach(ut => {
                     if (ut.qaBugs !== undefined && ut.qaBugs > 0) { hasUTBugs = true; bugs += ut.qaBugs; fixed += (ut.qaBugsFixed || 0); }
@@ -3019,13 +3020,16 @@ function getPhaseDetail(mod, stepName) {
                 }
             }
 
-            let bugDetail = '';
             if (bugs > 0) {
-                bugDetail = `<br><span style="font-size:0.62rem;color:var(--text-muted);font-weight:600;">${bugs} bugs (${fixed} fixed)</span>`;
+                const fixedPill = fixed > 0
+                    ? `<span class="qr-review-status-pill qr-review-done">${fixed} fixed</span>`
+                    : `<span class="qr-review-status-pill qr-review-progress">${status === 'done' ? 'Done' : 'In Progress'}</span>`;
+                return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${bugs}</span><span class="qr-review-pts-label">bugs found</span></div>${fixedPill}</div>`;
             }
-            if (status === 'done')        return `Completed${bugDetail}`;
-            if (status === 'in-progress') return `In progress${bugDetail}`;
-            return `Not started${bugDetail}`;
+            // No bugs yet
+            const noQaClass = status === 'done' ? 'qr-review-done' : status === 'in-progress' ? 'qr-review-progress' : 'qr-review-neutral';
+            const noQaLabel = status === 'done' ? 'Completed' : status === 'in-progress' ? 'In Progress' : 'Not started';
+            return `<div class="qr-review-detail"><span class="qr-review-status-pill ${noQaClass}">${noQaLabel}</span></div>`;
         }
         case 'Final Review': {
             if (status === 'done') return 'Completed';
