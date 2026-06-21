@@ -3233,10 +3233,22 @@ function showQuickReport() {
                                 <span class="qr-meta-icon">⚠️</span> Dependency / Blocker
                             </div>
                             <div class="qr-meta-text">${(() => {
-                                const modDep = (mod.dependency || '').trim();
+                                // Helper: treat "None", "-", empty as absent
+                                const isBlank = v => {
+                                    const s = (v || '').trim().toLowerCase();
+                                    return !s || s === '-' || s === 'none' || s === 'n/a' || s === 'na';
+                                };
+                                const modDep = isBlank(mod.dependency) ? '' : (mod.dependency || '').trim();
+                                const seenDeps = new Set(modDep ? [modDep.toLowerCase()] : []);
                                 const utDeps = (mod.userTypes || [])
-                                    .filter(ut => ut.dependency && ut.dependency.trim())
-                                    .map(ut => ({ name: ut.name, dep: ut.dependency.trim() }));
+                                    .map(ut => ({ name: ut.name, dep: (ut.dependency || '').trim() }))
+                                    .filter(({ dep }) => {
+                                        if (isBlank(dep)) return false;
+                                        const key = dep.toLowerCase();
+                                        if (seenDeps.has(key)) return false; // duplicate of modDep or earlier UT
+                                        seenDeps.add(key);
+                                        return true;
+                                    });
                                 if (!modDep && utDeps.length === 0) return '<em>No active dependencies or blockers.</em>';
                                 let out = '';
                                 if (modDep) out += `<div style="margin-bottom:${utDeps.length ? '0.5rem' : '0'}">${modDep.replace(/\n/g, '<br>')}</div>`;
