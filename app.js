@@ -2463,6 +2463,24 @@ function parseExcelToModules(workbook) {
     }
     console.log('[PARSER] QA merge groups:', Object.keys(_qaMergeGroups).length, JSON.stringify(_qaMergeGroups));
 
+    // ── Remark merge detection ───────────────────────────────────────────────
+    // Same approach as QA: if the remark cell is merged across ALL user types,
+    // we suppress UT labels in the remark box (Sugamta, IPBMS, Samadhan, EVM).
+    // If separate cells exist per UT (Preksha, Expenditure), labels are shown.
+    const _remarkMergeMap = {};    // worksheetRowIdx → mergeGroupId
+    const _remarkMergeGroups = {}; // mergeGroupId → { startRow, endRow }
+    if (colIdx.remark !== -1 && worksheet['!merges']) {
+        let _rmgId = 0;
+        worksheet['!merges'].forEach(merge => {
+            const { s, e } = merge;
+            if (s.c <= colIdx.remark && e.c >= colIdx.remark && e.r > s.r) {
+                const gid = `_rmg${_rmgId++}`;
+                _remarkMergeGroups[gid] = { startRow: s.r, endRow: e.r };
+                for (let ri = s.r; ri <= e.r; ri++) _remarkMergeMap[ri] = gid;
+            }
+        });
+    }
+
     const parsedModules = {};
     const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
@@ -2546,14 +2564,18 @@ function parseExcelToModules(workbook) {
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
         if (row[colIdx.remark] && row[colIdx.remark].toString().trim()) {
             const newRemark = row[colIdx.remark].toString().trim();
-            const prefix = currentUserTypeName ? `<strong>${currentUserTypeName}:</strong> ` : '';
-            const formattedRemark = prefix + newRemark;
+            // Store raw text per-UT (no prefix — prefix decision is made in render based on merge level)
+            if (ut && !ut.remark) ut.remark = newRemark;
+            // Accumulate on mod as raw text (no UT prefix baked in)
             if (!mod.remark) {
-                mod.remark = formattedRemark;
+                mod.remark = newRemark;
             } else if (!mod.remark.includes(newRemark)) {
-                mod.remark += '\n' + formattedRemark;
+                mod.remark += '\n' + newRemark;
             }
         }
+        // Tag each UT with its remark merge group
+        const _remarkMergeGid = _remarkMergeMap[r];
+        if (_remarkMergeGid && ut && !ut._remarkMergeGid) ut._remarkMergeGid = _remarkMergeGid;
         if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
         if (row[colIdx.docProcessFlow] && mod.documentation.processFlow === '-') mod.documentation.processFlow = row[colIdx.docProcessFlow];
         if (row[colIdx.docUserManual] && mod.documentation.userManual === '-') mod.documentation.userManual = row[colIdx.docUserManual];
@@ -2871,6 +2893,38 @@ function parseExcelToModules(workbook) {
 
         console.log(`[PARSER] QA groups for ${mod.name}: groups=${mod._qaGroups.length}, moduleLevel=${mod._qaModuleLevel}`,
             mod._qaGroups.map(g => `${g.utNames.join('+')}:${g.bugs}bugs`).join(', '));
+    });
+
+    // ── Build remark module-level flag ────────────────────────────────────
+    // If the remark merged cell covers all/most non-exempt UTs → module-level
+    // (suppress UT labels). Otherwise → per-UT labels.
+    Object.values(parsedModules).forEach(mod => {
+        const nonExemptUTs = mod.userTypes.filter(ut => !isExemptUT(ut.name));
+        const remarkGroups = {}; // gid → [utName]
+        const ungroupedWithRemark = [];
+
+        mod.userTypes.forEach(ut => {
+            if (ut._remarkMergeGid) {
+                if (!remarkGroups[ut._remarkMergeGid]) remarkGroups[ut._remarkMergeGid] = [];
+                remarkGroups[ut._remarkMergeGid].push(ut.name);
+            } else if (ut.remark) {
+                ungroupedWithRemark.push(ut.name);
+            }
+        });
+
+        const mergeGroupCount = Object.keys(remarkGroups).length;
+        const totalNonExempt = nonExemptUTs.length;
+
+        if (mergeGroupCount === 1 && ungroupedWithRemark.length === 0) {
+            const coveredUTs = Object.values(remarkGroups)[0].length;
+            mod._remarkModuleLevel = coveredUTs >= Math.max(1, totalNonExempt - 1);
+        } else if (mergeGroupCount === 0 && ungroupedWithRemark.length <= 1) {
+            // 0 or 1 UT with a remark, no merge detected → module-level (no label)
+            mod._remarkModuleLevel = true;
+        } else {
+            mod._remarkModuleLevel = false;
+        }
+        console.log(`[PARSER] Remark for ${mod.name}: moduleLevel=${mod._remarkModuleLevel}, mergeGroups=${mergeGroupCount}, ungrouped=${ungroupedWithRemark.length}`);
     });
 
     // DEBUG: log colIdx and review points for all modules
@@ -3321,7 +3375,25 @@ function showQuickReport() {
                             <div class="qr-meta-label" style="color: ${mod.color};">
                                 <span class="qr-meta-icon">💬</span> Remark
                             </div>
-                            <div class="qr-meta-text">${mod.remark ? mod.remark.replace(/\n/g, '<br>') : '<em>No remarks registered.</em>'}</div>
+                            <div class="qr-meta-text">${(() => {
+                                // Module-level (merged cell spanning all UTs): no UT labels
+                                if (mod._remarkModuleLevel !== false) {
+                                    return mod.remark
+                                        ? mod.remark.replace(/\n/g, '<br>')
+                                        : '<em>No remarks registered.</em>';
+                                }
+                                // Per-UT: show each UT's distinct remark with a bold label
+                                const parts = [];
+                                const seen = new Set();
+                                (mod.userTypes || []).forEach(ut => {
+                                    if (!ut.remark) return;
+                                    const key = ut.remark.toLowerCase().trim();
+                                    if (seen.has(key)) return;
+                                    seen.add(key);
+                                    parts.push(`<div style="margin-bottom:0.35rem"><span style="font-weight:600;opacity:0.75;">${ut.name}:</span> ${ut.remark.replace(/\n/g, '<br>')}</div>`);
+                                });
+                                return parts.length > 0 ? parts.join('') : '<em>No remarks registered.</em>';
+                            })()}</div>
                         </div>
                     </div>
                 </div>
