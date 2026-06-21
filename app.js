@@ -2281,7 +2281,7 @@ function parseTimeToDays(str) {
 function parseExcelToModules(workbook) {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", blankrows: true });
 
     if (rows.length === 0) {
         throw new Error('Workbook sheet is empty');
@@ -2443,6 +2443,26 @@ function parseExcelToModules(workbook) {
         colIdx.internalReviewReview = colIdx.internalReviewPoints + 1;
     }
 
+    // ── QA merge detection ──────────────────────────────────────────────────
+    // rows[r] maps directly to worksheet row r (valid because blankrows:true).
+    // Merges in the qaBugs column tell us which user types share a single
+    // merged QA cell (e.g. Roll Observer + Election Observer).
+    const _qaMergeMap = {};    // worksheetRowIdx → mergeGroupId
+    const _qaMergeGroups = {}; // mergeGroupId → { startRow, endRow }
+    if (colIdx.qaBugs !== -1 && worksheet['!merges']) {
+        let _mgId = 0;
+        worksheet['!merges'].forEach(merge => {
+            const { s, e } = merge;
+            // Only multi-row merges that overlap the qaBugs column
+            if (s.c <= colIdx.qaBugs && e.c >= colIdx.qaBugs && e.r > s.r) {
+                const gid = `_mg${_mgId++}`;
+                _qaMergeGroups[gid] = { startRow: s.r, endRow: e.r };
+                for (let ri = s.r; ri <= e.r; ri++) _qaMergeMap[ri] = gid;
+            }
+        });
+    }
+    console.log('[PARSER] QA merge groups:', Object.keys(_qaMergeGroups).length, JSON.stringify(_qaMergeGroups));
+
     const parsedModules = {};
     const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
@@ -2458,7 +2478,8 @@ function parseExcelToModules(workbook) {
 
     for (let r = dataStartRowIndex; r < rows.length; r++) {
         const row = rows[r];
-        if (!row) continue;
+        // Skip completely blank rows (all cells empty)
+        if (!row || row.every(v => v === '' || v === undefined || v === null)) continue;
 
         // Merged cells carrying forward values
         const moduleVal = row[colIdx.module];
@@ -2643,6 +2664,9 @@ function parseExcelToModules(workbook) {
             const val = parseInt(row[colIdx.qaBugsFixed]) || 0;
             if (val > 0) ut.qaBugsFixed += val;
         }
+        // Tag each user type with its QA merge group (if any)
+        const _qaMergeGid = _qaMergeMap[r];
+        if (_qaMergeGid && ut && !ut._qaMergeGid) ut._qaMergeGid = _qaMergeGid;
 
         // Reset category if user type changes
         if (currentUserTypeName !== lastUserTypeName) {
@@ -2812,6 +2836,43 @@ function parseExcelToModules(workbook) {
         }
     });
 
+    // ── Build QA groups for per-UT breakdown display ──────────────────────
+    Object.values(parsedModules).forEach(mod => {
+        const nonExemptUTs = mod.userTypes.filter(ut => !isExemptUT(ut.name));
+        const qaGroupMap = {}; // groupId → { utNames[], bugs, fixed }
+
+        nonExemptUTs.forEach(ut => {
+            if (ut._qaMergeGid) {
+                // UT is inside a QA merged cell
+                if (!qaGroupMap[ut._qaMergeGid]) {
+                    qaGroupMap[ut._qaMergeGid] = { utNames: [], bugs: 0, fixed: 0 };
+                }
+                const g = qaGroupMap[ut._qaMergeGid];
+                if (!g.utNames.includes(ut.name)) g.utNames.push(ut.name);
+                g.bugs  += (ut.qaBugs      || 0);
+                g.fixed += (ut.qaBugsFixed || 0);
+            } else if (ut.qaBugs > 0 || ut.qaBugsFixed > 0) {
+                // UT has its own (non-merged) QA data
+                const gKey = `_ut_${ut.name}`;
+                if (!qaGroupMap[gKey]) qaGroupMap[gKey] = { utNames: [ut.name], bugs: 0, fixed: 0 };
+                qaGroupMap[gKey].bugs  += (ut.qaBugs      || 0);
+                qaGroupMap[gKey].fixed += (ut.qaBugsFixed || 0);
+            }
+        });
+
+        // Only keep groups that actually have bug data
+        mod._qaGroups = Object.values(qaGroupMap).filter(g => g.bugs > 0 || g.fixed > 0);
+
+        // Module-level = single group whose UTs cover (nearly) all non-exempt UTs
+        const totalNonExempt = nonExemptUTs.length;
+        const coveredUTs = mod._qaGroups.reduce((s, g) => s + g.utNames.length, 0);
+        mod._qaModuleLevel = mod._qaGroups.length <= 1 &&
+            (totalNonExempt === 0 || coveredUTs >= Math.max(1, totalNonExempt - 1));
+
+        console.log(`[PARSER] QA groups for ${mod.name}: groups=${mod._qaGroups.length}, moduleLevel=${mod._qaModuleLevel}`,
+            mod._qaGroups.map(g => `${g.utNames.join('+')}:${g.bugs}bugs`).join(', '));
+    });
+
     // DEBUG: log colIdx and review points for all modules
     console.log('[PARSER DEBUG] colIdx:', JSON.stringify(colIdx));
     Object.values(parsedModules).forEach(m => {
@@ -2930,38 +2991,39 @@ function getPhaseDetail(mod, stepName) {
             return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(clStatus)}">${clStatus}</span></div>`;
         }
         case 'QA': {
-            let bugs = 0;
-            let fixed = 0;
-            
-            // Check if userType has explicit bug counts
-            let hasUTBugs = false;
-            mod.userTypes.forEach(ut => {
-                if (ut.qaBugs !== undefined && ut.qaBugs > 0) {
-                    hasUTBugs = true;
-                    bugs += ut.qaBugs;
-                    fixed += (ut.qaBugsFixed || 0);
-                }
-            });
-            
-            if (!hasUTBugs) {
-                mod.userTypes.forEach(ut => {
-                    ut.categories.forEach(cat => {
-                        cat.pages.forEach(p => {
-                            if (p.qa) {
-                                bugs += (p.qa.bugs || 0);
-                                fixed += (p.qa.fixed || 0);
-                            }
-                        });
-                    });
-                });
-            }
-            
-            let bugDetail = '';
-            if (bugs > 0) {
-                bugDetail = `<br><span style="font-size:0.62rem; color:var(--text-muted); font-weight:600;">${bugs} bugs (${fixed} fixed)</span>`;
+            // ── Per-UT breakdown when QA is split by user type ──────────────
+            if (mod._qaGroups && mod._qaGroups.length > 0 && !mod._qaModuleLevel) {
+                const rowsHtml = mod._qaGroups.map(g => {
+                    const label = g.utNames.join(' + ');
+                    const bugText = g.bugs > 0
+                        ? `${g.bugs} bugs${g.fixed > 0 ? ` (${g.fixed} fixed)` : ''}`
+                        : '–';
+                    return `<div class="qr-qa-row"><span class="qr-qa-ut">${label}</span><span class="qr-qa-badge">${bugText}</span></div>`;
+                }).join('');
+                return `<div class="qr-qa-rows">${rowsHtml}</div>`;
             }
 
-            if (status === 'done') return `Completed${bugDetail}`;
+            // ── Module-level (merged or no breakdown) ───────────────────────
+            let bugs = 0, fixed = 0;
+            if (mod._qaGroups && mod._qaGroups.length > 0) {
+                bugs  = mod._qaGroups.reduce((s, g) => s + (g.bugs  || 0), 0);
+                fixed = mod._qaGroups.reduce((s, g) => s + (g.fixed || 0), 0);
+            } else {
+                // Fallback: legacy logic
+                let hasUTBugs = false;
+                mod.userTypes.forEach(ut => {
+                    if (ut.qaBugs !== undefined && ut.qaBugs > 0) { hasUTBugs = true; bugs += ut.qaBugs; fixed += (ut.qaBugsFixed || 0); }
+                });
+                if (!hasUTBugs) {
+                    mod.userTypes.forEach(ut => ut.categories.forEach(cat => cat.pages.forEach(p => { if (p.qa) { bugs += (p.qa.bugs||0); fixed += (p.qa.fixed||0); } })));
+                }
+            }
+
+            let bugDetail = '';
+            if (bugs > 0) {
+                bugDetail = `<br><span style="font-size:0.62rem;color:var(--text-muted);font-weight:600;">${bugs} bugs (${fixed} fixed)</span>`;
+            }
+            if (status === 'done')        return `Completed${bugDetail}`;
             if (status === 'in-progress') return `In progress${bugDetail}`;
             return `Not started${bugDetail}`;
         }

@@ -2916,6 +2916,50 @@ body.presentation-active .presentation-page {
 .qr-review-pending  { background: rgba(99,102,241,0.08); color: #6366f1; border: 1px solid rgba(99,102,241,0.15); }
 .qr-review-neutral  { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
 
+/* ─── QA per-user-type breakdown rows ─── */
+.qr-qa-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    margin-top: 0.1rem;
+}
+
+.qr-qa-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
+}
+
+.qr-qa-ut {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qr-qa-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.08rem 0.42rem;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+@media print {
+    .qr-qa-ut   { font-size: 0.44rem !important; }
+    .qr-qa-badge { font-size: 0.42rem !important; padding: 0.02rem 0.22rem !important; }
+    .qr-qa-rows { gap: 0.1rem !important; }
+}
+
 /* Print: keep sub-items compact */
 @media print {
     .qr-sub-val, .qr-review-status-pill {
