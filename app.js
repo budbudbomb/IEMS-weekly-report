@@ -3383,34 +3383,54 @@ function confirmPrintLayout() {
             @media print {
                 @page {
                     size: A4 landscape;
-                    margin: 6mm 8mm;
+                    margin: 6mm 10mm;
                 }
+                /* 1 module per page in landscape */
                 .qr-module-row {
                     display: flex !important;
                     break-inside: avoid !important;
                     page-break-inside: avoid !important;
-                    margin-bottom: 0.2rem !important;
-                }
-                /* Reset existing break rules first */
-                .qr-module-row:nth-of-type(2n),
-                .qr-module-row:nth-of-type(3n) {
-                    page-break-after: avoid !important;
-                    break-after: avoid !important;
-                }
-                /* Force exactly 2 modules per page in Landscape */
-                .qr-module-row:nth-of-type(2n) {
-                    page-break-after: always !important;
                     break-after: page !important;
+                    page-break-after: always !important;
+                    margin-bottom: 0 !important;
                 }
                 .qr-module-row:last-of-type {
-                    page-break-after: avoid !important;
                     break-after: avoid !important;
+                    page-break-after: avoid !important;
                 }
+                /* Reset any nth-of-type rules from base CSS */
+                .qr-module-row:nth-of-type(2n),
+                .qr-module-row:nth-of-type(3n) {
+                    break-after: page !important;
+                    page-break-after: always !important;
+                }
+                /* Larger fonts since full landscape page per module */
+                .qr-module-title      { font-size: 1.0rem !important; }
+                .qr-module-icon       { width: 22px !important; height: 22px !important; font-size: 0.75rem !important; }
+                .qr-phase-box-title   { font-size: 0.72rem !important; }
+                .qr-phase-box-detail  { font-size: 0.65rem !important; line-height: 1.2 !important; }
+                .qr-review-num        { font-size: 1.1rem !important; }
+                .qr-review-pts-label  { font-size: 0.65rem !important; }
+                .qr-review-status-pill{ font-size: 0.63rem !important; padding: 0.1rem 0.45rem !important; }
+                .qr-sub-key           { font-size: 0.65rem !important; }
+                .qr-sub-val           { font-size: 0.63rem !important; padding: 0.08rem 0.4rem !important; }
+                .qr-tracker-label     { font-size: 0.54rem !important; }
+                .qr-tracker-dot       { width: 18px !important; height: 18px !important; font-size: 0.5rem !important; }
+                .qr-tracker-line      { top: 9px !important; }
+                .qr-meta-text         { font-size: 0.7rem !important; line-height: 1.35 !important; }
+                .qr-meta-label        { font-size: 0.62rem !important; }
+                .qr-team-badge, .qr-time-chip { font-size: 0.62rem !important; padding: 0.1rem 0.35rem !important; }
+                .qr-team-label        { font-size: 0.62rem !important; }
+                .qr-doc-key           { font-size: 0.65rem !important; }
+                .qr-doc-val           { font-size: 0.62rem !important; padding: 0.08rem 0.35rem !important; }
+                .qr-phase-box         { padding: 0.35rem 0.5rem !important; gap: 0.18rem !important; }
+                .qr-phase-grid        { gap: 0.25rem !important; }
+                .qr-sub-rows, .qr-review-detail { gap: 0.18rem !important; }
                 .qr-meta-row {
                     display: grid !important;
                     grid-template-columns: 1fr 1fr 2fr !important;
                     grid-template-rows: auto !important;
-                    gap: 0.3rem !important;
+                    gap: 0.4rem !important;
                 }
                 .qr-dep-box, .qr-doc-box, .qr-remark-box-inline {
                     grid-column: auto !important;
@@ -3419,35 +3439,26 @@ function confirmPrintLayout() {
                 .qr-module-sidebar {
                     display: flex !important;
                     flex-shrink: 0 !important;
-                    width: 32px !important;
-                    min-width: 32px !important;
+                    width: 36px !important;
+                    min-width: 36px !important;
                     overflow: hidden !important;
                     position: relative !important;
                     background: var(--mod-color) !important;
                 }
                 .qr-module-name {
                     position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
+                    top: 50% !important; left: 50% !important;
                     writing-mode: horizontal-tb !important;
-                    text-orientation: unset !important;
                     transform: translate(-50%, -50%) rotate(-90deg) !important;
-                    font-size: 0.45rem !important;
+                    font-size: 0.55rem !important;
                     letter-spacing: 0.04em !important;
-                    padding: 0 !important;
                     white-space: nowrap !important;
-                    max-width: 180px !important;
+                    max-width: 200px !important;
                     overflow: hidden !important;
                     text-overflow: ellipsis !important;
                     text-align: center !important;
                 }
-                .qr-team-label {
-                    font-size: 0.52rem !important;
-                    color: #475569 !important;
-                }
-                .qr-tracker {
-                    padding: 0.3rem 0 !important;
-                }
+                .qr-tracker { padding: 0.4rem 0 !important; }
             }
         `;
     } else {
@@ -3457,77 +3468,82 @@ function confirmPrintLayout() {
                     size: A4 portrait;
                     margin: 6mm 8mm;
                 }
+                /* 2 modules per page in portrait */
                 .qr-module-row {
                     display: flex !important;
                     break-inside: avoid !important;
                     page-break-inside: avoid !important;
-                    margin-bottom: 0.2rem !important;
+                    margin-bottom: 0.25rem !important;
                 }
-                /* Reset existing break rules first */
+                /* Reset any nth-of-type rules from base CSS */
                 .qr-module-row:nth-of-type(2n),
                 .qr-module-row:nth-of-type(3n) {
-                    page-break-after: avoid !important;
                     break-after: avoid !important;
+                    page-break-after: avoid !important;
                 }
-                /* Force exactly 3 modules per page in Portrait */
-                .qr-module-row:nth-of-type(3n) {
-                    page-break-after: always !important;
+                /* Force exactly 2 modules per page */
+                .qr-module-row:nth-of-type(2n) {
                     break-after: page !important;
+                    page-break-after: always !important;
                 }
                 .qr-module-row:last-of-type {
-                    page-break-after: avoid !important;
                     break-after: avoid !important;
+                    page-break-after: avoid !important;
                 }
+                /* Medium-large fonts for 2-per-page portrait */
+                .qr-module-title      { font-size: 0.88rem !important; }
+                .qr-module-icon       { width: 20px !important; height: 20px !important; font-size: 0.68rem !important; }
+                .qr-phase-box-title   { font-size: 0.62rem !important; }
+                .qr-phase-box-detail  { font-size: 0.58rem !important; line-height: 1.15 !important; }
+                .qr-review-num        { font-size: 0.95rem !important; }
+                .qr-review-pts-label  { font-size: 0.58rem !important; }
+                .qr-review-status-pill{ font-size: 0.56rem !important; padding: 0.08rem 0.38rem !important; }
+                .qr-sub-key           { font-size: 0.58rem !important; }
+                .qr-sub-val           { font-size: 0.56rem !important; padding: 0.06rem 0.35rem !important; }
+                .qr-tracker-label     { font-size: 0.48rem !important; }
+                .qr-tracker-dot       { width: 15px !important; height: 15px !important; font-size: 0.46rem !important; }
+                .qr-tracker-line      { top: 7.5px !important; }
+                .qr-meta-text         { font-size: 0.62rem !important; line-height: 1.3 !important; }
+                .qr-meta-label        { font-size: 0.56rem !important; }
+                .qr-team-badge, .qr-time-chip { font-size: 0.56rem !important; padding: 0.08rem 0.28rem !important; }
+                .qr-team-label        { font-size: 0.56rem !important; color: #475569 !important; }
+                .qr-doc-key           { font-size: 0.58rem !important; }
+                .qr-doc-val           { font-size: 0.55rem !important; padding: 0.06rem 0.28rem !important; }
+                .qr-phase-box         { padding: 0.28rem 0.4rem !important; gap: 0.12rem !important; }
+                .qr-phase-grid        { gap: 0.18rem !important; }
+                .qr-sub-rows, .qr-review-detail { gap: 0.14rem !important; }
                 .qr-meta-row {
                     display: grid !important;
                     grid-template-columns: 1fr 1.6fr !important;
                     grid-template-rows: auto auto !important;
                     gap: 0.25rem !important;
                 }
-                .qr-dep-box {
-                    grid-column: 1 !important;
-                    grid-row: 1 !important;
-                }
-                .qr-doc-box {
-                    grid-column: 1 !important;
-                    grid-row: 2 !important;
-                }
-                .qr-remark-box-inline {
-                    grid-column: 2 !important;
-                    grid-row: 1 / span 2 !important;
-                }
+                .qr-dep-box  { grid-column: 1 !important; grid-row: 1 !important; }
+                .qr-doc-box  { grid-column: 1 !important; grid-row: 2 !important; }
+                .qr-remark-box-inline { grid-column: 2 !important; grid-row: 1 / span 2 !important; }
                 .qr-module-sidebar {
                     display: flex !important;
                     flex-shrink: 0 !important;
-                    width: 32px !important;
-                    min-width: 32px !important;
+                    width: 34px !important;
+                    min-width: 34px !important;
                     overflow: hidden !important;
                     position: relative !important;
                     background: var(--mod-color) !important;
                 }
                 .qr-module-name {
                     position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
+                    top: 50% !important; left: 50% !important;
                     writing-mode: horizontal-tb !important;
-                    text-orientation: unset !important;
                     transform: translate(-50%, -50%) rotate(-90deg) !important;
-                    font-size: 0.45rem !important;
+                    font-size: 0.5rem !important;
                     letter-spacing: 0.04em !important;
-                    padding: 0 !important;
                     white-space: nowrap !important;
-                    max-width: 180px !important;
+                    max-width: 190px !important;
                     overflow: hidden !important;
                     text-overflow: ellipsis !important;
                     text-align: center !important;
                 }
-                .qr-team-label {
-                    font-size: 0.52rem !important;
-                    color: #475569 !important;
-                }
-                .qr-tracker {
-                    padding: 0.3rem 0 !important;
-                }
+                .qr-tracker { padding: 0.3rem 0 !important; }
             }
         `;
     }
