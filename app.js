@@ -2869,6 +2869,24 @@ document.addEventListener('DOMContentLoaded', () => {
 // QUICK REPORT VIEW
 // ============================================
 
+function getSubValClass(v) {
+    const lv = (v || '').toLowerCase().trim();
+    if (lv === 'done' || lv === 'completed') return 'qr-sub-done';
+    if (lv.includes('progress')) return 'qr-sub-progress';
+    if (lv === 'pending') return 'qr-sub-pending';
+    if (lv === 'skipped') return 'qr-sub-skipped';
+    if (lv === 'na' || lv === 'n/a' || lv === 'not applicable') return 'qr-sub-na';
+    return 'qr-sub-neutral';
+}
+
+function getReviewStatusClass(status) {
+    const s = (status || '').toLowerCase();
+    if (s === 'done' || s === 'completed') return 'qr-review-done';
+    if (s.includes('progress')) return 'qr-review-progress';
+    if (s === 'pending') return 'qr-review-pending';
+    return 'qr-review-neutral';
+}
+
 function getPhaseDetail(mod, stepName) {
     const totalPages = countPages(mod);
     const donePages = countDonePages(mod);
@@ -2884,11 +2902,18 @@ function getPhaseDetail(mod, stepName) {
         }
         case 'Static screens': {
             const ss = mod.staticScreens;
-            const parts = [];
-            if (ss.creation && ss.creation !== '-') parts.push(`Creation: ${ss.creation}`);
-            if (ss.presentation && ss.presentation !== '-') parts.push(`Presentation: ${ss.presentation}`);
-            if (ss.status && ss.status !== '-') parts.push(`Status: ${ss.status}`);
-            return parts.length > 0 ? parts.join(' · ') : 'Not applicable';
+            const makeRow = (label, val) => {
+                if (!val || val === '-') return '';
+                return `<div class="qr-sub-row"><span class="qr-sub-key">${label}</span><span class="qr-sub-val ${getSubValClass(val)}">${val}</span></div>`;
+            };
+            const rows = [
+                makeRow('Creation', ss.creation),
+                makeRow('Presentation', ss.presentation),
+                makeRow('Status', ss.status)
+            ].filter(Boolean);
+            return rows.length > 0
+                ? `<div class="qr-sub-rows">${rows.join('')}</div>`
+                : 'Not applicable';
         }
         case 'Dynamic Development': {
             const pct = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
@@ -2897,12 +2922,12 @@ function getPhaseDetail(mod, stepName) {
         case 'Internal review': {
             const pts = countInternalReviewPoints(mod);
             const intStatus = getInternalReviewStatus(mod);
-            return `${pts} review points · ${intStatus}`;
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(intStatus)}">${intStatus}</span></div>`;
         }
         case 'Client review': {
             const pts = countClientReviewPoints(mod);
             const clStatus = getClientReviewStatus(mod);
-            return `${pts} review points · ${clStatus}`;
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(clStatus)}">${clStatus}</span></div>`;
         }
         case 'QA': {
             let bugs = 0;
