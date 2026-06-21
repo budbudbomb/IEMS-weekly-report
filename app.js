@@ -966,6 +966,11 @@ function calculateUserTypeProgress(ut) {
 }
 
 function countClientReviewPoints(mod) {
+    // 0. Module-level accumulation (captures values from separator rows before any UT is set)
+    if (mod._clRevPts && mod._clRevPts > 0) {
+        return mod._clRevPts;
+    }
+
     // 1. Check if any userType has explicit points parsed
     let hasUTExplicitPoints = false;
     let utCount = 0;
@@ -2424,6 +2429,20 @@ function parseExcelToModules(workbook) {
         console.log('[PARSER] Positional fallback:', { reviewPtsIdx, reviewTxtIdx, reviewStsIdx, clientPts: colIdx.clientReviewPoints, clientRev: colIdx.clientReviewReview, clientSts: colIdx.clientReviewStatus });
     }
 
+    // Fix clientReviewReview: if it's more than 3 cols away from clientReviewPoints,
+    // it's likely a false positive (e.g. a CR 'client review' column). Snap it to
+    // clientReviewPoints+1, which is always the Review sub-column.
+    if (colIdx.clientReviewPoints !== -1 && colIdx.clientReviewReview !== -1 &&
+        Math.abs(colIdx.clientReviewReview - colIdx.clientReviewPoints) > 3) {
+        colIdx.clientReviewReview = colIdx.clientReviewPoints + 1;
+        console.log('[PARSER] Snapped clientReviewReview to', colIdx.clientReviewReview);
+    }
+    // Similarly for internalReviewReview
+    if (colIdx.internalReviewPoints !== -1 && colIdx.internalReviewReview !== -1 &&
+        Math.abs(colIdx.internalReviewReview - colIdx.internalReviewPoints) > 3) {
+        colIdx.internalReviewReview = colIdx.internalReviewPoints + 1;
+    }
+
     const parsedModules = {};
     const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
@@ -2588,14 +2607,24 @@ function parseExcelToModules(workbook) {
         if (ut.qaBugs === undefined) ut.qaBugs = 0;
         if (ut.qaBugsFixed === undefined) ut.qaBugsFixed = 0;
 
-        // Review points: only capture the value ONCE per user type (merged cell — first occurrence wins)
+        // Review points: capture per user-type (merged cell) AND at module level.
+        // Module-level is needed when the merged cell falls in a separator/blank row
+        // before the user type is established (e.g. Sugamta's RO section).
         if (colIdx.internalReviewPoints !== -1 && row[colIdx.internalReviewPoints] !== undefined && row[colIdx.internalReviewPoints] !== '') {
             const val = parseInt(row[colIdx.internalReviewPoints]) || 0;
-            if (val > 0 && ut.internalReviewPoints === 0) ut.internalReviewPoints = val; // set once
+            if (val > 0) {
+                if (ut.internalReviewPoints === 0) ut.internalReviewPoints = val; // per-UT set once
+                if (!mod._intRevPts) mod._intRevPts = 0;
+                mod._intRevPts += val; // module-level accumulation
+            }
         }
         if (colIdx.clientReviewPoints !== -1 && row[colIdx.clientReviewPoints] !== undefined && row[colIdx.clientReviewPoints] !== '') {
             const val = parseInt(row[colIdx.clientReviewPoints]) || 0;
-            if (val > 0 && ut.clientReviewPoints === 0) ut.clientReviewPoints = val; // set once
+            if (val > 0) {
+                if (ut.clientReviewPoints === 0) ut.clientReviewPoints = val; // per-UT set once
+                if (!mod._clRevPts) mod._clRevPts = 0;
+                mod._clRevPts += val; // module-level accumulation
+            }
         }
         // Review status: capture once per user type (merged cell)
         if (colIdx.internalReviewStatus !== -1 && !ut.internalReviewStatus) {
@@ -2786,7 +2815,7 @@ function parseExcelToModules(workbook) {
     // DEBUG: log colIdx and review points for all modules
     console.log('[PARSER DEBUG] colIdx:', JSON.stringify(colIdx));
     Object.values(parsedModules).forEach(m => {
-        console.log(`[PARSER DEBUG] Module: ${m.name}`);
+        console.log(`[PARSER DEBUG] Module: ${m.name} | _intRevPts=${m._intRevPts||0} | _clRevPts=${m._clRevPts||0}`);
         m.userTypes.forEach(ut => {
             console.log(`  UT: ${ut.name} | intPts=${ut.internalReviewPoints} | clPts=${ut.clientReviewPoints} | intStatus=${ut.internalReviewStatus} | clStatus=${ut.clientReviewStatus}`);
         });
@@ -3469,6 +3498,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 function countInternalReviewPoints(mod) {
+    // 0. Module-level accumulation (captures values from separator rows before any UT is set)
+    if (mod._intRevPts && mod._intRevPts > 0) {
+        return mod._intRevPts;
+    }
+
     // 1. Check if any userType has explicit points parsed
     let hasUTExplicitPoints = false;
     let utCount = 0;
