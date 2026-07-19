@@ -3731,21 +3731,6 @@ body.presentation-active .presentation-page {
     position: absolute;
     z-index: 100;
     background: #fff;
-    border: 1px solid rgba(15, 23, 42, 0.1);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.08);
-    min-width: 220px;
-    max-width: 340px;
-    max-height: 420px;
-    overflow-y: auto;
-    pointer-events: auto;
-    animation: mbt-fadein 0.15s ease-out;
-    font-family: var(--font);
-}
-
-@keyframes mbt-fadein {
-    from { opacity: 0; transform: translateY(4px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .mbt-header {
@@ -3936,7 +3921,7 @@ body.presentation-active .presentation-page {
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
-    pointer-events: none;
+    pointer-events: auto;
     animation: mbt-fadein 0.15s ease-out;
     font-family: var(--font);
     scrollbar-width: thin;
