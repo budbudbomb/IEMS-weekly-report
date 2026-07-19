@@ -2785,13 +2785,16 @@ function parseExcelToModules(workbook, boldCells = {}) {
             });
         }
         if (row[colIdx.finalStatus] && mod.finalStatus === '-') mod.finalStatus = row[colIdx.finalStatus];
-        if (row[colIdx.remark] && row[colIdx.remark].toString().trim()) {
-            const newRemark = row[colIdx.remark].toString().trim();
-            // Accumulate on mod as raw text (no UT prefix — prefix decision is made in render)
-            if (!mod.remark) {
-                mod.remark = newRemark;
-            } else if (!mod.remark.includes(newRemark)) {
-                mod.remark += '\n' + newRemark;
+        // Remark: use merge-aware helper so merged cells spanning multiple rows are read correctly
+        if (colIdx.remark !== -1) {
+            const remarkData = getDocMergedCellData(worksheet, r, colIdx.remark);
+            const newRemark = (remarkData.value || '').toString().trim();
+            if (newRemark && newRemark !== '-') {
+                if (!mod.remark) {
+                    mod.remark = newRemark;
+                } else if (!mod.remark.includes(newRemark)) {
+                    mod.remark += '\n' + newRemark;
+                }
             }
         }
         if (row[colIdx.dependency] && mod.dependency === '') mod.dependency = row[colIdx.dependency];
@@ -3283,15 +3286,6 @@ function parseExcelToModules(workbook, boldCells = {}) {
         m.userTypes.forEach(ut => {
             console.log(`  UT: ${ut.name} | intPts=${ut.internalReviewPoints} | clPts=${ut.clientReviewPoints} | intStatus=${ut.internalReviewStatus} | clStatus=${ut.clientReviewStatus}`);
         });
-    });
-
-    // Fall back to DEFAULT_MODULES remark for any module with empty remark
-    // This ensures remarks always show in the Quick Report and PDF even when
-    // the Excel sheet doesn't have the Remark column filled in.
-    Object.values(parsedModules).forEach(mod => {
-        if (!mod.remark && DEFAULT_MODULES[mod.id] && DEFAULT_MODULES[mod.id].remark) {
-            mod.remark = DEFAULT_MODULES[mod.id].remark;
-        }
     });
 
     return parsedModules;
