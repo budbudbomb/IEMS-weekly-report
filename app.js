@@ -91,6 +91,9 @@ const EXISTING_VISUALS = {
     ipbms: { color: '#8b5cf6', icon: ICONS.ipbms },
     evm: { color: '#06b6d4', icon: ICONS.evm }
 };
+// User types where Requirement Gathering and Static Screens don't apply
+const EXEMPT_UT_PATTERNS = ['user management', 'user manag', 'baseline data', 'setup'];
+const isExemptUT = (name) => EXEMPT_UT_PATTERNS.some(p => (name || '').toLowerCase().includes(p));
 
 
 // ============================================
@@ -903,11 +906,12 @@ try {
 function getStatusBadge(status) {
     if (!status || status === '-' || status === '') return '<span class="status-badge status-na">—</span>';
     const s = status.toLowerCase().trim();
-    if (s === 'done' || s === 'fixed' || s.startsWith('done')) return `<span class="status-badge status-done">✓ ${status}</span>`;
+    if (s === 'done' || s === 'fixed' || s === 'updated' || s.startsWith('done') || s.startsWith('updated')) return `<span class="status-badge status-done">✓ ${status}</span>`;
     if (s === 'approved' || s.startsWith('approved')) return `<span class="status-badge status-approved">✓ ${status}</span>`;
-    if (s.includes('in progress') || s.includes('in progress') || s === 'in progress') return `<span class="status-badge status-progress">◐ ${status}</span>`;
+    if (s.includes('in progress') || s === 'in progress' || s.includes('to be updated') || s === 'to be updated' || s === 'partial') return `<span class="status-badge status-progress">◐ ${status}</span>`;
+    if (s.includes('on hold')) return `<span class="status-badge status-skipped">⊘ ${status}</span>`;
     if (s.includes('pending') || s.includes('pending to be reviewed')) return `<span class="status-badge status-pending">◷ ${status}</span>`;
-    if (s.includes('not done') || s.includes('not started') || s.includes('not started yet')) return `<span class="status-badge status-not-done">✗ ${status}</span>`;
+    if (s.includes('not done') || s.includes('not started') || s.includes('not started yet') || s.includes('to be started')) return `<span class="status-badge status-not-done">✗ ${status}</span>`;
     if (s.includes('skipped')) return `<span class="status-badge status-skipped">⊘ ${status}</span>`;
     if (s.includes('bug')) return `<span class="status-badge status-bug">⚠ Bug</span>`;
     if (s.includes('reviewed internally')) return `<span class="status-badge status-done">✓ ${status}</span>`;
@@ -1171,6 +1175,8 @@ function showModule(moduleId) {
     document.getElementById('detail-page').classList.remove('hidden');
     document.getElementById('team-page').classList.add('hidden');
     document.getElementById('quick-report-page').classList.add('hidden');
+    document.getElementById('monthly-upload-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.add('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
 
@@ -1187,8 +1193,20 @@ function showLanding() {
     document.getElementById('detail-page').classList.add('hidden');
     document.getElementById('team-page').classList.add('hidden');
     document.getElementById('quick-report-page').classList.add('hidden');
+    document.getElementById('monthly-upload-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.add('hidden');
     document.getElementById('back-btn').classList.add('hidden');
     document.getElementById('page-title').classList.remove('hidden');
+
+    // Restore header buttons that other pages may have hidden
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) uploadBtn.classList.remove('hidden');
+    const qrBtn = document.getElementById('quick-report-btn');
+    if (qrBtn) qrBtn.style.display = '';
+    const monthlyBtn = document.getElementById('monthly-review-btn');
+    if (monthlyBtn) monthlyBtn.style.display = '';
+    const presBtn = document.getElementById('pres-toggle-btn');
+    if (presBtn) presBtn.style.display = '';
 }
 
 function showTeamReview() {
@@ -1197,6 +1215,8 @@ function showTeamReview() {
     document.getElementById('detail-page').classList.add('hidden');
     document.getElementById('team-page').classList.remove('hidden');
     document.getElementById('quick-report-page').classList.add('hidden');
+    document.getElementById('monthly-upload-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.add('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
     renderTeamReview();
@@ -2100,6 +2120,7 @@ function initUploadListeners() {
             handleFileUpload(files[0]);
         }
     });
+
 }
 
 function handleFileUpload(file) {
@@ -2118,12 +2139,13 @@ function handleFileUpload(file) {
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             
-            const parsed = parseExcelToModules(workbook);
+            const boldCells = await extractBoldCells(e.target.result);
+            const parsed = parseExcelToModules(workbook, boldCells);
             
             if (Object.keys(parsed).length === 0) {
                 showToast('No module data could be parsed from this file. Check the format.', 'error');
@@ -2132,6 +2154,10 @@ function handleFileUpload(file) {
 
             // Update global MODULES
             MODULES = parsed;
+
+            // Remove any legacy standalone documentation data so it doesn't override the fresh data
+            localStorage.removeItem('project_dashboard_doc');
+
             localStorage.setItem('project_dashboard_modules', JSON.stringify(MODULES));
             
             // Re-render
@@ -2163,6 +2189,124 @@ function handleFileUpload(file) {
 
     reader.readAsArrayBuffer(file);
 }
+
+// ── Documentation Upload ─────────────────────────────────────────────────
+
+/**
+ * Returns the cell value at (r, c), resolving merged cells back to
+ * their top-left master cell.
+ */
+function getMergedCellValue(worksheet, r, c) {
+    if (c === -1 || c === undefined) return '';
+    const merges = worksheet['!merges'] || [];
+    for (const merge of merges) {
+        if (r >= merge.s.r && r <= merge.e.r && c >= merge.s.c && c <= merge.e.c) {
+            const masterRef = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
+            const cell = worksheet[masterRef];
+            return cell ? cell.v.toString() : '';
+        }
+    }
+    const cellRef = XLSX.utils.encode_cell({ r, c });
+    const cell = worksheet[cellRef];
+    return cell ? cell.v.toString() : '';
+}
+
+function getDocMergedCellData(worksheet, r, c) {
+    if (c === -1 || c === undefined) return { value: '', id: `r${r}c${c}` };
+    const merges = worksheet['!merges'] || [];
+    for (const merge of merges) {
+        if (r >= merge.s.r && r <= merge.e.r && c >= merge.s.c && c <= merge.e.c) {
+            const masterRef = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
+            const cell = worksheet[masterRef];
+            return {
+                value: cell ? cell.v.toString() : '',
+                id: `r${merge.s.r}c${merge.s.c}`
+            };
+        }
+    }
+    const cellRef = XLSX.utils.encode_cell({ r, c });
+    const cell = worksheet[cellRef];
+    return {
+        value: cell ? cell.v.toString() : '',
+        id: `r${r}c${c}`
+    };
+}
+
+/**
+ * Parses the 'Documentation' sheet of a workbook and returns a map of
+ * { moduleId -> { userTypes: { utName -> { processFlow, userManual, brd, srs, conceptNote } } } }
+ */
+function parseDocumentationSheet(workbook) {
+    const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'documentation') || null;
+    if (!sheetName) {
+        throw new Error('No "Documentation" sheet found in the uploaded file.');
+    }
+
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+    // Find the header row — the one that contains 'process flow' or 'user manual'
+    let headerRowIndex = -1;
+    for (let r = 0; r < Math.min(rows.length, 10); r++) {
+        const row = rows[r];
+        if (row && row.some(cell => {
+            const c = (cell || '').toString().toLowerCase().trim();
+            return c === 'process flow' || c === 'user manual' || c === 'brd' || c === 'srs';
+        })) {
+            headerRowIndex = r;
+            break;
+        }
+    }
+    if (headerRowIndex === -1) headerRowIndex = 1; // fallback
+
+    // Resolve column indexes from the header row
+    const colIdx = { module: 0, userType: 1, processFlow: 2, userManual: 3, brd: 4, srs: 5, conceptNote: 6 };
+    const headerRow = rows[headerRowIndex] || [];
+    headerRow.forEach((cell, idx) => {
+        const s = (cell || '').toString().toLowerCase().trim();
+        if (s.includes('module') && !s.includes('user')) colIdx.module = idx;
+        else if (s.includes('user type') || s === 'usertype') colIdx.userType = idx;
+        else if (s.includes('process flow')) colIdx.processFlow = idx;
+        else if (s.includes('user manual')) colIdx.userManual = idx;
+        else if (s === 'brd') colIdx.brd = idx;
+        else if (s === 'srs') colIdx.srs = idx;
+        else if (s.includes('concept note')) colIdx.conceptNote = idx;
+    });
+
+    const result = {};
+    let currentModule = '';
+    let currentUserType = '';
+
+    for (let r = headerRowIndex + 1; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row) continue;
+
+        const modName = (row[colIdx.module] || '').toString().trim();
+        const utName  = (row[colIdx.userType] || '').toString().trim();
+
+        if (modName) currentModule = modName;
+        if (utName)  currentUserType = utName;
+        if (!currentModule) continue;
+
+        const id = getModuleId(currentModule);
+        if (!result[id]) result[id] = { name: currentModule, userTypes: {} };
+
+        const utKey = currentUserType || 'General';
+
+        // Use getMergedCellValue so merged cells across user-types are resolved correctly
+        const processFlow  = getMergedCellValue(worksheet, r, colIdx.processFlow)  || '-';
+        const userManual   = getMergedCellValue(worksheet, r, colIdx.userManual)   || '-';
+        const brd          = getMergedCellValue(worksheet, r, colIdx.brd)          || '-';
+        const srs          = getMergedCellValue(worksheet, r, colIdx.srs)          || '-';
+        const conceptNote  = getMergedCellValue(worksheet, r, colIdx.conceptNote)  || '-';
+
+        result[id].userTypes[utKey] = { processFlow, userManual, brd, srs, conceptNote };
+    }
+
+    return result;
+}
+
+
 
 function resetToDefault() {
     if (confirm('Are you sure you want to reset all data back to defaults? This will erase any uploaded spreadsheet updates.')) {
@@ -2219,24 +2363,35 @@ function getVisuals(moduleId, name) {
 }
 
 // Heuristic: Check if row is a category header
-function isCategoryHeader(row, colIdx) {
+function isCategoryHeader(row, colIdx, r, boldCells = {}) {
     const pageVal = (row[colIdx.pages] || '').toString().trim();
     if (!pageVal) return false;
     
-    const devVal = (row[colIdx.dynamicDev] || '').toString().trim();
-    const isEmptyOrHyphen = (val) => val === '' || val === '-';
+    // Check if pages cell is bold (Style-based detection)
+    if (typeof XLSX !== 'undefined') {
+        const colLetter = XLSX.utils.encode_col(colIdx.pages);
+        const cellRef = `${colLetter}${r + 1}`;
+        const isBold = boldCells[cellRef] || false;
+        if (isBold) {
+            return true;
+        }
+    }
     
-    // Precise check for category names
+    // Fallback: precise check for category names (e.g. for CSV or if styles are missing)
     const pName = pageVal.toLowerCase();
     const categories = [
         'profile', 'main pages', 'reports', 'other pages', 'dashboard & management',
-        'route planning', 'vehicle requisition', 'vehicle management', 'scanning',
+        'vehicle requisition', 'vehicle management', 'scanning',
         'registration', 'complaint management', 'user management', 'application & reports',
-        'core'
+        'core',
+        'मतदान से पूर्व', 'मतदान के दौरान', 'मतदाता खोजे', 'मतदाता रजिस्टर', 'मतदान समाप्ति'
     ];
     if (categories.some(cat => pName === cat || pName.startsWith(cat))) {
         return true;
     }
+    
+    const devVal = (row[colIdx.dynamicDev] || '').toString().trim();
+    const isEmptyOrHyphen = (val) => val === '' || val === '-';
     
     const intRevVal = (row[colIdx.internalReviewReview] || '').toString().trim();
     const intStatusVal = (row[colIdx.internalReviewStatus] || '').toString().trim();
@@ -2277,8 +2432,68 @@ function parseTimeToDays(str) {
     }
 }
 
+// Async helper: extract cell references that are bold from sheet1.xml + styles.xml
+async function extractBoldCells(arrayBuffer) {
+    const boldCells = {};
+    if (typeof JSZip === 'undefined') {
+        console.warn('JSZip is not loaded. Skipping bold formatting check.');
+        return boldCells;
+    }
+    try {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        
+        // 1. Read styles.xml
+        const stylesFile = zip.file('xl/styles.xml');
+        if (!stylesFile) return boldCells;
+        const stylesXmlText = await stylesFile.async('text');
+        const parser = new DOMParser();
+        const stylesDoc = parser.parseFromString(stylesXmlText, 'text/xml');
+        
+        // Find which fonts are bold
+        const fontNodes = stylesDoc.getElementsByTagName('font');
+        const isFontBold = [];
+        for (let i = 0; i < fontNodes.length; i++) {
+            const b = fontNodes[i].getElementsByTagName('b');
+            isFontBold.push(b.length > 0);
+        }
+        
+        // Find cell format (xf) mappings to fonts
+        const cellXfsNode = stylesDoc.getElementsByTagName('cellXfs')[0];
+        const isFormatBold = [];
+        if (cellXfsNode) {
+            const xfNodes = cellXfsNode.getElementsByTagName('xf');
+            for (let i = 0; i < xfNodes.length; i++) {
+                const fontId = parseInt(xfNodes[i].getAttribute('fontId') || '0');
+                isFormatBold.push(isFontBold[fontId] || false);
+            }
+        }
+        
+        // 2. Read sheet1.xml (assuming first sheet)
+        const sheetFiles = Object.keys(zip.files).filter(f => f.startsWith('xl/worksheets/sheet'));
+        if (sheetFiles.length === 0) return boldCells;
+        
+        // Prefer sheet1.xml if exists, otherwise fallback to first sheet
+        const sheetFile = zip.file('xl/worksheets/sheet1.xml') || zip.file(sheetFiles[0]);
+        const sheetXmlText = await sheetFile.async('text');
+        const sheetDoc = parser.parseFromString(sheetXmlText, 'text/xml');
+        
+        const cNodes = sheetDoc.getElementsByTagName('c');
+        for (let i = 0; i < cNodes.length; i++) {
+            const cNode = cNodes[i];
+            const ref = cNode.getAttribute('r');
+            const s = parseInt(cNode.getAttribute('s') || '0');
+            if (isFormatBold[s]) {
+                boldCells[ref] = true;
+            }
+        }
+    } catch (e) {
+        console.error('Error parsing bold styles via JSZip:', e);
+    }
+    return boldCells;
+}
+
 // Excel data parser
-function parseExcelToModules(workbook) {
+function parseExcelToModules(workbook, boldCells = {}) {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", blankrows: true });
@@ -2388,8 +2603,8 @@ function parseExcelToModules(workbook) {
         else if (s.includes('final') && s.includes('status')) colIdx.finalStatus = idx;
         else if (s.includes('remark')) colIdx.remark = idx;
         else if (s.includes('dependency') || s.includes('blocker')) colIdx.dependency = idx;
-        else if (s.includes('process') && s.includes('flow')) colIdx.docProcessFlow = idx;
-        else if (s.includes('user') && s.includes('manual')) colIdx.docUserManual = idx;
+        else if (s.includes('process') && s.includes('flow')) { colIdx.docProcessFlow = idx; console.log('Found docProcessFlow at col:', idx, 'header:', s); }
+        else if (s.includes('user') && s.includes('manual')) { colIdx.docUserManual = idx; console.log('Found docUserManual at col:', idx, 'header:', s); }
         else if (s.includes('team') || s.includes('developer') || s === 'dev') colIdx.team = idx;
         else if (s.includes('time') || s.includes('duration') || s.includes('need')) colIdx.timeNeeded = idx;
     });
@@ -2481,6 +2696,7 @@ function parseExcelToModules(workbook) {
         });
     }
 
+    console.log('[HEADER PARSE] Final Column Indices:', JSON.stringify(colIdx));
     const parsedModules = {};
     const dataStartRowIndex = headerRowIndex + 3;
     let currentModuleName = '';
@@ -2488,9 +2704,7 @@ function parseExcelToModules(workbook) {
     let currentCategoryName = 'General';
     let lastUserTypeName = '';
 
-    // User types where Requirement Gathering and Static Screens don't apply
-    const EXEMPT_UT_PATTERNS = ['user management', 'user manag', 'baseline data'];
-    const isExemptUT = (name) => EXEMPT_UT_PATTERNS.some(p => (name || '').toLowerCase().includes(p));
+
 
     let inheritedProps = null;
 
@@ -2532,6 +2746,8 @@ function parseExcelToModules(workbook) {
                 documentation: {
                     processFlow: row[colIdx.docProcessFlow] || '-',
                     userManual: row[colIdx.docUserManual] || '-',
+                    brd: '-',
+                    srs: '-',
                     conceptNote: '-'
                 },
                 team: parseTeam(row[colIdx.team]),
@@ -2543,7 +2759,14 @@ function parseExcelToModules(workbook) {
         const mod = parsedModules[id];
 
         // Update module level fields if they were '-' but now have values
-        if (row[colIdx.reqGathering] && mod.requirementGathering === '-') mod.requirementGathering = row[colIdx.reqGathering];
+        const reqMergeMod = colIdx.reqGathering !== -1 ? getDocMergedCellData(worksheet, r, colIdx.reqGathering).value : undefined;
+        const reqVal = reqMergeMod || row[colIdx.reqGathering];
+        if (reqVal) {
+            const val = reqVal.toString().trim();
+            if (val !== '' && (mod.requirementGathering === '-' || (mod.requirementGathering.toLowerCase() === 'na' && val.toLowerCase() !== 'na'))) {
+                mod.requirementGathering = val;
+            }
+        }
         // Static screens: update if still '-'; also override 'NA' if the current user type is not exempt (User Mgmt / Baseline Data)
         {
             const _exempt = EXEMPT_UT_PATTERNS.some(p => (currentUserTypeName || '').toLowerCase().includes(p));
@@ -2597,9 +2820,10 @@ function parseExcelToModules(workbook) {
         // Find or create user type
         let ut = mod.userTypes.find(u => u.name === currentUserTypeName);
         if (!ut) {
+            const reqMerge = colIdx.reqGathering !== -1 ? getDocMergedCellData(worksheet, r, colIdx.reqGathering).value : '-';
             ut = {
                 name: currentUserTypeName,
-                reqGathering: row[colIdx.reqGathering] || '-',
+                reqGathering: reqMerge && reqMerge !== '-' ? reqMerge : (row[colIdx.reqGathering] || '-'),
                 staticScreens: {
                     creation: row[colIdx.staticScreensCreation] || '-',
                     presentation: row[colIdx.staticScreensPresentation] || '-',
@@ -2608,7 +2832,10 @@ function parseExcelToModules(workbook) {
                 timeNeeded: row[colIdx.timeNeeded] || '-',
                 documentation: {
                     processFlow: row[colIdx.docProcessFlow] || '-',
-                    userManual: row[colIdx.docUserManual] || '-'
+                    userManual: row[colIdx.docUserManual] || '-',
+                    brd: '-',
+                    srs: '-',
+                    conceptNote: '-'
                 },
                 dependency: row[colIdx.dependency] || '',
                 categories: [],
@@ -2616,12 +2843,18 @@ function parseExcelToModules(workbook) {
                 clientReviewPoints: 0,
                 internalReviewStatus: '',
                 clientReviewStatus: '',
+                qaStatus: '',
                 qaBugs: 0,
                 qaBugsFixed: 0
             };
             mod.userTypes.push(ut);
         } else {
-            if (row[colIdx.reqGathering] && ut.reqGathering === '-') ut.reqGathering = row[colIdx.reqGathering];
+            const reqMerge = colIdx.reqGathering !== -1 ? getDocMergedCellData(worksheet, r, colIdx.reqGathering).value : '-';
+            if (reqMerge && reqMerge !== '-' && ut.reqGathering === '-') {
+                ut.reqGathering = reqMerge;
+            } else if (row[colIdx.reqGathering] && ut.reqGathering === '-') {
+                ut.reqGathering = row[colIdx.reqGathering];
+            }
             if (row[colIdx.staticScreensCreation] && ut.staticScreens.creation === '-') ut.staticScreens.creation = row[colIdx.staticScreensCreation];
             if (row[colIdx.staticScreensPresentation] && ut.staticScreens.presentation === '-') ut.staticScreens.presentation = row[colIdx.staticScreensPresentation];
             if (row[colIdx.staticScreensStatus] && ut.staticScreens.status === '-') ut.staticScreens.status = row[colIdx.staticScreensStatus];
@@ -2629,13 +2862,16 @@ function parseExcelToModules(workbook) {
             if (row[colIdx.dependency] && !ut.dependency) ut.dependency = row[colIdx.dependency];
             
             if (!ut.documentation) {
-                ut.documentation = { processFlow: '-', userManual: '-' };
+                ut.documentation = { processFlow: '-', userManual: '-', brd: '-', srs: '-', conceptNote: '-' };
             }
-            if (row[colIdx.docProcessFlow] && row[colIdx.docProcessFlow] !== '-' && (ut.documentation.processFlow === '-' || ut.documentation.processFlow === '')) {
-                ut.documentation.processFlow = row[colIdx.docProcessFlow];
+            const pfData = getDocMergedCellData(worksheet, r, colIdx.docProcessFlow);
+            const umData = getDocMergedCellData(worksheet, r, colIdx.docUserManual);
+            console.log(`[DOC PARSE] Module: ${mod.name}, UT: ${ut.name} | Row: ${r} | docProcessFlow raw: '${row[colIdx.docProcessFlow]}', merged: '${pfData.value}' | docUserManual raw: '${row[colIdx.docUserManual]}', merged: '${umData.value}'`);
+            if (pfData.value && pfData.value !== '-' && (ut.documentation.processFlow === '-' || ut.documentation.processFlow === '')) {
+                ut.documentation.processFlow = pfData.value + '|||' + pfData.id;
             }
-            if (row[colIdx.docUserManual] && row[colIdx.docUserManual] !== '-' && (ut.documentation.userManual === '-' || ut.documentation.userManual === '')) {
-                ut.documentation.userManual = row[colIdx.docUserManual];
+            if (umData.value && umData.value !== '-' && (ut.documentation.userManual === '-' || ut.documentation.userManual === '')) {
+                ut.documentation.userManual = umData.value + '|||' + umData.id;
             }
         }
 
@@ -2645,23 +2881,54 @@ function parseExcelToModules(workbook) {
         if (ut.qaBugs === undefined) ut.qaBugs = 0;
         if (ut.qaBugsFixed === undefined) ut.qaBugsFixed = 0;
 
-        // Review points: capture per user-type (merged cell) AND at module level.
-        // Module-level is needed when the merged cell falls in a separator/blank row
-        // before the user type is established (e.g. Sugamta's RO section).
+        if (ut._intCellCount === undefined) ut._intCellCount = 0;
+        if (ut._clCellCount === undefined) ut._clCellCount = 0;
+        if (ut._intColPoints === undefined) ut._intColPoints = 0;
+        if (ut._clColPoints === undefined) ut._clColPoints = 0;
+        if (ut.internalReviews === undefined) ut.internalReviews = [];
+        if (ut.clientReviews === undefined) ut.clientReviews = [];
+
+        // Count J column cell (internal review) cell-by-cell if non-empty and non-bold
+        if (colIdx.internalReviewReview !== -1) {
+            const reviewVal = (row[colIdx.internalReviewReview] || '').toString().trim();
+            if (reviewVal && reviewVal !== '-' && reviewVal.toLowerCase() !== 'none' && reviewVal.toLowerCase() !== 'no issues' && reviewVal.toLowerCase() !== 'no issue') {
+                const colLetter = XLSX.utils.encode_col(colIdx.internalReviewReview);
+                const cellRef = `${colLetter}${r + 1}`;
+                const isBold = boldCells[cellRef] || false;
+                if (!isBold) {
+                    ut._intCellCount++;
+                    const statusVal = colIdx.internalReviewStatus !== -1 ? (row[colIdx.internalReviewStatus] || '').toString().trim() : '';
+                    ut.internalReviews.push({ text: reviewVal, status: statusVal });
+                }
+            }
+        }
+
+        // Count M column cell (client review) cell-by-cell if non-empty and non-bold
+        if (colIdx.clientReviewReview !== -1) {
+            const reviewVal = (row[colIdx.clientReviewReview] || '').toString().trim();
+            if (reviewVal && reviewVal !== '-' && reviewVal.toLowerCase() !== 'none' && reviewVal.toLowerCase() !== 'no issues' && reviewVal.toLowerCase() !== 'no issue') {
+                const colLetter = XLSX.utils.encode_col(colIdx.clientReviewReview);
+                const cellRef = `${colLetter}${r + 1}`;
+                const isBold = boldCells[cellRef] || false;
+                if (!isBold) {
+                    ut._clCellCount++;
+                    const statusVal = colIdx.clientReviewStatus !== -1 ? (row[colIdx.clientReviewStatus] || '').toString().trim() : '';
+                    ut.clientReviews.push({ text: reviewVal, status: statusVal });
+                }
+            }
+        }
+
+        // Also capture old explicit column values if any
         if (colIdx.internalReviewPoints !== -1 && row[colIdx.internalReviewPoints] !== undefined && row[colIdx.internalReviewPoints] !== '') {
             const val = parseInt(row[colIdx.internalReviewPoints]) || 0;
             if (val > 0) {
-                if (ut.internalReviewPoints === 0) ut.internalReviewPoints = val; // per-UT set once
-                if (!mod._intRevPts) mod._intRevPts = 0;
-                mod._intRevPts += val; // module-level accumulation
+                ut._intColPoints = Math.max(ut._intColPoints, val);
             }
         }
         if (colIdx.clientReviewPoints !== -1 && row[colIdx.clientReviewPoints] !== undefined && row[colIdx.clientReviewPoints] !== '') {
             const val = parseInt(row[colIdx.clientReviewPoints]) || 0;
             if (val > 0) {
-                if (ut.clientReviewPoints === 0) ut.clientReviewPoints = val; // per-UT set once
-                if (!mod._clRevPts) mod._clRevPts = 0;
-                mod._clRevPts += val; // module-level accumulation
+                ut._clColPoints = Math.max(ut._clColPoints, val);
             }
         }
         // Review status: capture once per user type (merged cell)
@@ -2672,6 +2939,11 @@ function parseExcelToModules(workbook) {
         if (colIdx.clientReviewStatus !== -1 && !ut.clientReviewStatus) {
             const s = (row[colIdx.clientReviewStatus] || '').toString().trim();
             if (s && s !== '-') ut.clientReviewStatus = s;
+        }
+        // QA status: capture once per user type (merged cell)
+        if (colIdx.qaStatus !== -1 && !ut.qaStatus) {
+            const s = (row[colIdx.qaStatus] || '').toString().trim();
+            if (s && s !== '-') ut.qaStatus = s;
         }
         if (colIdx.qaBugs !== -1 && row[colIdx.qaBugs] !== undefined && row[colIdx.qaBugs] !== '') {
             const val = parseInt(row[colIdx.qaBugs]) || 0;
@@ -2704,7 +2976,7 @@ function parseExcelToModules(workbook) {
         if (pageName === '') continue;
 
         // Category header detection
-        if (isCategoryHeader(row, colIdx)) {
+        if (isCategoryHeader(row, colIdx, r, boldCells)) {
             currentCategoryName = pageName;
             
             // Check if the category header row accidentally contains data due to merged cells
@@ -2740,9 +3012,18 @@ function parseExcelToModules(workbook) {
             clPts = parseInt(v) || 0;
         }
 
+        const ssCreationMerge = colIdx.staticScreensCreation !== -1 ? getDocMergedCellData(worksheet, r, colIdx.staticScreensCreation).value : '-';
+        const ssPresentationMerge = colIdx.staticScreensPresentation !== -1 ? getDocMergedCellData(worksheet, r, colIdx.staticScreensPresentation).value : '-';
+        const ssStatusMerge = colIdx.staticScreensStatus !== -1 ? getDocMergedCellData(worksheet, r, colIdx.staticScreensStatus).value : '-';
+
         const page = {
             name: pageName,
             dynamicDev: activeRow[colIdx.dynamicDev] || (row[colIdx.dynamicDev] || '-'),
+            staticScreens: {
+                creation: (ssCreationMerge && ssCreationMerge !== '-') ? ssCreationMerge : (activeRow[colIdx.staticScreensCreation] || (row[colIdx.staticScreensCreation] || '-')),
+                presentation: (ssPresentationMerge && ssPresentationMerge !== '-') ? ssPresentationMerge : (activeRow[colIdx.staticScreensPresentation] || (row[colIdx.staticScreensPresentation] || '-')),
+                status: (ssStatusMerge && ssStatusMerge !== '-') ? ssStatusMerge : (activeRow[colIdx.staticScreensStatus] || (row[colIdx.staticScreensStatus] || '-'))
+            },
             internalReview: {
                 review: activeRow[colIdx.internalReviewReview] || (row[colIdx.internalReviewReview] || '-'),
                 status: activeRow[colIdx.internalReviewStatus] || (row[colIdx.internalReviewStatus] || '-'),
@@ -2794,6 +3075,34 @@ function parseExcelToModules(workbook) {
                     totalMin += min;
                     totalMax += max;
                     anyUserTypeTimeSet = true;
+                }
+            }
+            
+            // Recompute ut.staticScreens from pages if pages exist!
+            const allPages = ut.categories.flatMap(c => c.pages);
+            if (allPages.length > 0) {
+                const _resolveSS = (key) => {
+                    const vals = allPages.map(p => (p.staticScreens && p.staticScreens[key]) || '-').filter(v => v !== '-' && v !== '');
+                    if (vals.length === 0) return '-';
+                    const allDone = vals.every(v => v.toLowerCase() === 'done' || v.toLowerCase() === 'approved');
+                    const allSkipped = vals.every(v => v.toLowerCase().includes('skip') || v.toLowerCase() === 'not done' || v.toLowerCase() === 'na');
+                    // Only hasProgress for genuinely in-progress values (not done/skipped)
+                    const hasProgress = vals.some(v => v.toLowerCase().includes('in progress') || v.toLowerCase().includes('partial'));
+                    if (allDone) return 'Done';
+                    if (allSkipped) return 'Skipped';
+                    if (hasProgress) return 'In Progress';
+                    // Mixed: if any skipped alongside done/progress treat as Skipped
+                    const hasSkipped = vals.some(v => v.toLowerCase().includes('skip') || v.toLowerCase() === 'not done');
+                    if (hasSkipped && !vals.some(v => v.toLowerCase().includes('progress'))) return 'Skipped';
+                    return vals[0].charAt(0).toUpperCase() + vals[0].slice(1);
+                };
+                
+                const hasAnySpecificPageValue = allPages.some(p => p.staticScreens && (p.staticScreens.creation !== '-' || p.staticScreens.presentation !== '-' || p.staticScreens.status !== '-'));
+                
+                if (hasAnySpecificPageValue) {
+                    ut.staticScreens.creation = _resolveSS('creation');
+                    ut.staticScreens.presentation = _resolveSS('presentation');
+                    ut.staticScreens.status = _resolveSS('status');
                 }
             }
         });
@@ -2930,6 +3239,43 @@ function parseExcelToModules(workbook) {
         console.log(`[PARSER] Remark for ${mod.name}: moduleLevel=${mod._remarkModuleLevel}, mergeGroups=${mergeGroupCount}, ungrouped=${ungroupedWithRemark.length}`);
     });
 
+    // Finalize review points (count review cells or fallback to column-based points)
+    Object.values(parsedModules).forEach(mod => {
+        let modIntCellTotal = 0;
+        let modIntColTotal = 0;
+        let modClCellTotal = 0;
+        let modClColTotal = 0;
+        
+        mod.userTypes.forEach(ut => {
+            modIntCellTotal += (ut._intCellCount || 0);
+            modIntColTotal += (ut._intColPoints || 0);
+            
+            modClCellTotal += (ut._clCellCount || 0);
+            modClColTotal += (ut._clColPoints || 0);
+            
+            if (ut._intCellCount && ut._intCellCount > 0) {
+                ut.internalReviewPoints = ut._intCellCount;
+            } else if (ut._intColPoints && ut._intColPoints > 0) {
+                ut.internalReviewPoints = ut._intColPoints;
+            } else {
+                ut.internalReviewPoints = 0;
+            }
+            
+            if (ut._clCellCount && ut._clCellCount > 0) {
+                ut.clientReviewPoints = ut._clCellCount;
+            } else if (ut._clColPoints && ut._clColPoints > 0) {
+                ut.clientReviewPoints = ut._clColPoints;
+            } else {
+                ut.clientReviewPoints = 0;
+            }
+        });
+        
+        // Fix: Use the maximum of the module-level cell count and column points 
+        // to prevent double counting when merged cells split texts and points across UTs
+        mod._intRevPts = Math.max(modIntCellTotal, modIntColTotal);
+        mod._clRevPts = Math.max(modClCellTotal, modClColTotal);
+    });
+
     // DEBUG: log colIdx and review points for all modules
     console.log('[PARSER DEBUG] colIdx:', JSON.stringify(colIdx));
     Object.values(parsedModules).forEach(m => {
@@ -2977,9 +3323,12 @@ function showToast(message, type = 'success') {
 // INITIALIZE
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+
+
     renderLanding();
     renderHeaderStats();
     initUploadListeners();
+    initMonthlyUploadListeners();
     startPresentationMode();
 });
 
@@ -3013,40 +3362,139 @@ function getPhaseDetail(mod, stepName) {
     switch (stepName) {
         case 'Requirement Gathering': {
             const req = (mod.requirementGathering || '-').toString();
-            if (req.length > 60) {
-                return req.substring(0, 55) + '…';
+            if (req !== '-' && req.toLowerCase() !== 'na') {
+                if (req.length > 60) return req.substring(0, 55) + '…';
+                return req;
             }
-            return req;
+            
+            // Check non-exempt UTs if module string is not explicitly set or is 'NA'
+            let allDone = true;
+            let hasNonExempt = false;
+            mod.userTypes.forEach(ut => {
+                if (isExemptUT(ut.name)) return;
+                hasNonExempt = true;
+                const r = (ut.reqGathering || '').toLowerCase().trim();
+                if (r !== 'done' && !r.includes('complete')) allDone = false;
+            });
+            
+            if (hasNonExempt && allDone) return 'Done';
+            return 'NA';
         }
         case 'Static screens': {
             const ss = mod.staticScreens;
-            const makeRow = (label, val) => {
-                if (!val || val === '-') return '';
-                return `<div class="qr-sub-row"><span class="qr-sub-key">${label}</span><span class="qr-sub-val ${getSubValClass(val)}">${val}</span></div>`;
-            };
-            const rows = [
-                makeRow('Creation', ss.creation),
-                makeRow('Presentation', ss.presentation),
-                makeRow('Status', ss.status)
-            ].filter(Boolean);
-            return rows.length > 0
-                ? `<div class="qr-sub-rows">${rows.join('')}</div>`
-                : 'Not applicable';
+            
+            let ssDone = 0, ssSkipped = 0, ssProg = 0, ssTotal = 0;
+            let allSameAsModule = true;
+            
+            mod.userTypes.forEach(ut => {
+                if (isExemptUT(ut.name)) return;
+                
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        const ps = (p.staticScreens.status || '').toLowerCase().trim();
+                        if (ps && ps !== '-') {
+                            ssTotal++;
+                            if (ps === 'done' || ps.includes('complete') || ps.includes('approved') || ps.includes('reviewed')) ssDone++;
+                            else if (ps === 'skipped' || ps === 'na' || ps === 'not required' || ps === 'not done') ssSkipped++;
+                            else if (ps.includes('progress') || ps.includes('started')) ssProg++;
+                            
+                            if (ps !== (ss.status || '').toLowerCase().trim()) {
+                                allSameAsModule = false;
+                            }
+                        }
+                    });
+                });
+            });
+
+            if (status === 'skipped') {
+                return `<div class="qr-review-detail"><span class="qr-review-status-pill" style="background:rgba(148,163,184,0.15);color:#64748b;">⊘ Skipped</span></div>`;
+            }
+
+            const hasModuleValues = (ss.creation && ss.creation !== '-') || (ss.presentation && ss.presentation !== '-') || (ss.status && ss.status !== '-');
+            
+            if (hasModuleValues && (ssTotal === 0 || allSameAsModule)) {
+                // Case 1
+                const makeRow = (label, val) => {
+                    if (!val || val === '-') return '';
+                    return `<div class="qr-sub-row"><span class="qr-sub-key">${label}</span><span class="qr-sub-val ${getSubValClass(val)}">${val}</span></div>`;
+                };
+                const rows = [
+                    makeRow('Creation', ss.creation),
+                    makeRow('Presentation', ss.presentation),
+                    makeRow('Status', ss.status)
+                ].filter(Boolean);
+                
+                return rows.length > 0 ? `<div class="qr-sub-rows">${rows.join('')}</div>` : 'Not applicable';
+            }
+            
+            if (ssTotal > 0) {
+                // Cases 2 & 3
+                const ssTbs = ssTotal - (ssDone + ssProg + ssSkipped);
+                const hasBreakdown = (ssDone + ssProg + ssSkipped + ssTbs) > 0;
+                const breakdownHtml = hasBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${ssDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${ssDone} Done</span>` : ''}${ssProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${ssProg} In Prog</span>` : ''}${ssSkipped > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">⊘ ${ssSkipped} Skipped</span>` : ''}${ssTbs > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;">◷ ${ssTbs} TBS</span>` : ''}</div>` : '';
+                return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${ssTotal}</span><span class="qr-review-pts-label">pages</span></div>${breakdownHtml}</div>`;
+            }
+
+            return 'Not applicable';
         }
         case 'Dynamic Development': {
-            const pct = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
-            const pctClass = pct >= 100 ? 'qr-review-done' : pct > 0 ? 'qr-review-progress' : 'qr-review-neutral';
-            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pct}%</span><span class="qr-review-pts-label">complete</span></div><span class="qr-review-status-pill ${pctClass}">${donePages} / ${totalPages} pages</span></div>`;
+            // Count per-status distribution across all pages
+            let devDone2 = 0, devInProg = 0, devTBS = 0;
+            mod.userTypes.forEach(ut => {
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        const s = (p.dynamicDev || '').toLowerCase().trim();
+                        if (s === 'done') devDone2++;
+                        else if (s.includes('progress') || s.includes('setup') || s.includes('partial')) devInProg++;
+                        else devTBS++;
+                    });
+                });
+            });
+            const hasDevBreakdown = (devDone2 + devInProg + devTBS) > 0;
+            const devBreakdownHtml = hasDevBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${devDone2 > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${devDone2} Done</span>` : ''}${devInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${devInProg} In Prog</span>` : ''}${devTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${devTBS} TBS</span>` : ''}</div>` : '';
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${totalPages}</span><span class="qr-review-pts-label">pages</span></div>${devBreakdownHtml}</div>`;
         }
         case 'Internal review': {
             const pts = countInternalReviewPoints(mod);
-            const intStatus = getInternalReviewStatus(mod);
-            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(intStatus)}">${intStatus}</span></div>`;
+            // Build status breakdown from UT reviews
+            let intDone = 0, intInProg = 0, intTBS = 0, intRejected = 0;
+            mod.userTypes.forEach(ut => {
+                if (ut.internalReviews && ut.internalReviews.length > 0) {
+                    ut.internalReviews.forEach(rev => {
+                        const s = (rev.status || '').toLowerCase().trim();
+                        if (s === 'done' || s === 'fixed') intDone++;
+                        else if (s === 'rejected') intRejected++;
+                        else if (s.includes('progress')) intInProg++;
+                        else intTBS++;
+                    });
+                }
+            });
+            const hasBreakdown = (intDone + intInProg + intTBS + intRejected) > 0;
+            const breakdownHtml = hasBreakdown
+                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${intDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${intDone} Done</span>` : ''}${intInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${intInProg} In Prog</span>` : ''}${intTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${intTBS} TBS</span>` : ''}${intRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${intRejected} Rejected</span>` : ''}</div>`
+                : '';
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div>${breakdownHtml}</div>`;
         }
         case 'Client review': {
             const pts = countClientReviewPoints(mod);
-            const clStatus = getClientReviewStatus(mod);
-            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div><span class="qr-review-status-pill ${getReviewStatusClass(clStatus)}">${clStatus}</span></div>`;
+            // Build status breakdown from UT reviews
+            let clDone = 0, clInProg = 0, clTBS = 0, clRejected = 0;
+            mod.userTypes.forEach(ut => {
+                if (ut.clientReviews && ut.clientReviews.length > 0) {
+                    ut.clientReviews.forEach(rev => {
+                        const s = (rev.status || '').toLowerCase().trim();
+                        if (s === 'done' || s === 'approved') clDone++;
+                        else if (s === 'rejected') clRejected++;
+                        else if (s.includes('progress')) clInProg++;
+                        else clTBS++;
+                    });
+                }
+            });
+            const hasClBreakdown = (clDone + clInProg + clTBS + clRejected) > 0;
+            const clBreakdownHtml = hasClBreakdown
+                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${clDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${clDone} Done</span>` : ''}${clInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${clInProg} In Prog</span>` : ''}${clTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${clTBS} TBS</span>` : ''}${clRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${clRejected} Rejected</span>` : ''}</div>`
+                : '';
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div>${clBreakdownHtml}</div>`;
         }
         case 'QA': {
             // Always show the same format: big bug count + "bugs found" + fixed pill
@@ -3076,24 +3524,21 @@ function getPhaseDetail(mod, stepName) {
             return `<div class="qr-review-detail"><span class="qr-review-status-pill ${noQaClass}">${noQaLabel}</span></div>`;
         }
         case 'Final Review': {
-            if (status === 'done') return 'Completed';
-            if (status === 'in-progress') return 'In progress';
-            return 'Awaiting QA';
+            // Only show done if finalStatus is explicitly Done — do NOT cascade from QA
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'Completed';
+            return 'Awaiting data';
         }
         case 'Security implementation': {
-            if (status === 'done') return 'Completed';
-            if (status === 'in-progress') return 'In progress';
-            return 'Awaiting review';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'Completed';
+            return 'Awaiting data';
         }
         case 'UAT': {
-            if (status === 'done') return 'Completed';
-            if (status === 'in-progress') return 'In progress';
-            return 'Awaiting security';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'Completed';
+            return 'Awaiting data';
         }
         case 'Go Live': {
-            if (status === 'done') return 'Deployed';
-            if (status === 'in-progress') return 'In progress';
-            return 'Pending';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'Deployed';
+            return 'Awaiting data';
         }
         default:
             return '-';
@@ -3116,6 +3561,8 @@ function showQuickReport() {
     document.getElementById('detail-page').classList.add('hidden');
     document.getElementById('team-page').classList.add('hidden');
     document.getElementById('presentation-page').classList.add('hidden');
+    document.getElementById('monthly-upload-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.add('hidden');
     document.getElementById('quick-report-page').classList.remove('hidden');
     document.getElementById('back-btn').classList.remove('hidden');
     document.getElementById('page-title').classList.add('hidden');
@@ -3213,7 +3660,7 @@ function showQuickReport() {
                                     let lastReachedIndex = -1;
                                     for (let k = 0; k < n; k++) {
                                         const status = stepsStatus[k];
-                                        if (status === 'done' || status === 'skipped' || status === 'in-progress') {
+                                        if (status === 'done' || status === 'mixed-done' || status === 'skipped' || status === 'in-progress') {
                                             lastReachedIndex = k;
                                         }
                                     }
@@ -3243,13 +3690,22 @@ function showQuickReport() {
                             ${trackerSteps.map((step, sIdx) => {
                                 const status = stepsStatus[sIdx];
                                 let icon = sIdx + 1;
-                                if (status === 'done') icon = '✓';
+                                if (status === 'done' || status === 'mixed-done') icon = '✓';
                                 else if (status === 'in-progress') icon = '◐';
+                                
+                                let dotStyle = '';
+                                if (status === 'mixed-done') {
+                                    dotStyle = 'style="background: linear-gradient(90deg, var(--color-done) 50%, #cbd5e1 50%); color: white; border: none;"';
+                                }
+
+                                let extraLabel = '';
+                                if (status === 'skipped') extraLabel = '<br><span style="font-size:0.5rem;opacity:0.6;">(Skipped)</span>';
+                                else if (status === 'mixed-done') extraLabel = '<br><span style="font-size:0.5rem;opacity:0.6;">(Done for some screens)</span>';
 
                                 return `
-                                    <div class="qr-tracker-step ${status}">
-                                        <div class="qr-tracker-dot">${icon}</div>
-                                        <div class="qr-tracker-label">${step}${status === 'skipped' ? '<br><span style="font-size:0.5rem;opacity:0.6;">(Skipped)</span>' : ''}</div>
+                                    <div class="qr-tracker-step ${status === 'mixed-done' ? 'done' : status}">
+                                        <div class="qr-tracker-dot" ${dotStyle}>${icon}</div>
+                                        <div class="qr-tracker-label">${step}${extraLabel}</div>
                                     </div>
                                 `;
                             }).join('')}
@@ -3264,12 +3720,14 @@ function showQuickReport() {
                             const dotColor = getStatusDotColor(status);
 
                             return `
-                                <div class="qr-phase-box qr-phase-${status}">
+                                <div class="qr-phase-box qr-phase-${status === 'mixed-done' ? 'done' : status}">
                                     <div class="qr-phase-box-header">
                                         <div class="qr-phase-box-title">${step}</div>
                                         <div class="qr-phase-status-icon">${
                                             status === 'done'
                                             ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#16a34a"/><path d="M4 7.2l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                                            : status === 'mixed-done'
+                                            ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7,0 A7,7 0 0,0 7,14 Z" fill="#16a34a"/><path d="M7,0 A7,7 0 0,1 7,14 Z" fill="#cbd5e1"/><path d="M4 7.2l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
                                             : status === 'in-progress'
                                             ? `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#d97706"/><circle cx="7" cy="7" r="2.2" fill="#fff"/></svg>`
                                             : status === 'skipped'
@@ -3321,11 +3779,23 @@ function showQuickReport() {
                             </div>
                             <div class="qr-doc-grid" style="display: flex; flex-direction: column; gap: 0.35rem;">
                                 ${(() => {
+                                    // UTs to exclude from documentation display
+                                    const EXEMPT_DOC_UTS = ['user management', 'baseline data', 'baseline data configuration'];
+                                    const isExemptDocUT = (name) => EXEMPT_DOC_UTS.some(e => (name || '').toLowerCase().includes(e));
+
+                                    // Helper: strip the |||mergeId suffix added during doc parsing
+                                    const cleanDocVal = (v) => {
+                                        if (!v) return '-';
+                                        const idx = v.indexOf('|||');
+                                        return idx !== -1 ? v.substring(0, idx).trim() : v.trim();
+                                    };
+
                                     const utDocs = [];
                                     if (mod.userTypes && mod.userTypes.length > 0) {
                                         mod.userTypes.forEach(ut => {
-                                            const pf = (ut.documentation && ut.documentation.processFlow) ? ut.documentation.processFlow.toString().trim() : '-';
-                                            const um = (ut.documentation && ut.documentation.userManual) ? ut.documentation.userManual.toString().trim() : '-';
+                                            if (isExemptDocUT(ut.name)) return; // skip User Mgmt / Baseline Data
+                                            const pf = cleanDocVal((ut.documentation && ut.documentation.processFlow) ? ut.documentation.processFlow.toString() : '-');
+                                            const um = cleanDocVal((ut.documentation && ut.documentation.userManual) ? ut.documentation.userManual.toString() : '-');
                                             if (pf !== '-' || um !== '-') {
                                                 utDocs.push({ name: ut.name, processFlow: pf, userManual: um });
                                             }
@@ -3344,33 +3814,51 @@ function showQuickReport() {
                                         } else {
                                             utDocs.push({
                                                 name: 'All Users',
-                                                processFlow: (mod.documentation && mod.documentation.processFlow) ? mod.documentation.processFlow : '-',
-                                                userManual: (mod.documentation && mod.documentation.userManual) ? mod.documentation.userManual : '-'
+                                                processFlow: cleanDocVal((mod.documentation && mod.documentation.processFlow) ? mod.documentation.processFlow : '-'),
+                                                userManual: cleanDocVal((mod.documentation && mod.documentation.userManual) ? mod.documentation.userManual : '-')
                                             });
                                         }
                                     }
+
+                                    // Helper: classify a doc status value into a CSS class
+                                    const getDocClass = (val) => {
+                                        const lv = val.toLowerCase();
+                                        if (lv === 'done' || lv.includes('complete') || lv.includes('approve')) return 'qr-doc-done';
+                                        if (lv.includes('to be updated') || lv.includes('updated') || lv.includes('update')) return 'qr-doc-updated';
+                                        if (lv.includes('progress')) return 'qr-doc-progress';
+                                        return 'qr-doc-pending';
+                                    };
                                     
-                                    return utDocs.map((d, index) => {
+                                    let html = `
+                                        <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 1px minmax(0, 1fr); align-items: center; margin-bottom: 0.35rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(0,0,0,0.06);">
+                                            <div></div>
+                                            <div style="text-align: center; font-size: 0.62rem; color: var(--text-secondary); font-weight: 700; padding-right: 0.2rem;">Process Flow</div>
+                                            <div style="width: 1px; background: rgba(0,0,0,0.1); height: 1rem; justify-self: center;"></div>
+                                            <div style="text-align: center; font-size: 0.62rem; color: var(--text-secondary); font-weight: 700; padding-left: 0.2rem;">User Manual</div>
+                                        </div>
+                                    `;
+                                    
+                                    html += utDocs.map((d, index) => {
                                         const pfStatus = d.processFlow !== '-' && d.processFlow !== '' ? d.processFlow : 'Pending';
                                         const umStatus = d.userManual !== '-' && d.userManual !== '' ? d.userManual : 'Pending';
-                                        
-                                        const pfClass = pfStatus.toLowerCase().includes('done') || pfStatus.toLowerCase().includes('approve') || pfStatus.toLowerCase().includes('complete') ? 'qr-doc-done' : 'qr-doc-pending';
-                                        const umClass = umStatus.toLowerCase().includes('done') || umStatus.toLowerCase().includes('approve') || umStatus.toLowerCase().includes('complete') ? 'qr-doc-done' : 'qr-doc-pending';
+                                        const pfClass = getDocClass(pfStatus);
+                                        const umClass = getDocClass(umStatus);
                                         
                                         return `
-                                            <div class="qr-doc-ut-section" style="display: flex; flex-direction: column; gap: 0.12rem; ${index > 0 ? 'border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 0.25rem; margin-top: 0.1rem;' : ''}">
-                                                <div class="qr-doc-ut-name" style="font-weight: 700; font-size: 0.62rem; color: ${mod.color}; opacity: 0.85; margin-bottom: 0.05rem;">${d.name}</div>
-                                                <div class="qr-doc-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;">
-                                                    <span class="qr-doc-key" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: 500;">Process Flow</span>
-                                                    <span class="qr-doc-val ${pfClass}">${pfStatus}</span>
+                                            <div class="qr-doc-ut-section" style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 1px minmax(0, 1fr); align-items: center; gap: 0; ${index > 0 ? 'border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 0.35rem; margin-top: 0.15rem;' : ''}">
+                                                <div class="qr-doc-ut-name" style="font-weight: 700; font-size: 0.62rem; color: ${mod.color}; opacity: 0.85; text-align: left; padding-right: 0.3rem;">${d.name}</div>
+                                                <div style="display: flex; justify-content: center; padding-right: 0.2rem;">
+                                                    <span class="qr-doc-val ${pfClass}" style="max-width: 100%; text-align: center;">${pfStatus}</span>
                                                 </div>
-                                                <div class="qr-doc-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;">
-                                                    <span class="qr-doc-key" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: 500;">User Manual</span>
-                                                    <span class="qr-doc-val ${umClass}">${umStatus}</span>
+                                                <div style="width: 1px; background: rgba(0,0,0,0.08); height: 100%; min-height: 1.2rem; justify-self: center;"></div>
+                                                <div style="display: flex; justify-content: center; padding-left: 0.2rem;">
+                                                    <span class="qr-doc-val ${umClass}" style="max-width: 100%; text-align: center;">${umStatus}</span>
                                                 </div>
                                             </div>
                                         `;
                                     }).join('');
+                                    
+                                    return html;
                                 })()}
                             </div>
                         </div>
@@ -3395,7 +3883,11 @@ function showQuickReport() {
                                     seen.add(key);
                                     parts.push(`<div style="margin-bottom:0.35rem"><span style="font-weight:600;opacity:0.75;">${ut.name}:</span> ${ut.remark.replace(/\n/g, '<br>')}</div>`);
                                 });
-                                return parts.length > 0 ? parts.join('') : '<em>No remarks registered.</em>';
+                                // Always fall back to mod.remark if no UT-level remarks found
+                                if (parts.length > 0) return parts.join('');
+                                return mod.remark
+                                    ? mod.remark.replace(/\n/g, '<br>')
+                                    : '<em>No remarks registered.</em>';
                             })()}</div>
                         </div>
                     </div>
@@ -3655,10 +4147,13 @@ function startPresentationMode() {
     if (detailPage) detailPage.classList.add('hidden');
     const qrPage = document.getElementById('quick-report-page');
     if (qrPage) qrPage.classList.add('hidden');
+    const monthlyUp = document.getElementById('monthly-upload-page');
+    if (monthlyUp) monthlyUp.classList.add('hidden');
+    const monthlyPres = document.getElementById('monthly-pres-page');
+    if (monthlyPres) monthlyPres.classList.add('hidden');
     if (backBtn) backBtn.classList.add('hidden');
     if (pageTitle) pageTitle.classList.remove('hidden');
     if (uploadBtn) uploadBtn.classList.add('hidden');
-    if (btn) btn.style.display = 'none';
     const qrBtn = document.getElementById('quick-report-btn');
     if (qrBtn) qrBtn.style.display = 'none';
     if (presPage) presPage.classList.remove('hidden');
@@ -3741,16 +4236,19 @@ function resolveReviewStatus(statuses) {
     // Apply the 5 rules:
     // 1. pending + done (no in-progress) → In Progress
     // 2. all pending → Pending
-    // 3. all done → Done
+    // 3. all done (or rejected) → Done
     // 4. in-progress + done → In Progress
     // 5. all in-progress → In Progress
+    // Note: 'rejected' counts as 'done' for tracker purposes
     const real = statuses.map(s => s.toLowerCase().trim()).filter(s => s && s !== '-' && s !== '');
     if (real.length === 0) return null; // no data
     const hasProgress  = real.some(s => s.includes('progress'));
-    const hasPending   = real.some(s => s.includes('pending') || s.includes('not started'));
-    const hasDone      = real.some(s => s.includes('done') || s.includes('approved') || s.includes('complete'));
+    const hasPending   = real.some(s => s.includes('pending') || s.includes('not started') || s.includes('to be started'));
+    const hasDone      = real.some(s => s.includes('done') || s.includes('approved') || s.includes('complete') || s.includes('rejected'));
+    const allDoneOrRejected = real.every(s => s.includes('done') || s.includes('approved') || s.includes('complete') || s.includes('rejected'));
     const hasSkipped   = real.some(s => s.includes('skip'));
 
+    if (allDoneOrRejected) return 'Done';                     // all done/rejected → green
     if (hasProgress) return 'In Progress';                    // rules 4 & 5
     if (hasPending && hasDone) return 'In Progress';          // rule 1
     if (hasPending && !hasDone && !hasProgress) return 'Pending'; // rule 2
@@ -3828,82 +4326,161 @@ function getClientReviewStatus(mod) {
 }
 
 function getStepStatus(mod, stepName) {
-    // Sugamta overrides as explicitly requested: both show as in-progress
-    if (mod.id === 'sugamta') {
-        if (stepName === 'Requirement Gathering' || stepName === 'Static screens') {
-            return 'in-progress';
-        }
-    }
-
     const finalDone = mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done';
     
     switch (stepName) {
-        case 'Requirement Gathering':
+        case 'Requirement Gathering': {
             const req = (mod.requirementGathering || '').toLowerCase().trim();
             if (req === 'done' || req.includes('complete')) return 'done';
             if (req.includes('progress') || req.includes('started')) return 'in-progress';
+            
+            let reqTotal = 0, reqDone = 0, reqProg = 0;
+            mod.userTypes.forEach(ut => {
+                if (isExemptUT(ut.name)) return;
+                reqTotal++;
+                const r = (ut.reqGathering || '').toLowerCase().trim();
+                if (r === 'done' || r.includes('complete')) reqDone++;
+                else if (r.includes('progress') || r.includes('started')) reqProg++;
+            });
+            if (reqTotal > 0 && reqDone === reqTotal) return 'done';
+            if (reqProg > 0 || reqDone > 0) return 'in-progress';
             return 'not-started';
-        case 'Static screens':
-            const sc = (mod.staticScreens.status || '').toLowerCase().trim();
-            if (sc === 'skipped' || sc === 'not done' || sc === 'na') return 'skipped';
-            if (sc === 'done' || sc.includes('complete') || sc.includes('reviewed') || sc.includes('approved')) return 'done';
-            if (sc.includes('progress') || sc.includes('started') || sc.includes('partial')) return 'in-progress';
+        }
+        case 'Static screens': {
+            let ssProg = 0, ssDone = 0, ssSkipped = 0, ssTotal = 0;
+            mod.userTypes.forEach(ut => {
+                if (isExemptUT(ut.name)) return;
+                
+                ut.categories.forEach(cat => {
+                    cat.pages.forEach(p => {
+                        const ps = (p.staticScreens.status || '').toLowerCase().trim();
+                        if (ps && ps !== '-') {
+                            ssTotal++;
+                            if (ps === 'done' || ps.includes('complete') || ps.includes('approved') || ps.includes('reviewed')) ssDone++;
+                            else if (ps === 'skipped' || ps === 'na' || ps === 'not required' || ps === 'not done') ssSkipped++;
+                            else if (ps.includes('progress') || ps.includes('started')) ssProg++;
+                        }
+                    });
+                });
+            });
+            
+            if (ssTotal > 0) {
+                if (ssProg > 0) return 'in-progress';
+                if (ssSkipped === ssTotal) return 'skipped';
+                if (ssDone + ssSkipped === ssTotal) {
+                    if (ssSkipped > 0 && ssDone > 0) return 'mixed-done';
+                    return 'done';
+                }
+                if (ssDone > 0 || ssSkipped > 0) return 'in-progress';
+            }
+            
             return 'not-started';
+        }
+
         case 'Dynamic Development':
             const devTotal = countPages(mod);
             const devDone = countDonePages(mod);
             if (devTotal > 0 && devDone === devTotal) return 'done';
             if (devDone > 0) return 'in-progress';
             return 'not-started';
-        case 'Internal review':
+        case 'Internal review': {
+            // Use UT-level status first (from merged cells)
+            const intUtStatuses = mod.userTypes.map(ut => (ut.internalReviewStatus || '').trim()).filter(s => s && s !== '-');
+            if (intUtStatuses.length > 0) {
+                const resolved = resolveReviewStatus(intUtStatuses);
+                if (resolved === 'Done') return 'done';
+                if (resolved === 'In Progress') return 'in-progress';
+                if (resolved === 'Pending') return 'not-started';
+            }
+            // Also check UT internalReviews array for done/rejected counts
             let intTotal = 0;
             let intDoneCount = 0;
             let intNotStartedCount = 0;
             mod.userTypes.forEach(ut => {
-                ut.categories.forEach(cat => {
-                    cat.pages.forEach(p => {
+                // If UT has per-review data, use that
+                if (ut.internalReviews && ut.internalReviews.length > 0) {
+                    ut.internalReviews.forEach(rev => {
                         intTotal++;
-                        const s = (p.internalReview.status || '').toLowerCase().trim();
-                        const r = (p.internalReview.review || '').toLowerCase().trim();
-                        if (s === 'done' || s === 'fixed' || r === 'no issues') {
-                            intDoneCount++;
-                        } else if (s === '-' && (r === '-' || r === '')) {
-                            intNotStartedCount++;
-                        }
+                        const s = (rev.status || '').toLowerCase().trim();
+                        if (s === 'done' || s === 'fixed' || s === 'rejected') intDoneCount++;
+                        else if (!s || s === '-') intNotStartedCount++;
                     });
-                });
+                } else {
+                    ut.categories.forEach(cat => {
+                        cat.pages.forEach(p => {
+                            intTotal++;
+                            const s = (p.internalReview.status || '').toLowerCase().trim();
+                            const r = (p.internalReview.review || '').toLowerCase().trim();
+                            if (s === 'done' || s === 'fixed' || r === 'no issues' || s === 'rejected') {
+                                intDoneCount++;
+                            } else if (s === '-' && (r === '-' || r === '')) {
+                                intNotStartedCount++;
+                            }
+                        });
+                    });
+                }
             });
             if (intTotal > 0 && intDoneCount === intTotal) return 'done';
             if (intNotStartedCount === intTotal) return 'not-started';
+            if (intTotal === 0) return 'not-started';
             return 'in-progress';
-        case 'Client review':
+        }
+        case 'Client review': {
+            // Use UT-level status first (from merged cells)
+            const clUtStatuses = mod.userTypes.map(ut => (ut.clientReviewStatus || '').trim()).filter(s => s && s !== '-');
+            if (clUtStatuses.length > 0) {
+                const resolved = resolveReviewStatus(clUtStatuses);
+                if (resolved === 'Done') return 'done';
+                if (resolved === 'In Progress') return 'in-progress';
+                if (resolved === 'Pending') return 'not-started';
+            }
+            // Check UT clientReviews array for done/rejected counts
             let clTotal = 0;
             let clDoneCount = 0;
             let clNotStartedCount = 0;
             mod.userTypes.forEach(ut => {
-                ut.categories.forEach(cat => {
-                    cat.pages.forEach(p => {
+                if (ut.clientReviews && ut.clientReviews.length > 0) {
+                    ut.clientReviews.forEach(rev => {
                         clTotal++;
-                        const s = (p.clientReview.status || '').toLowerCase().trim();
-                        const r = (p.clientReview.review || '').toLowerCase().trim();
-                        if (s === 'approved' || s === 'done') {
-                            clDoneCount++;
-                        } else if (s === '-' && (r === '-' || r === '')) {
-                            clNotStartedCount++;
-                        }
+                        const s = (rev.status || '').toLowerCase().trim();
+                        if (s === 'approved' || s === 'done' || s === 'rejected') clDoneCount++;
+                        else if (!s || s === '-') clNotStartedCount++;
                     });
-                });
+                } else {
+                    ut.categories.forEach(cat => {
+                        cat.pages.forEach(p => {
+                            clTotal++;
+                            const s = (p.clientReview.status || '').toLowerCase().trim();
+                            const r = (p.clientReview.review || '').toLowerCase().trim();
+                            if (s === 'approved' || s === 'done' || s === 'rejected') {
+                                clDoneCount++;
+                            } else if (s === '-' && (r === '-' || r === '')) {
+                                clNotStartedCount++;
+                            }
+                        });
+                    });
+                }
             });
             if (clTotal > 0 && clDoneCount === clTotal) return 'done';
             if (clNotStartedCount === clTotal) return 'not-started';
+            if (clTotal === 0) return 'not-started';
             return 'in-progress';
-        case 'QA':
+        }
+        case 'QA': {
             if (finalDone) return 'done';
             
+            // Check UT-level QA status (merged cell across all pages for a UT)
+            const utQaStatuses = mod.userTypes.map(ut => (ut.qaStatus || '').trim()).filter(s => s && s !== '-');
+            if (utQaStatuses.length > 0) {
+                const allQaDone = utQaStatuses.every(s => s.toLowerCase() === 'done' || s.toLowerCase() === 'completed');
+                if (allQaDone) return 'done';
+                const anyQaProgress = utQaStatuses.some(s => s.toLowerCase().includes('progress') || s.toLowerCase() === 'in progress');
+                if (anyQaProgress) return 'in-progress';
+            }
+
             let qaTotal = 0;
             let qaDoneCount = 0;
             let qaNotStartedCount = 0;
-            let hasQABugs = false;
             
             mod.userTypes.forEach(ut => {
                 ut.categories.forEach(cat => {
@@ -3916,38 +4493,38 @@ function getStepStatus(mod, stepName) {
                             } else if (s === '-' || s === '' || s === 'not started') {
                                 qaNotStartedCount++;
                             }
-                            if (p.qa.bugs > 0) {
-                                hasQABugs = true;
-                            }
                         }
                     });
                 });
             });
             
             if (qaTotal > 0) {
-                if (qaDoneCount === qaTotal && !hasQABugs) return 'done';
-                if (qaNotStartedCount === qaTotal && !hasQABugs) return 'not-started';
+                // If QA status = 'Done' for all pages → green (regardless of bug count)
+                if (qaDoneCount === qaTotal) return 'done';
+                if (qaNotStartedCount === qaTotal) return 'not-started';
                 return 'in-progress';
             }
             
+            // Fallback: check bug data
+            const hasAnyBugs = mod.userTypes.some(ut => (ut.qaBugs || 0) > 0) || 
+                mod.userTypes.some(ut => ut.categories.some(cat => cat.pages.some(p => p.qa && p.qa.bugs > 0)));
+            if (hasAnyBugs) return 'in-progress'; // has bugs but no status → in progress
             if (mod.id === 'preksha' || mod.id === 'samadhan') return 'in-progress';
             if (getStepStatus(mod, 'Client review') === 'done') return 'in-progress';
             return 'not-started';
+        }
         case 'Final Review':
-            if (finalDone) return 'done';
-            if (getStepStatus(mod, 'QA') === 'done') return 'in-progress';
+            // Only green if finalStatus is explicitly Done — no cascading from QA
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'done';
             return 'not-started';
         case 'Security implementation':
-            if (finalDone) return 'done';
-            if (getStepStatus(mod, 'Final Review') === 'done') return 'in-progress';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'done';
             return 'not-started';
         case 'UAT':
-            if (finalDone) return 'done';
-            if (getStepStatus(mod, 'Security implementation') === 'done') return 'in-progress';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'done';
             return 'not-started';
         case 'Go Live':
-            if (finalDone) return 'done';
-            if (getStepStatus(mod, 'UAT') === 'done') return 'in-progress';
+            // if (mod.finalStatus && mod.finalStatus.toLowerCase().trim() === 'done') return 'done';
             return 'not-started';
         default:
             return 'not-started';
@@ -4291,15 +4868,19 @@ function renderSlide() {
                         let icon = sIdx + 1;
                         if (status === 'done') icon = '✓';
                         else if (status === 'in-progress') icon = '◐';
+                        else if (status === 'mixed-done') icon = '◐';
+
+                        let extraLabel = '';
+                        if (status === 'skipped') extraLabel = '<br><span style="font-size: 0.6rem; opacity: 0.65; font-weight: 600; display: block; margin-top: 1px;">(Skipped)</span>';
+                        else if (status === 'mixed-done') extraLabel = '<br><span style="font-size: 0.6rem; opacity: 0.65; font-weight: 600; display: block; margin-top: 1px;">(Done for some screens)</span>';
 
                         return `
-                            <div class="tracker-step ${status}">
+                            <div class="tracker-step ${status === 'mixed-done' ? 'mixed-done' : status}">
                                 <div class="tracker-dot">
                                     ${icon}
                                 </div>
                                 <div class="tracker-label">
-                                    ${step}
-                                    ${status === 'skipped' ? '<br><span style="font-size: 0.6rem; opacity: 0.65; font-weight: 600; display: block; margin-top: 1px;">(Skipped)</span>' : ''}
+                                    ${step}${extraLabel}
                                 </div>
                             </div>
                         `;
@@ -4465,3 +5046,2215 @@ function renderJuneCommitments(containerId) {
     
     container.innerHTML = html;
 }
+
+// ============================================
+// MONTHLY PROGRESS PRESENTATION
+// ============================================
+
+let _monthlyOldParsed = null;
+let _monthlyNewParsed = null;
+let _monthlyComparison = null;
+let _monthlySlideIndex = 0;
+const _monthlyTotalSlides = 8; // Slide 0: Intro, Slide 1: Overview, Slide 2: Pending Work, Slide 3: Dependencies, Slide 4: Last Month Commitments, Slide 5: This Month's Commitment, Slide 6: Team Review, Slide 7: Thank You
+let _monthlyPendingData = null;
+let _monthlyPendingSelectedKpi = 'pagesPending';
+let _monthlyCommitmentsParsed = null;
+let _monthlyThisMonthCommitParsed = null;
+let _monthlyTeamReviewParsed = null;
+
+// ── Navigation ──────────────────────────────────────────────────────────
+
+function showMonthlyUpload() {
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('detail-page').classList.add('hidden');
+    document.getElementById('team-page').classList.add('hidden');
+    document.getElementById('quick-report-page').classList.add('hidden');
+    document.getElementById('presentation-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.add('hidden');
+    document.getElementById('monthly-upload-page').classList.remove('hidden');
+    document.getElementById('back-btn').classList.remove('hidden');
+    document.getElementById('page-title').classList.add('hidden');
+
+    // Reset presentation mode if active
+    if (presentationMode) {
+        presentationMode = false;
+        document.body.style.overflow = '';
+        document.body.classList.remove('presentation-active');
+    }
+
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) uploadBtn.classList.add('hidden');
+    const qrBtn = document.getElementById('quick-report-btn');
+    if (qrBtn) qrBtn.style.display = 'none';
+    const monthlyBtn = document.getElementById('monthly-review-btn');
+    if (monthlyBtn) monthlyBtn.style.display = 'none';
+    const presBtn = document.getElementById('pres-toggle-btn');
+    if (presBtn) presBtn.style.display = 'none';
+}
+
+function exitMonthlyPresentation() {
+    document.getElementById('monthly-pres-page').classList.add('hidden');
+    document.body.style.overflow = '';
+    showMonthlyUpload();
+}
+
+// ── Upload Listeners ────────────────────────────────────────────────────
+
+function initMonthlyUploadListeners() {
+    _setupMonthlyDropzone('old-month-dropzone', 'old-month-file', handleOldMonthUpload);
+    _setupMonthlyDropzone('new-month-dropzone', 'new-month-file', handleNewMonthUpload);
+    _setupMonthlyDropzone('commitments-dropzone', 'commitments-file', handleCommitmentsUpload);
+    _setupMonthlyDropzone('thismonth-commit-dropzone', 'thismonth-commit-file', handleThisMonthCommitUpload);
+    _setupMonthlyDropzone('team-review-dropzone', 'team-review-file', handleTeamReviewUpload);
+}
+
+function _setupMonthlyDropzone(dropzoneId, fileInputId, handler) {
+    const dz = document.getElementById(dropzoneId);
+    const fi = document.getElementById(fileInputId);
+    if (!dz || !fi) return;
+
+    dz.addEventListener('click', () => fi.click());
+
+    dz.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dz.classList.add('drag-over');
+    });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('drag-over');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handler(e.dataTransfer.files[0]);
+        }
+    });
+
+    fi.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handler(e.target.files[0]);
+        }
+    });
+}
+
+function handleOldMonthUpload(file) {
+    _processMonthlyFile(file, 'old', (parsed) => {
+        _monthlyOldParsed = parsed;
+        _showMonthlyFileStatus('old', file.name, parsed);
+        _updateMonthlyGenerateBtn();
+    });
+}
+
+function handleNewMonthUpload(file) {
+    _processMonthlyFile(file, 'new', (parsed) => {
+        _monthlyNewParsed = parsed;
+        _showMonthlyFileStatus('new', file.name, parsed);
+        _updateMonthlyGenerateBtn();
+    });
+}
+
+function clearOldMonthFile() {
+    _monthlyOldParsed = null;
+    document.getElementById('old-month-status').classList.add('hidden');
+    document.getElementById('old-month-dropzone').classList.remove('hidden');
+    document.getElementById('old-month-card').classList.remove('uploaded');
+    document.getElementById('old-month-file').value = '';
+    _updateMonthlyGenerateBtn();
+}
+
+function clearNewMonthFile() {
+    _monthlyNewParsed = null;
+    document.getElementById('new-month-status').classList.add('hidden');
+    document.getElementById('new-month-dropzone').classList.remove('hidden');
+    document.getElementById('new-month-card').classList.remove('uploaded');
+    document.getElementById('new-month-file').value = '';
+    _updateMonthlyGenerateBtn();
+}
+
+function handleCommitmentsUpload(file) {
+    _processCommitmentsFile(file, (parsed) => {
+        _monthlyCommitmentsParsed = parsed;
+        const fnEl = document.getElementById('commitments-filename');
+        const stEl = document.getElementById('commitments-stats');
+        fnEl.textContent = `✓ ${file.name}`;
+        let goalCount = 0;
+        Object.keys(parsed).forEach(m => { goalCount += parsed[m].length; });
+        stEl.textContent = `${Object.keys(parsed).length} modules · ${goalCount} goals`;
+        document.getElementById('commitments-dropzone').classList.add('hidden');
+        document.getElementById('commitments-status').classList.remove('hidden');
+        document.getElementById('commitments-card').classList.add('uploaded');
+        _updateMonthlyGenerateBtn();
+    });
+}
+
+function clearCommitmentsFile() {
+    _monthlyCommitmentsParsed = null;
+    document.getElementById('commitments-status').classList.add('hidden');
+    document.getElementById('commitments-dropzone').classList.remove('hidden');
+    document.getElementById('commitments-card').classList.remove('uploaded');
+    document.getElementById('commitments-file').value = '';
+    _updateMonthlyGenerateBtn();
+}
+
+function _processCommitmentsFile(file, callback) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        showToast('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        showToast('SheetJS library not loaded.', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (!rows || rows.length < 2) {
+                showToast('No data found in commitments file.', 'error');
+                return;
+            }
+            const parsed = {};
+            let currentModule = '';
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+                const modCell = (row[0] || '').toString().trim();
+                if (modCell) currentModule = modCell;
+                if (!currentModule) continue;
+                const goalText = (row[1] || '').toString().trim();
+                if (!goalText) continue;
+                
+                const statusText = (row[2] || '').toString().trim();
+                const remarkText = (row[3] || '').toString().trim();
+                
+                const goalsArr = goalText.split(/\r?\n/).map(s => s.trim());
+                const statusArr = statusText.split(/\r?\n/).map(s => s.trim());
+                const remarkArr = remarkText.split(/\r?\n/).map(s => s.trim());
+                
+                const maxLen = Math.max(goalsArr.length, statusArr.length, remarkArr.length);
+                
+                if (!parsed[currentModule]) parsed[currentModule] = [];
+                for (let j = 0; j < maxLen; j++) {
+                    const goal = goalsArr[j] || '';
+                    if (!goal && maxLen > 1) continue;
+                    const status = statusArr[j] || '';
+                    const remark = remarkArr[j] || '';
+                    parsed[currentModule].push({ goal, status, remark });
+                }
+            }
+            if (Object.keys(parsed).length === 0) {
+                showToast('No commitments data found in this file.', 'error');
+                return;
+            }
+            callback(parsed);
+            showToast('Commitments loaded successfully.', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Error parsing commitments file: ' + err.message, 'error');
+        }
+    };
+    reader.onerror = () => showToast('Error reading file.', 'error');
+    reader.readAsArrayBuffer(file);
+}
+
+// ── This Month's Commitment Upload ──────────────────────────────────────
+
+function handleThisMonthCommitUpload(file) {
+    _processThisMonthCommitFile(file, (parsed) => {
+        _monthlyThisMonthCommitParsed = parsed;
+        const fnEl = document.getElementById('thismonth-commit-filename');
+        const stEl = document.getElementById('thismonth-commit-stats');
+        fnEl.textContent = `✓ ${file.name}`;
+        let targetCount = 0;
+        Object.keys(parsed).forEach(m => { targetCount += parsed[m].length; });
+        stEl.textContent = `${Object.keys(parsed).length} modules · ${targetCount} targets`;
+        document.getElementById('thismonth-commit-dropzone').classList.add('hidden');
+        document.getElementById('thismonth-commit-status').classList.remove('hidden');
+        document.getElementById('thismonth-commit-card').classList.add('uploaded');
+    });
+}
+
+function clearThisMonthCommitFile() {
+    _monthlyThisMonthCommitParsed = null;
+    document.getElementById('thismonth-commit-status').classList.add('hidden');
+    document.getElementById('thismonth-commit-dropzone').classList.remove('hidden');
+    document.getElementById('thismonth-commit-card').classList.remove('uploaded');
+    document.getElementById('thismonth-commit-file').value = '';
+}
+
+function _processThisMonthCommitFile(file, callback) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        showToast('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        showToast('SheetJS library not loaded.', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (!rows || rows.length < 2) {
+                showToast('No data found in this month\'s commitment file.', 'error');
+                return;
+            }
+            // Detect merged cells for Module column
+            const merges = worksheet['!merges'] || [];
+            
+            const parsed = {};
+            let currentModule = '';
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+                const modCell = (row[0] || '').toString().trim();
+                if (modCell) currentModule = modCell;
+                if (!currentModule) continue;
+                const targetText = (row[1] || '').toString().trim();
+                if (!targetText) continue;
+                const rawDate = row[2];
+                let dateText = '';
+                if (rawDate !== undefined && rawDate !== null && rawDate !== '') {
+                    const rawStr = rawDate.toString().trim();
+                    // Excel stores dates as integers (days since 1900-01-01)
+                    const serial = parseInt(rawStr, 10);
+                    if (!isNaN(serial) && serial > 40000 && serial < 60000 && String(serial) === rawStr) {
+                        // Convert Excel serial to JS Date (Excel epoch is Dec 30, 1899)
+                        const jsDate = new Date((serial - 25569) * 86400 * 1000);
+                        const day = jsDate.getUTCDate();
+                        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                        const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+                        dateText = `${day}${suffix} ${monthNames[jsDate.getUTCMonth()]}`;
+                    } else {
+                        dateText = rawStr;
+                    }
+                }
+                if (!parsed[currentModule]) parsed[currentModule] = [];
+                parsed[currentModule].push({ target: targetText, date: dateText });
+            }
+            if (Object.keys(parsed).length === 0) {
+                showToast('No commitment data found in this file.', 'error');
+                return;
+            }
+            callback(parsed);
+            showToast('This month\'s commitments loaded successfully.', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Error parsing file: ' + err.message, 'error');
+        }
+    };
+    reader.onerror = () => showToast('Error reading file.', 'error');
+    reader.readAsArrayBuffer(file);
+}
+
+// ── Team Review Upload ───────────────────────────────────────────
+
+function handleTeamReviewUpload(file) {
+    _processTeamReviewFile(file, (parsed) => {
+        _monthlyTeamReviewParsed = parsed;
+        const fnEl = document.getElementById('team-review-filename');
+        const stEl = document.getElementById('team-review-stats');
+        fnEl.textContent = `✓ ${file.name}`;
+        stEl.textContent = `${parsed.length} developers`;
+        document.getElementById('team-review-dropzone').classList.add('hidden');
+        document.getElementById('team-review-status').classList.remove('hidden');
+        document.getElementById('team-review-card').classList.add('uploaded');
+    });
+}
+
+function clearTeamReviewFile() {
+    _monthlyTeamReviewParsed = null;
+    document.getElementById('team-review-status').classList.add('hidden');
+    document.getElementById('team-review-dropzone').classList.remove('hidden');
+    document.getElementById('team-review-card').classList.remove('uploaded');
+    document.getElementById('team-review-file').value = '';
+}
+
+function _parseTeamReviewFraction(val) {
+    if (val === undefined || val === null || val === '') return '-';
+    if (typeof val === 'number' && val > 40000) {
+        try {
+            const d = XLSX.SSF.parse_date_code(val);
+            return `${d.m}/${d.d}`;
+        } catch(e) {}
+    }
+    return val.toString().trim() || '-';
+}
+
+function _parseTeamReviewUtil(val) {
+    if (val === undefined || val === null || val === '') return '-';
+    // If it's a number like 1, 0.8, etc., format it as a percentage
+    if (typeof val === 'number' && val <= 10 && val >= 0) {
+        return Math.round(val * 100) + '%';
+    }
+    return val.toString().trim() || '-';
+}
+
+function _processTeamReviewFile(file, callback) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        showToast('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        showToast('SheetJS library not loaded.', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (!rows || rows.length < 2) {
+                showToast('No data found in team review file.', 'error');
+                return;
+            }
+            const parsed = [];
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+                const developer = (row[0] || '').toString().trim();
+                if (!developer) continue;
+                parsed.push({
+                    developer,
+                    l1: _parseTeamReviewFraction(row[1]),
+                    l2: _parseTeamReviewFraction(row[2]),
+                    unit: _parseTeamReviewFraction(row[3]),
+                    coordination: _parseTeamReviewFraction(row[4]),
+                    ownership: _parseTeamReviewFraction(row[5]),
+                    accountability: _parseTeamReviewFraction(row[6]),
+                    taskFilled: _parseTeamReviewFraction(row[7]),
+                    utilization: _parseTeamReviewUtil(row[8])
+                });
+            }
+            if (parsed.length === 0) {
+                showToast('No valid developer data found in this file.', 'error');
+                return;
+            }
+            callback(parsed);
+            showToast('Team review loaded successfully.', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Error parsing file: ' + err.message, 'error');
+        }
+    };
+    reader.onerror = () => showToast('Error reading file.', 'error');
+    reader.readAsArrayBuffer(file);
+}
+
+function _processMonthlyFile(file, which, callback) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        showToast('Please upload a valid Excel or CSV file (.xlsx, .xls, .csv)', 'error');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        showToast('SheetJS library not loaded.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            const boldCells = await extractBoldCells(e.target.result);
+            const parsed = parseExcelForComparison(workbook, boldCells);
+            if (Object.keys(parsed).length === 0) {
+                showToast('No module data found in this file.', 'error');
+                return;
+            }
+
+            // The user explicitly requested that the Monthly Report reads documentation directly from 
+            // the 'Main tracker' sheet of the 'last month' and 'this month' files, rather than the separate 'Documentation' sheet.
+            // The parser already extracted the documentation columns from the Main tracker during `parseExcelForComparison`.
+
+            callback(parsed);
+            showToast(`${which === 'old' ? 'Last month' : 'This month'} report loaded successfully.`, 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Error parsing file: ' + err.message, 'error');
+        }
+    };
+    reader.onerror = () => showToast('Error reading file.', 'error');
+    reader.readAsArrayBuffer(file);
+}
+
+function _showMonthlyFileStatus(which, filename, parsed) {
+    const prefix = which === 'old' ? 'old-month' : 'new-month';
+    const statusEl = document.getElementById(`${prefix}-status`);
+    const dzEl = document.getElementById(`${prefix}-dropzone`);
+    const cardEl = document.getElementById(`${prefix}-card`);
+    const fnEl = document.getElementById(`${prefix}-filename`);
+    const stEl = document.getElementById(`${prefix}-stats`);
+
+    const moduleCount = Object.keys(parsed).length;
+    let pageCount = 0;
+    Object.values(parsed).forEach(m => {
+        m.userTypes.forEach(ut => {
+            ut.categories.forEach(c => { pageCount += c.pages.length; });
+        });
+    });
+
+    fnEl.textContent = `✓ ${filename}`;
+    stEl.textContent = `${moduleCount} modules · ${pageCount} pages`;
+    dzEl.classList.add('hidden');
+    statusEl.classList.remove('hidden');
+    cardEl.classList.add('uploaded');
+}
+
+function _updateMonthlyGenerateBtn() {
+    const btn = document.getElementById('monthly-generate-btn');
+    if (_monthlyOldParsed && _monthlyNewParsed && _monthlyCommitmentsParsed) {
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+    } else {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+    }
+}
+
+// ── Parser for Comparison ───────────────────────────────────────────────
+
+function parseExcelForComparison(workbook, boldCells = {}) {
+    // Reuse the main parser
+    const modules = parseExcelToModules(workbook, boldCells);
+
+    // Post-process: for sheets that lack dedicated review point columns,
+    // count review entries from the review text columns.
+    // The main parser sets internalReviewPoints / clientReviewPoints to 0
+    // when the column index is -1. We detect this and count from review text.
+    Object.values(modules).forEach(mod => {
+        mod.userTypes.forEach(ut => {
+            let intPtsFromText = 0;
+            let clPtsFromText = 0;
+
+            ut.categories.forEach(cat => {
+                cat.pages.forEach(page => {
+                    // Internal review text counting
+                    const intRev = (page.internalReview && page.internalReview.review)
+                        ? page.internalReview.review.toString().trim() : '';
+                    if (intRev && intRev !== '-' && intRev.toLowerCase() !== 'no issues' && intRev.toLowerCase() !== 'no issue') {
+                        intPtsFromText++;
+                    }
+
+                    // Client review text counting
+                    const clRev = (page.clientReview && page.clientReview.review)
+                        ? page.clientReview.review.toString().trim() : '';
+                    if (clRev && clRev !== '-' && clRev.toLowerCase() !== 'no issues' && clRev.toLowerCase() !== 'no issue') {
+                        clPtsFromText++;
+                    }
+                });
+            });
+
+            // If the UT has 0 points from the column-based parser, use text-based count
+            if (ut.internalReviewPoints === 0 && intPtsFromText > 0) {
+                ut.internalReviewPoints = intPtsFromText;
+            }
+            if (ut.clientReviewPoints === 0 && clPtsFromText > 0) {
+                ut.clientReviewPoints = clPtsFromText;
+            }
+        });
+    });
+
+    return modules;
+}
+
+// ── Comparison Engine ───────────────────────────────────────────────────
+
+let _monthlySelectedKpi = 'pagesDeveloped'; // default selected KPI
+
+const MONTHLY_KPI_DEFS = [
+    { key: 'pagesDeveloped',       label: 'Pages Developed',          icon: '📄', accent: '#6366f1' },
+    { key: 'internalReviewPoints', label: 'Internal Review Points',   icon: '🔍', accent: '#8b5cf6' },
+    { key: 'clientReviewPoints',   label: 'Client Review Points',     icon: '💬', accent: '#f59e0b' },
+    { key: 'staticScreens',        label: 'Static Screens Created',   icon: '🖼️', accent: '#a855f7' },
+    { key: 'qa',                   label: 'QA',                       icon: '🐛', accent: '#ef4444' },
+    { key: 'documentsCreated',     label: 'Documents Created',        icon: '📋', accent: '#f97316' },
+];
+
+const MONTHLY_PENDING_KPI_DEFS = [
+    { key: 'pagesPending',       label: 'Pages Pending',            icon: '📄', accent: '#6366f1' },
+    { key: 'staticScreensPending',label: 'Static Screens Pending',  icon: '🖼️', accent: '#a855f7' },
+    { key: 'internalReviewPending',label: 'Internal Review Pending',icon: '🔍', accent: '#8b5cf6' },
+    { key: 'clientReviewPending',label: 'Client Review Pending',    icon: '💬', accent: '#f59e0b' },
+    { key: 'qaPending',          label: 'Bugs Pending',             icon: '🐛', accent: '#ef4444' },
+    { key: 'documentsPending',   label: 'Documents Pending',        icon: '📋', accent: '#f97316' },
+];
+
+function _flattenPages(mod) {
+    const map = new Map();
+    // Secondary index: page name only → page data (for fallback when UT names differ)
+    const byNameOnly = new Map();
+    if (!mod) return map;
+    mod.userTypes.forEach(ut => {
+        ut.categories.forEach(cat => {
+            cat.pages.forEach(page => {
+                const key = `${ut.name}::${page.name}`;
+                const entry = { ...page, _utName: ut.name };
+                map.set(key, entry);
+                // For the page-name-only index, store the first occurrence
+                // (in case multiple UTs have same page name)
+                if (!byNameOnly.has(page.name)) {
+                    byNameOnly.set(page.name, entry);
+                }
+            });
+        });
+    });
+    // Attach the fallback index to the map for use in comparison
+    map._byNameOnly = byNameOnly;
+    return map;
+}
+
+// Try to find a page in oldPages: first by UT::pageName key, then fallback to page name only
+function _findInOldPages(oldPages, key, pageName) {
+    if (oldPages.has(key)) {
+        return oldPages.get(key);
+    }
+    // Fallback: try matching by page name only (handles UT name changes between sheets)
+    if (oldPages._byNameOnly && oldPages._byNameOnly.has(pageName)) {
+        return oldPages._byNameOnly.get(pageName);
+    }
+    return null;
+}
+
+function _flattenUserTypes(mod) {
+    const map = new Map();
+    if (!mod) return map;
+    mod.userTypes.forEach(ut => {
+        map.set(ut.name, ut);
+    });
+    return map;
+}
+
+function _getDocState(val) {
+    const v = (val || '').toString().toLowerCase().trim();
+    if (v === 'done' || v === 'completed') return 'DONE';
+    if (v === 'updated') return 'UPDATED';
+    if (v === 'to be updated') return 'NEEDS_UPDATE';
+    return 'PENDING';
+}
+
+function _docProgressed(oldVal, newVal) {
+    const oldState = _getDocState(oldVal);
+    const newState = _getDocState(newVal);
+    
+    // It's progress if it wasn't done before, but is done/updated/needs_update now
+    if (oldState === 'PENDING' && (newState === 'DONE' || newState === 'UPDATED' || newState === 'NEEDS_UPDATE')) return true;
+    
+    // It's ALSO progress if it was marked 'done' before, but was specifically 'updated' this month
+    if (oldState === 'DONE' && newState === 'UPDATED') return true;
+
+    // It's ALSO progress if it needed update before, and now it's updated or done
+    if (oldState === 'NEEDS_UPDATE' && (newState === 'UPDATED' || newState === 'DONE')) return true;
+    
+    return false;
+}
+
+function _isDone(val) {
+    const v = (val || '').toString().toLowerCase().trim();
+    return v === 'done' || v === 'completed' || v === 'updated';
+}
+
+function _hasNoDevStatus(val) {
+    // Returns true when the page had no development work assigned yet
+    const v = (val || '').toString().toLowerCase().trim();
+    return v === '' || v === '-' || v === 'not started';
+}
+
+function _isReviewStatusDone(status) {
+    const ls = (status || '').toString().toLowerCase().trim();
+    return ls.includes('done') || ls.includes('approved') || ls.includes('complete') || ls.includes('resolved') || ls.includes('fixed') || ls.includes('implemented');
+}
+
+function _compareReviews(newReviews = [], oldReviews = []) {
+    const implemented = [];
+    
+    // Normalize and map old reviews by text
+    const oldMap = new Map();
+    oldReviews.forEach(r => {
+        const norm = r.text.toLowerCase().replace(/\s+/g, ' ').trim();
+        oldMap.set(norm, r.status);
+    });
+    
+    newReviews.forEach(r => {
+        const norm = r.text.toLowerCase().replace(/\s+/g, ' ').trim();
+        const isNewDone = _isReviewStatusDone(r.status);
+        
+        if (isNewDone) {
+            const oldStatus = oldMap.get(norm);
+            if (oldStatus === undefined || !_isReviewStatusDone(oldStatus)) {
+                // Implemented this month!
+                implemented.push(r.text);
+            }
+        }
+    });
+    
+    return implemented;
+}
+
+function computeComparison(oldModules, newModules) {
+    const allModuleIds = new Set([...Object.keys(oldModules), ...Object.keys(newModules)]);
+    const modules = [];
+
+    let summary = {
+        pagesDeveloped: 0,
+        pagesDevelopedNew: 0,
+        pagesDevelopedCompleted: 0,
+        internalReviewPoints: 0, clientReviewPoints: 0,
+        staticScreens: 0,
+        qa: 0, qaBugsIdentified: 0,
+        documentsCreated: 0,
+    };
+
+    allModuleIds.forEach(id => {
+        const oldMod = oldModules[id];
+        const newMod = newModules[id];
+
+        const oldPages = _flattenPages(oldMod);
+        const newPages = _flattenPages(newMod);
+        const oldUTs = _flattenUserTypes(oldMod);
+        const newUTs = _flattenUserTypes(newMod);
+
+        // KPI 1: New Pages Developed
+        // Count pages whose dynamicDev is "Done" in this month AND:
+        //   (a) Are new (not present in last month's sheet) with status "Done"
+        //   (b) Had blank/no status in last month but are "Done" this month
+        // Do NOT count pages that were already "Done" in last month
+        // Deduplicate repeating pages across user types.
+        let newPagesCount = 0;
+        const newPagesSet = new Set();
+        newPages.forEach((page, key) => {
+            if (!_isDone(page.dynamicDev)) return; // Only count pages marked "Done"
+
+            const oldPage = _findInOldPages(oldPages, key, page.name);
+            let isNewDone = false;
+            if (!oldPage) {
+                // New page this month with status "Done"
+                isNewDone = true;
+            } else {
+                if (_hasNoDevStatus(oldPage.dynamicDev) && _isDone(page.dynamicDev)) {
+                    // Was blank/no status in old, now "Done" this month
+                    isNewDone = true;
+                }
+            }
+            if (isNewDone) {
+                if (!newPagesSet.has(page.name)) {
+                    newPagesCount++;
+                    newPagesSet.add(page.name);
+                }
+            }
+        });
+
+        // KPI 2: Pages Completed
+        // Only count pages where dynamicDev was "In Progress" in last month
+        // and is now "Done" in this month
+        // Deduplicate repeating pages across user types.
+        let pagesCompletedCount = 0;
+        const pagesCompletedSet = new Set();
+        newPages.forEach((newPage, key) => {
+            if (_isDone(newPage.dynamicDev)) {
+                const oldPage = _findInOldPages(oldPages, key, newPage.name);
+                if (oldPage) {
+                    const oldVal = (oldPage.dynamicDev || '').toString().toLowerCase().trim();
+                    if (oldVal.includes('in progress')) {
+                        if (!pagesCompletedSet.has(newPage.name)) {
+                            pagesCompletedCount++;
+                            pagesCompletedSet.add(newPage.name);
+                        }
+                    }
+                }
+            }
+        });
+
+        // KPI 3: Static screens created
+        // Track at the PAGE level for detailed metrics
+        let staticScreensCount = 0;
+        const ssCompletedSet = new Set();
+        newPages.forEach((newPage, key) => {
+            const newCreation = (newPage.staticScreens && newPage.staticScreens.creation) || '';
+            if (_isDone(newCreation)) {
+                const oldPage = _findInOldPages(oldPages, key, newPage.name);
+                const oldCreation = oldPage ? ((oldPage.staticScreens && oldPage.staticScreens.creation) || '') : '';
+                if (!_isDone(oldCreation)) {
+                    if (!ssCompletedSet.has(newPage.name)) {
+                        staticScreensCount++;
+                        ssCompletedSet.add(newPage.name);
+                    }
+                }
+            }
+        });
+        
+        // Fallback: Check UTs that have NO pages (e.g. User Management)
+        newUTs.forEach((newUT, utName) => {
+            if (isExemptUT(utName)) return;
+            const hasPages = newUT.categories && newUT.categories.some(c => c.pages.length > 0);
+            if (!hasPages) {
+                const newCreation = (newUT.staticScreens && newUT.staticScreens.creation) || '';
+                if (_isDone(newCreation)) {
+                    const oldUT = oldUTs.get(utName);
+                    const oldCreation = oldUT ? ((oldUT.staticScreens && oldUT.staticScreens.creation) || '') : '';
+                    if (!_isDone(oldCreation)) {
+                        staticScreensCount++;
+                    }
+                }
+            }
+        });
+
+        // KPI 4 & 5: Combined QA (Bugs identified vs Bugs fixed)
+        let newBugs = 0, oldBugs = 0;
+        if (newMod) newMod.userTypes.forEach(ut => { newBugs += (ut.qaBugs || 0); });
+        if (oldMod) oldMod.userTypes.forEach(ut => { oldBugs += (ut.qaBugs || 0); });
+        const bugsIdentifiedCount = Math.max(0, newBugs - oldBugs);
+
+        let newFixed = 0, oldFixed = 0;
+        if (newMod) newMod.userTypes.forEach(ut => { newFixed += (ut.qaBugsFixed || 0); });
+        if (oldMod) oldMod.userTypes.forEach(ut => { oldFixed += (ut.qaBugsFixed || 0); });
+        const bugsFixedCount = Math.max(0, newFixed - oldFixed);
+
+        // KPI 6: Documents created (processFlow + userManual going from non-done -> done or done -> updated)
+        const docsCreatedSet = new Set();
+        newUTs.forEach((newUT, utName) => {
+            if (isExemptUT(utName)) return;
+            const oldUT = oldUTs.get(utName);
+            
+            const newPF = (newUT.documentation && newUT.documentation.processFlow) || '';
+            const oldPF = oldUT ? ((oldUT.documentation && oldUT.documentation.processFlow) || '') : '';
+            if (_docProgressed(oldPF, newPF)) {
+                const os = _getDocState(oldPF);
+                const ns = _getDocState(newPF);
+                const docId = newPF.includes('|||') ? newPF.split('|||')[1] : Math.random().toString();
+                if (os === 'PENDING' && ns === 'NEEDS_UPDATE') docsCreatedSet.add('Process Flow (To be updated)|||' + docId);
+                else if ((os === 'DONE' || os === 'NEEDS_UPDATE' || os === 'PENDING') && ns === 'UPDATED') docsCreatedSet.add('Process Flow (Updated)|||' + docId);
+                else if (os === 'NEEDS_UPDATE' && ns === 'DONE') docsCreatedSet.add('Process Flow (Updated)|||' + docId);
+                else docsCreatedSet.add('Process Flow|||' + docId);
+            }
+            
+            const newUM = (newUT.documentation && newUT.documentation.userManual) || '';
+            const oldUM = oldUT ? ((oldUT.documentation && oldUT.documentation.userManual) || '') : '';
+            if (_docProgressed(oldUM, newUM)) {
+                const os = _getDocState(oldUM);
+                const ns = _getDocState(newUM);
+                const docId = newUM.includes('|||') ? newUM.split('|||')[1] : Math.random().toString();
+                if (os === 'PENDING' && ns === 'NEEDS_UPDATE') docsCreatedSet.add('User Manual (To be updated)|||' + docId);
+                else if ((os === 'DONE' || os === 'NEEDS_UPDATE' || os === 'PENDING') && ns === 'UPDATED') docsCreatedSet.add('User Manual (Updated)|||' + docId);
+                else if (os === 'NEEDS_UPDATE' && ns === 'DONE') docsCreatedSet.add('User Manual (Updated)|||' + docId);
+                else docsCreatedSet.add('User Manual|||' + docId);
+            }
+        });
+        const docsCreatedCount = docsCreatedSet.size;
+
+        const mod = newMod || oldMod;
+        const visuals = getVisuals(id, mod.name);
+
+        const kpis = {
+            pagesDeveloped: newPagesCount + pagesCompletedCount,
+            pagesDevelopedNew: newPagesCount,
+            pagesDevelopedCompleted: pagesCompletedCount,
+            internalReviewPoints: 0, // will be set after review points computation
+            clientReviewPoints: 0,   // will be set after review points computation
+            staticScreens: staticScreensCount,
+            qa: bugsFixedCount, // bugs fixed represents bugs resolved
+            qaBugsIdentified: bugsIdentifiedCount,
+            documentsCreated: docsCreatedCount,
+        };
+
+        summary.pagesDeveloped += kpis.pagesDeveloped;
+        summary.pagesDevelopedNew += kpis.pagesDevelopedNew;
+        summary.pagesDevelopedCompleted += kpis.pagesDevelopedCompleted;
+        summary.staticScreens += kpis.staticScreens;
+        summary.qa += kpis.qa;
+        summary.qaBugsIdentified += kpis.qaBugsIdentified;
+        summary.documentsCreated += kpis.documentsCreated;
+
+        // ── Detail breakdowns for hover tooltips ──────────────────────────
+        const details = {};
+
+        // pagesDeveloped detail: per UT → combined list of new pages and completed pages
+        const pagesDevelopedDetail = {};
+        
+        // 1. Group new pages
+        newPages.forEach((page, key) => {
+            if (!_isDone(page.dynamicDev)) return;
+            let isNew = false;
+            let reason = '';
+            const oldPage = _findInOldPages(oldPages, key, page.name);
+            if (!oldPage) {
+                isNew = true;
+                reason = '(new page, done)';
+            } else {
+                if (_hasNoDevStatus(oldPage.dynamicDev) && _isDone(page.dynamicDev)) {
+                    isNew = true;
+                    reason = '(was: no status → Done)';
+                }
+            }
+            if (isNew) {
+                const ut = page._utName || 'Unknown';
+                const label = reason ? `${page.name} ${reason}` : page.name;
+                (pagesDevelopedDetail[ut] = pagesDevelopedDetail[ut] || []).push(label);
+            }
+        });
+
+        // 2. Group completed pages
+        newPages.forEach((newPage, key) => {
+            if (_isDone(newPage.dynamicDev)) {
+                const oldPage = _findInOldPages(oldPages, key, newPage.name);
+                if (oldPage) {
+                    const oldVal = (oldPage.dynamicDev || '').toString().toLowerCase().trim();
+                    if (oldVal.includes('in progress')) {
+                        const ut = newPage._utName || 'Unknown';
+                        const label = `${newPage.name} (was: In Progress → Done)`;
+                        (pagesDevelopedDetail[ut] = pagesDevelopedDetail[ut] || []).push(label);
+                    }
+                }
+            }
+        });
+        details.pagesDeveloped = pagesDevelopedDetail;
+
+        // staticScreens detail: per UT → list of page names
+        const staticScreensDetail = {};
+        newUTs.forEach((newUT, utName) => {
+            if (isExemptUT(utName)) return;
+            const hasPages = newUT.categories && newUT.categories.some(c => c.pages.length > 0);
+            const items = [];
+            
+            if (hasPages) {
+                newUT.categories.forEach(cat => {
+                    cat.pages.forEach(page => {
+                        const newCreation = (page.staticScreens && page.staticScreens.creation) || '';
+                        if (_isDone(newCreation)) {
+                            const oldUT = oldUTs.get(utName);
+                            let oldPage = null;
+                            if (oldUT) {
+                                oldUT.categories.forEach(oldCat => {
+                                    if (oldCat.name === cat.name) {
+                                        oldPage = oldCat.pages.find(p => p.name === page.name);
+                                    }
+                                });
+                            }
+                            const oldCreation = oldPage ? ((oldPage.staticScreens && oldPage.staticScreens.creation) || '') : '';
+                            if (!_isDone(oldCreation)) {
+                                items.push(page.name);
+                            }
+                        }
+                    });
+                });
+            } else {
+                const newCreation = (newUT.staticScreens && newUT.staticScreens.creation) || '';
+                if (_isDone(newCreation)) {
+                    const oldUT = oldUTs.get(utName);
+                    const oldCreation = oldUT ? ((oldUT.staticScreens && oldUT.staticScreens.creation) || '') : '';
+                    if (!_isDone(oldCreation)) {
+                        items.push('Static Screens Created');
+                    }
+                }
+            }
+            if (items.length > 0) staticScreensDetail[utName] = items;
+        });
+        details.staticScreens = staticScreensDetail;
+
+        // qa detail: per UT → count of resolved and identified bugs
+        const qaDetail = {};
+        if (newMod) newMod.userTypes.forEach(ut => {
+            const oldUT = oldUTs.get(ut.name);
+            const newCountFixed = ut.qaBugsFixed || 0;
+            const oldCountFixed = (oldUT && oldUT.qaBugsFixed) || 0;
+            const deltaFixed = newCountFixed - oldCountFixed;
+
+            const newCountBugs = ut.qaBugs || 0;
+            const oldCountBugs = (oldUT && oldUT.qaBugs) || 0;
+            const deltaBugs = newCountBugs - oldCountBugs;
+
+            const items = [];
+            if (deltaFixed > 0) items.push(`${deltaFixed} bug${deltaFixed !== 1 ? 's' : ''} resolved`);
+            if (deltaBugs > 0) items.push(`${deltaBugs} bug${deltaBugs !== 1 ? 's' : ''} identified`);
+
+            if (items.length > 0) qaDetail[ut.name] = items;
+        });
+        details.qa = qaDetail;
+
+        // documentsCreated detail: per UT → doc type names
+        const documentsCreatedDetail = {};
+        newUTs.forEach((newUT, utName) => {
+            if (isExemptUT(utName)) return;
+            const oldUT = oldUTs.get(utName);
+            const items = [];
+            const newPF = (newUT.documentation && newUT.documentation.processFlow) || '';
+            const oldPF = oldUT ? ((oldUT.documentation && oldUT.documentation.processFlow) || '') : '';
+            
+            if (_docProgressed(oldPF, newPF)) {
+                const os = _getDocState(oldPF);
+                const ns = _getDocState(newPF);
+                const docId = newPF.includes('|||') ? newPF.split('|||')[1] : Math.random().toString();
+                if (os === 'PENDING' && ns === 'NEEDS_UPDATE') {
+                    items.push('Process Flow (To be updated)|||' + docId);
+                } else if ((os === 'DONE' || os === 'NEEDS_UPDATE' || os === 'PENDING') && ns === 'UPDATED') {
+                    items.push('Process Flow (Updated)|||' + docId);
+                } else if (os === 'NEEDS_UPDATE' && ns === 'DONE') {
+                    items.push('Process Flow (Updated)|||' + docId); // Effectively an update was completed
+                } else {
+                    items.push('Process Flow|||' + docId);
+                }
+            }
+            
+            const newUM = (newUT.documentation && newUT.documentation.userManual) || '';
+            const oldUM = oldUT ? ((oldUT.documentation && oldUT.documentation.userManual) || '') : '';
+            
+            if (_docProgressed(oldUM, newUM)) {
+                const os = _getDocState(oldUM);
+                const ns = _getDocState(newUM);
+                const docId = newUM.includes('|||') ? newUM.split('|||')[1] : Math.random().toString();
+                if (os === 'PENDING' && ns === 'NEEDS_UPDATE') {
+                    items.push('User Manual (To be updated)|||' + docId);
+                } else if ((os === 'DONE' || os === 'NEEDS_UPDATE' || os === 'PENDING') && ns === 'UPDATED') {
+                    items.push('User Manual (Updated)|||' + docId);
+                } else if (os === 'NEEDS_UPDATE' && ns === 'DONE') {
+                    items.push('User Manual (Updated)|||' + docId); // Effectively an update was completed
+                } else {
+                    items.push('User Manual|||' + docId);
+                }
+            }
+            if (items.length) documentsCreatedDetail[utName] = items;
+        });
+        details.documentsCreated = documentsCreatedDetail;
+
+        // ── KPI & Detail: Internal & Client Review Points (Count Done review points implemented this month) ──
+        const internalReviewPointsDetail = {};
+        let totalIntImplemented = 0;
+        
+        const clientReviewPointsDetail = {};
+        let totalClImplemented = 0;
+        
+        newUTs.forEach((newUT, utName) => {
+            if (isExemptUT(utName)) return;
+            const oldUT = oldUTs.get(utName);
+            
+            // 1. Internal reviews comparison
+            const newIntReviews = newUT.internalReviews || [];
+            const oldIntReviews = oldUT ? (oldUT.internalReviews || []) : [];
+            
+            if (newIntReviews.length > 0 || oldIntReviews.length > 0) {
+                const implementedInt = _compareReviews(newIntReviews, oldIntReviews);
+                if (implementedInt.length > 0) {
+                    internalReviewPointsDetail[utName] = implementedInt;
+                    totalIntImplemented += implementedInt.length;
+                }
+            } else {
+                // Fallback to numeric delta logic
+                const newCount = newUT.internalReviewPoints || 0;
+                const oldCount = oldUT ? (oldUT.internalReviewPoints || 0) : 0;
+                const delta = Math.max(0, newCount - oldCount);
+                if (delta > 0) {
+                    internalReviewPointsDetail[utName] = [`${delta} point${delta !== 1 ? 's' : ''} implemented (${oldCount} → ${newCount})`];
+                    totalIntImplemented += delta;
+                }
+            }
+            
+            // 2. Client reviews comparison
+            const newClReviews = newUT.clientReviews || [];
+            const oldClReviews = oldUT ? (oldUT.clientReviews || []) : [];
+            
+            if (newClReviews.length > 0 || oldClReviews.length > 0) {
+                const implementedCl = _compareReviews(newClReviews, oldClReviews);
+                if (implementedCl.length > 0) {
+                    clientReviewPointsDetail[utName] = implementedCl;
+                    totalClImplemented += implementedCl.length;
+                }
+            } else {
+                // Fallback to numeric delta logic
+                const newCount = newUT.clientReviewPoints || 0;
+                const oldCount = oldUT ? (oldUT.clientReviewPoints || 0) : 0;
+                const delta = Math.max(0, newCount - oldCount);
+                if (delta > 0) {
+                    clientReviewPointsDetail[utName] = [`${delta} point${delta !== 1 ? 's' : ''} implemented (${oldCount} → ${newCount})`];
+                    totalClImplemented += delta;
+                }
+            }
+        });
+
+        kpis.internalReviewPoints = totalIntImplemented;
+        kpis.clientReviewPoints = totalClImplemented;
+        
+        summary.internalReviewPoints += totalIntImplemented;
+        summary.clientReviewPoints += totalClImplemented;
+        
+        details.internalReviewPoints = internalReviewPointsDetail;
+        details.clientReviewPoints = clientReviewPointsDetail;
+
+        modules.push({ id, name: mod.name, color: visuals.color, icon: visuals.icon, kpis, details });
+    });
+
+    return { modules, summary };
+}
+
+function computePendingWork(newModules) {
+    const modules = [];
+    const summary = {
+        pagesPending: 0,
+        staticScreensPending: 0,
+        internalReviewPending: 0,
+        clientReviewPending: 0,
+        qaPending: 0,
+        documentsPending: 0
+    };
+
+    Object.keys(newModules).forEach(id => {
+        const mod = newModules[id];
+        const newUTs = _flattenUserTypes(mod);
+        const newPages = _flattenPages(mod);
+        const visuals = getVisuals(id, mod.name);
+        
+        const kpis = {
+            pagesPending: 0,
+            staticScreensPending: 0,
+            internalReviewPending: 0,
+            clientReviewPending: 0,
+            qaPending: 0,
+            documentsPending: 0
+        };
+        const details = {
+            pagesPending: {},
+            staticScreensPending: {},
+            internalReviewPending: {},
+            clientReviewPending: {},
+            qaPending: {},
+            documentsPending: {}
+        };
+        
+        // 1. Pages Pending (Dynamic Dev is "In Progress" or "-" or "")
+        const pagesPendingSet = new Set();
+        newPages.forEach((page, key) => {
+            const utName = page._utName;
+            const dev = (page.dynamicDev || '').toString().toLowerCase().trim();
+            if (dev === '' || dev === '-' || dev.includes('progress') || dev.includes('pending')) {
+                if (!pagesPendingSet.has(page.name)) {
+                    kpis.pagesPending++;
+                    pagesPendingSet.add(page.name);
+                    if (!details.pagesPending[utName]) details.pagesPending[utName] = [];
+                    details.pagesPending[utName].push(page.name);
+                }
+            }
+        });
+        
+        // 2. Static Screens Pending (Static screen creation is "In Progress")
+        const ssPendingSet = new Set();
+        newPages.forEach((page, key) => {
+            const utName = page._utName;
+            const sc = (page.staticScreens && page.staticScreens.creation || '').toString().toLowerCase().trim();
+            if (sc.includes('progress') || sc.includes('pending')) {
+                if (!ssPendingSet.has(page.name)) {
+                    kpis.staticScreensPending++;
+                    ssPendingSet.add(page.name);
+                    if (!details.staticScreensPending[utName]) details.staticScreensPending[utName] = [];
+                    details.staticScreensPending[utName].push(page.name);
+                }
+            }
+        });
+        
+        newUTs.forEach((ut, utName) => {
+            if (isExemptUT(utName)) return;
+            const hasPages = ut.categories && ut.categories.some(c => c.pages.length > 0);
+            if (!hasPages) {
+                const sc = (ut.staticScreens && ut.staticScreens.creation || '').toString().toLowerCase().trim();
+                if (sc.includes('progress') || sc.includes('pending')) {
+                    kpis.staticScreensPending++;
+                    if (!details.staticScreensPending[utName]) details.staticScreensPending[utName] = [];
+                    details.staticScreensPending[utName].push('Static Screens In Progress');
+                }
+            }
+        });
+        
+        // 3 & 4. Internal / Client Review Pending
+        newUTs.forEach((ut, utName) => {
+            if (isExemptUT(utName)) return;
+            // Internal Review
+            const intReviews = ut.internalReviews || [];
+            const pendingInt = intReviews.filter(r => {
+                const st = (r.status || '').toLowerCase().trim();
+                return st !== '' && st !== '-' && st !== 'na' && st !== 'done' && st !== 'implemented' && st !== 'fixed';
+            });
+            if (pendingInt.length > 0) {
+                kpis.internalReviewPending += pendingInt.length;
+                details.internalReviewPending[utName] = pendingInt.map(r => r.text);
+            }
+            
+            // Client Review
+            const clReviews = ut.clientReviews || [];
+            const pendingCl = clReviews.filter(r => {
+                const st = (r.status || '').toLowerCase().trim();
+                return st !== '' && st !== '-' && st !== 'na' && st !== 'done' && st !== 'implemented' && st !== 'fixed';
+            });
+            if (pendingCl.length > 0) {
+                kpis.clientReviewPending += pendingCl.length;
+                details.clientReviewPending[utName] = pendingCl.map(r => r.text);
+            }
+        });
+        
+        // 5. Bugs Pending (Total Bugs - Fixed Bugs)
+        newUTs.forEach((ut, utName) => {
+            if (isExemptUT(utName)) return;
+            const bugs = parseInt(ut.qaBugs) || 0;
+            const fixed = parseInt(ut.qaBugsFixed) || 0;
+            const pendingBugs = Math.max(0, bugs - fixed);
+            if (pendingBugs > 0) {
+                kpis.qaPending += pendingBugs;
+                details.qaPending[utName] = [`${pendingBugs} bug${pendingBugs !== 1 ? 's' : ''} left to resolve`];
+            }
+        });
+        
+        // 6. Documents Pending
+        newUTs.forEach((ut, utName) => {
+            if (isExemptUT(utName)) return;
+            const pendingDocs = [];
+            const pf = (ut.documentation && ut.documentation.processFlow || '').toString().toLowerCase().trim();
+            if (pf.includes('progress') || pf.includes('to be updated') || pf === 'pending' || pf.includes('to be started') || pf.includes('not started')) {
+                pendingDocs.push('Process Flow');
+            }
+            const um = (ut.documentation && ut.documentation.userManual || '').toString().toLowerCase().trim();
+            if (um.includes('progress') || um.includes('to be updated') || um === 'pending' || um.includes('to be started') || um.includes('not started')) {
+                pendingDocs.push('User Manual');
+            }
+            if (pendingDocs.length > 0) {
+                kpis.documentsPending += pendingDocs.length;
+                details.documentsPending[utName] = pendingDocs;
+            }
+        });
+        
+        summary.pagesPending += kpis.pagesPending;
+        summary.staticScreensPending += kpis.staticScreensPending;
+        summary.internalReviewPending += kpis.internalReviewPending;
+        summary.clientReviewPending += kpis.clientReviewPending;
+        summary.qaPending += kpis.qaPending;
+        summary.documentsPending += kpis.documentsPending;
+        
+        modules.push({ id, name: mod.name, color: visuals.color, icon: visuals.icon, kpis, details });
+    });
+
+    return { modules, summary };
+}
+
+// ── Generate & Render ───────────────────────────────────────────────────
+
+function generateMonthlyPresentation() {
+    if (!_monthlyOldParsed || !_monthlyNewParsed) return;
+
+    _monthlyComparison = computeComparison(_monthlyOldParsed, _monthlyNewParsed);
+    _monthlyPendingData = computePendingWork(_monthlyNewParsed);
+    _monthlySlideIndex = 0;
+    _monthlySelectedKpi = 'pagesDeveloped';
+    _monthlyPendingSelectedKpi = 'pagesPending';
+
+    // Show presentation page
+    document.getElementById('monthly-upload-page').classList.add('hidden');
+    document.getElementById('monthly-pres-page').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    renderMonthlySlide();
+}
+
+function selectMonthlyKpi(kpiKey) {
+    if (_monthlySlideIndex >= 3) return;
+    if (_monthlySlideIndex === 1) {
+        _monthlySelectedKpi = kpiKey;
+    } else if (_monthlySlideIndex === 2) {
+        _monthlyPendingSelectedKpi = kpiKey;
+    }
+    // Update KPI card active states
+    document.querySelectorAll('.monthly-kpi-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.kpi === kpiKey);
+    });
+    // Re-render only the chart
+    const chartContainer = document.getElementById('monthly-chart-container');
+    if (chartContainer) {
+        const modules = _monthlySlideIndex === 1 ? _monthlyComparison.modules : _monthlyPendingData.modules;
+        chartContainer.innerHTML = _buildMonthlyBarChart(modules, kpiKey);
+    }
+}
+
+function renderMonthlySlide() {
+    const container = document.getElementById('monthly-pres-slide-container');
+    
+    let comp, kpiDefs, selectedKpi, title, subtitle;
+    
+    if (_monthlySlideIndex === 0) {
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; animation: tmc-card-enter 0.6s ease-out backwards; padding: 2rem;">
+                <div style="margin-bottom: 2rem;">
+                    <img src="./assets/logo.png" alt="Logo" style="max-width: 280px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));" />
+                </div>
+                <h1 style="font-size: 3.5rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; margin-bottom: 0.5rem; line-height: 1.1;">Integrated Election Management System</h1>
+                <p style="font-size: 1.75rem; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.25rem;">June 2026</p>
+                <p style="font-size: 1.25rem; color: var(--text-secondary); opacity: 0.8; font-weight: 500;">Monthly report</p>
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 1) {
+        comp = _monthlyComparison;
+        kpiDefs = MONTHLY_KPI_DEFS;
+        selectedKpi = _monthlySelectedKpi;
+        title = 'Work Done In This Month';
+        subtitle = 'Click on any KPI to see per-module breakdown';
+    } else if (_monthlySlideIndex === 2) {
+        comp = _monthlyPendingData;
+        kpiDefs = MONTHLY_PENDING_KPI_DEFS;
+        selectedKpi = _monthlyPendingSelectedKpi;
+        title = 'Pending Work';
+        subtitle = 'Click on any KPI to see per-module breakdown';
+    } else if (_monthlySlideIndex === 3) {
+        title = 'Dependencies & Blockers';
+        subtitle = 'Current active dependencies across all modules';
+    } else if (_monthlySlideIndex === 4) {
+        title = "Last Month's Commitment Status";
+        subtitle = 'Goals, status, and remarks from the previous month';
+    } else if (_monthlySlideIndex === 5) {
+        title = "This Month's Commitment";
+        subtitle = 'Targets and estimated completion dates for each module';
+    } else if (_monthlySlideIndex === 6) {
+        title = "Team Review";
+        subtitle = 'Developer performance and review metrics';
+    } else if (_monthlySlideIndex === 7) {
+        title = "Thank You";
+        subtitle = '';
+    }
+    
+    if (!comp && _monthlySlideIndex !== 3 && _monthlySlideIndex !== 4 && _monthlySlideIndex !== 5 && _monthlySlideIndex !== 6 && _monthlySlideIndex !== 7) return;
+
+    if (_monthlySlideIndex === 3) {
+        let cardsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; width: 100%;">';
+        Object.keys(_monthlyNewParsed || {}).forEach(id => {
+            const mod = _monthlyNewParsed[id];
+            
+            const isBlank = v => {
+                const s = (v || '').trim().toLowerCase();
+                return !s || s === '-' || s === 'none' || s === 'n/a' || s === 'na';
+            };
+            const modDep = isBlank(mod.dependency) ? '' : (mod.dependency || '').trim();
+            const seenDeps = new Set(modDep ? [modDep.toLowerCase()] : []);
+            const utDeps = (mod.userTypes || [])
+                .map(ut => ({ name: ut.name, dep: (ut.dependency || '').trim() }))
+                .filter(({ dep }) => {
+                    if (isBlank(dep)) return false;
+                    const key = dep.toLowerCase();
+                    if (seenDeps.has(key)) return false;
+                    seenDeps.add(key);
+                    return true;
+                });
+                
+            let depHtml = '';
+            if (!modDep && utDeps.length === 0) {
+                depHtml = 'None';
+            } else {
+                depHtml = '<ul style="margin: 0; padding-left: 1.2rem;">';
+                if (modDep) {
+                    depHtml += `<li style="margin-bottom:0.25rem;">${utDeps.length ? '<strong>General:</strong> ' : ''}${modDep.replace(/\n/g, '<br>')}</li>`;
+                }
+                utDeps.forEach(({ name, dep }) => {
+                    depHtml += `<li style="margin-bottom:0.25rem;"><strong>${name}:</strong> ${dep.replace(/\n/g, '<br>')}</li>`;
+                });
+                depHtml += '</ul>';
+            }
+            
+            const visuals = getVisuals(id, mod.name);
+            cardsHtml += `
+                <div style="flex: 1 1 calc(33.333% - 1rem); min-width: 250px; background: white; border-radius: 8px; padding: 1.25rem; box-shadow: var(--shadow-sm); border-left: 4px solid ${visuals.color};">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <div style="background: ${visuals.color}15; color: ${visuals.color}; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">${visuals.icon}</div>
+                        <div style="font-weight: 700; color: var(--text-primary);">${mod.name}</div>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">${depHtml}</div>
+                </div>
+            `;
+        });
+        cardsHtml += '</div>';
+
+        container.innerHTML = `
+            <div class="monthly-slide-header">
+                <div class="monthly-slide-title">${title}</div>
+                <div class="monthly-slide-subtitle">${subtitle}</div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding-right: 0.5rem; display: flex; align-content: flex-start;">
+                ${cardsHtml}
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 4) {
+        let cardsHtml = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; width: 100%; height: 100%; align-content: center;">';
+        if (!_monthlyCommitmentsParsed || Object.keys(_monthlyCommitmentsParsed).length === 0) {
+            cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No commitments data uploaded.</div>`;
+        } else {
+            Object.keys(_monthlyCommitmentsParsed).forEach(modName => {
+                const goals = _monthlyCommitmentsParsed[modName];
+                const visuals = getVisuals(modName.toLowerCase().replace(/\s+/g, ''), modName);
+                
+                const counts = { done: 0, progress: 0, pending: 0, na: 0 };
+                goals.forEach(g => {
+                    const s = (g.status + ' ' + g.remark).toLowerCase();
+                    if (s.includes('done')) counts.done++;
+                    else if (s.includes('progress') || s.includes('started')) counts.progress++;
+                    else if (s.includes('na')) counts.na++;
+                    else counts.pending++; // Defaults to pending
+                });
+                
+                let total = counts.done + counts.progress + counts.pending + counts.na;
+                if (total === 0) total = 1;
+                
+                let donePct = (counts.done / total) * 100;
+                let progPct = (counts.progress / total) * 100;
+                let pendPct = (counts.pending / total) * 100;
+                
+                let c1 = donePct;
+                let c2 = c1 + progPct;
+                let c3 = c2 + pendPct;
+                
+                let gradient = `conic-gradient(
+                    #10b981 0% ${c1}%,
+                    #3b82f6 ${c1}% ${c2}%,
+                    #f59e0b ${c2}% ${c3}%,
+                    #64748b ${c3}% 100%
+                )`;
+                
+                cardsHtml += `
+                    <div style="background: white; border-radius: 12px; padding: 1rem; box-shadow: var(--shadow-sm); border: 1px solid rgba(15,23,42,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%; justify-content: center; margin-bottom: 0.25rem;">
+                            <div style="background: ${visuals.color}15; color: ${visuals.color}; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem;">${visuals.icon}</div>
+                            <div style="font-weight: 800; color: var(--text-primary); font-size: 0.9rem; text-align: center; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${modName}</div>
+                        </div>
+                        
+                        <div style="position: relative; width: 100px; height: 100px; border-radius: 50%; background: ${gradient}; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05); cursor: pointer;" onmouseenter="_showCommitmentsTooltip(event, '${modName.replace(/'/g, "\\'")}')" onmouseleave="_hideCommitmentsTooltip()">
+                            <div style="position: absolute; inset: 18px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <span style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); line-height: 1;">${Math.round(donePct)}%</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; width: 100%; margin-top: 0.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary);">
+                                <div style="width: 8px; height: 8px; border-radius: 2px; background: #10b981;"></div>
+                                Done (${counts.done})
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary);">
+                                <div style="width: 8px; height: 8px; border-radius: 2px; background: #3b82f6;"></div>
+                                In Progress (${counts.progress})
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary);">
+                                <div style="width: 8px; height: 8px; border-radius: 2px; background: #f59e0b;"></div>
+                                Pending (${counts.pending})
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary);">
+                                <div style="width: 8px; height: 8px; border-radius: 2px; background: #64748b;"></div>
+                                N/A (${counts.na})
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+        }
+
+        let dataJson = '';
+        if (_monthlyCommitmentsParsed) {
+            dataJson = JSON.stringify(_monthlyCommitmentsParsed).replace(/"/g, '&quot;');
+        }
+
+        container.innerHTML = `
+            <div class="monthly-slide-header" style="flex-shrink: 0; padding-bottom: 0;">
+                <div class="monthly-slide-title">${title}</div>
+                <div class="monthly-slide-subtitle">${subtitle}</div>
+            </div>
+            <div id="monthly-commitments-data" data-detail="${dataJson}" style="display:none;"></div>
+            <div style="flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0.5rem 0; position: relative;"
+                 id="commitments-grid-container"
+                 onwheel="_onCommitmentsWheel(event)"
+                 onmouseleave="_hideCommitmentsTooltipNow()">
+                ${cardsHtml}
+                <div id="monthly-commitments-tooltip" class="monthly-bar-tooltip" style="display:none; max-width: 320px; z-index: 100; pointer-events: auto; scroll-behavior: smooth;" onmouseenter="_cancelHideCommitmentsTooltip()" onmouseleave="_hideCommitmentsTooltipNow()"></div>
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 5) {
+        let cardsHtml = '';
+        if (!_monthlyThisMonthCommitParsed || Object.keys(_monthlyThisMonthCommitParsed).length === 0) {
+            cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No this month's commitment data uploaded.</div>`;
+        } else {
+            cardsHtml = '<div class="tmc-grid">';
+            Object.keys(_monthlyThisMonthCommitParsed).forEach(modName => {
+                const allTargets = _monthlyThisMonthCommitParsed[modName];
+                const visuals = getVisuals(modName.toLowerCase().replace(/\s+/g, ''), modName);
+                
+                // Only keep targets that have dates
+                const targets = allTargets.filter(t => t.date && t.date.trim() && t.date.trim() !== '-');
+                if (targets.length === 0) return; // skip modules with no dated targets
+                
+                let rowsHtml = '';
+                targets.forEach(t => {
+                    const tLower = t.target.toLowerCase();
+                    let icon = '📋';
+                    if (tLower.includes('requirement')) icon = '📝';
+                    else if (tLower.includes('static') || tLower.includes('screen')) icon = '🎨';
+                    else if (tLower.includes('dynamic') || tLower.includes('development')) icon = '⚡';
+                    else if (tLower.includes('internal') || tLower.includes('review')) icon = '🔍';
+                    else if (tLower.includes('client')) icon = '👤';
+                    else if (tLower.includes('qa') || tLower.includes('quality')) icon = '✅';
+                    else if (tLower.includes('database') || tLower.includes('db')) icon = '🗄️';
+                    else if (tLower.includes('security') || tLower.includes('audit')) icon = '🔒';
+                    else if (tLower.includes('uat') || tLower.includes('testing')) icon = '🧪';
+                    else if (tLower.includes('go live') || tLower.includes('launch') || tLower.includes('deploy')) icon = '🚀';
+                    else if (tLower.includes('approval')) icon = '✍️';
+                    else if (tLower.includes('final')) icon = '🏁';
+                    
+                    rowsHtml += `
+                        <div class="tmc-target-row">
+                            <div class="tmc-target-icon" style="background: ${visuals.color}10; color: ${visuals.color};">${icon}</div>
+                            <div class="tmc-target-content">
+                                <div class="tmc-target-name">${t.target}</div>
+                            </div>
+                            <span class="tmc-target-date-badge tmc-has-date">📅 ${t.date}</span>
+                        </div>
+                    `;
+                });
+                
+                cardsHtml += `
+                    <div class="tmc-module-card" style="--tmc-color: ${visuals.color};">
+                        <div class="tmc-module-header">
+                            <div class="tmc-module-icon" style="background: ${visuals.color}18; color: ${visuals.color}; overflow: hidden;">${visuals.icon}</div>
+                            <div class="tmc-module-name">${modName}</div>
+                            <div class="tmc-module-count" style="background: ${visuals.color}12; color: ${visuals.color};">${targets.length} target${targets.length !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="tmc-targets-list">
+                            ${rowsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+        }
+
+        container.innerHTML = `
+            <div class="monthly-slide-header" style="flex-shrink: 0; padding-bottom: 0;">
+                <div class="monthly-slide-title">${title}</div>
+                <div class="monthly-slide-subtitle">${subtitle}</div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding: 0.5rem 0;">
+                ${cardsHtml}
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 6) {
+        let cardsHtml = '';
+        if (!_monthlyTeamReviewParsed || _monthlyTeamReviewParsed.length === 0) {
+            cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No team review data uploaded.</div>`;
+        } else {
+            cardsHtml = '<div class="team-review-grid">';
+            _monthlyTeamReviewParsed.forEach((dev, idx) => {
+                const colorIdx = idx % PRESET_COLORS.length;
+                const color = PRESET_COLORS[colorIdx];
+                
+                cardsHtml += `
+                    <div class="team-dev-card" style="--dev-color: ${color};">
+                        <div class="team-dev-header">
+                            <div class="team-dev-avatar" style="background: ${color}18; color: ${color};">${dev.developer.substring(0,2).toUpperCase()}</div>
+                            <div class="team-dev-name">${dev.developer}</div>
+                            <div class="team-dev-util" style="background: ${color}12; color: ${color};">Util: ${dev.utilization}</div>
+                        </div>
+                        <div class="team-dev-stats">
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">L1 Review</span>
+                                <span class="team-stat-val ${dev.l1.toLowerCase() === 'done' ? 'stat-good' : ''}">${dev.l1}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">L2 Indv. Review</span>
+                                <span class="team-stat-val">${dev.l2}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">Unit Testing</span>
+                                <span class="team-stat-val">${dev.unit}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">Coordination</span>
+                                <span class="team-stat-val">${dev.coordination}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">Ownership</span>
+                                <span class="team-stat-val">${dev.ownership}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">Accountability</span>
+                                <span class="team-stat-val">${dev.accountability}</span>
+                            </div>
+                            <div class="team-stat-row">
+                                <span class="team-stat-label">Task Filled</span>
+                                <span class="team-stat-val">${dev.taskFilled}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+        }
+
+        container.innerHTML = `
+            <div class="monthly-slide-header" style="flex-shrink: 0; padding-bottom: 0;">
+                <div class="monthly-slide-title">${title}</div>
+                <div class="monthly-slide-subtitle">${subtitle}</div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding: 0.5rem 0; width: 100%;">
+                ${cardsHtml}
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 7) {
+        container.innerHTML = `
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                text-align: center;
+                gap: 1.5rem;
+                animation: monthly-intro-fadein 0.8s ease-out;
+            ">
+                <div style="
+                    width: 90px;
+                    height: 90px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.35);
+                    font-size: 2.5rem;
+                    animation: monthly-intro-fadein 0.6s ease-out;
+                ">🙏</div>
+                <div>
+                    <h1 style="
+                        font-size: 3.5rem;
+                        font-weight: 900;
+                        color: var(--text-primary);
+                        letter-spacing: -0.04em;
+                        margin: 0 0 0.5rem;
+                        line-height: 1;
+                        background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                    ">Thank You</h1>
+                    <p style="
+                        font-size: 1.1rem;
+                        color: var(--text-secondary);
+                        font-weight: 500;
+                        margin: 0;
+                        letter-spacing: 0.02em;
+                    ">For your time and attention</p>
+                </div>
+                <div style="
+                    display: flex;
+                    gap: 0.6rem;
+                    margin-top: 0.5rem;
+                ">
+                    ${Object.keys(_monthlyNewParsed || {}).map(id => {
+                        const visuals = getVisuals(id, (_monthlyNewParsed[id] || {}).name || id);
+                        return `<div style="
+                            width: 10px;
+                            height: 10px;
+                            border-radius: 50%;
+                            background: ${visuals.color};
+                            opacity: 0.7;
+                        "></div>`;
+                    }).join('')}
+                </div>
+                <p style="
+                    font-size: 0.9rem;
+                    color: var(--text-muted);
+                    font-weight: 500;
+                    margin: 0;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                ">Integrated Election Management System &nbsp;·&nbsp; June 2026</p>
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    const s = comp.summary;
+
+    // Build KPI cards
+    let kpiHtml = '<div class="monthly-kpi-strip">';
+    kpiDefs.forEach(def => {
+        const val = s[def.key];
+        const isActive = selectedKpi === def.key;
+        kpiHtml += `
+            <div class="monthly-kpi-card ${isActive ? 'active' : ''}" data-kpi="${def.key}"
+                 style="--kpi-accent: ${def.accent}; cursor: pointer;"
+                 onclick="selectMonthlyKpi('${def.key}')">
+                <div class="monthly-kpi-label">${def.icon} ${def.label}</div>
+                <div class="monthly-kpi-value">${val}</div>
+            </div>
+        `;
+    });
+    kpiHtml += '</div>';
+
+    // Build chart
+    const chartHtml = `<div id="monthly-chart-container">${_buildMonthlyBarChart(comp.modules, selectedKpi)}</div>`;
+
+    container.innerHTML = `
+        <div class="monthly-slide-header">
+            <div class="monthly-slide-title">${title}</div>
+            <div class="monthly-slide-subtitle">${subtitle}</div>
+        </div>
+        ${kpiHtml}
+        ${chartHtml}
+    `;
+
+    _renderMonthlyDots();
+}
+
+function _buildMonthlyBarChart(modules, kpiKey) {
+    let kpiDef = MONTHLY_KPI_DEFS.find(d => d.key === kpiKey);
+    if (!kpiDef) kpiDef = MONTHLY_PENDING_KPI_DEFS.find(d => d.key === kpiKey);
+    if (!kpiDef) kpiDef = MONTHLY_KPI_DEFS[0];
+
+    // Get values per module for the selected KPI
+    let maxVal;
+    if (kpiKey === 'pagesDeveloped') {
+        const allPageValues = [];
+        modules.forEach(m => {
+            allPageValues.push(m.kpis.pagesDevelopedNew || 0);
+            allPageValues.push(m.kpis.pagesDevelopedCompleted || 0);
+        });
+        maxVal = Math.max(...allPageValues, 1);
+    } else if (kpiKey === 'qa') {
+        const allQAValues = [];
+        modules.forEach(m => {
+            allQAValues.push(m.kpis.qa || 0);
+            allQAValues.push(m.kpis.qaBugsIdentified || 0);
+        });
+        maxVal = Math.max(...allQAValues, 1);
+    } else {
+        const values = modules.map(m => m.kpis[kpiKey] || 0);
+        maxVal = Math.max(...values, 1);
+    }
+
+    // SVG dimensions
+    const svgWidth = 900;
+    const svgHeight = 280;
+    const marginTop = 35;
+    const marginBottom = 55;
+    const marginLeft = 45;
+    const marginRight = 20;
+    const chartWidth = svgWidth - marginLeft - marginRight;
+    const chartHeight = svgHeight - marginTop - marginBottom;
+
+    const n = modules.length;
+    if (n === 0) return '';
+
+    const barWidth = Math.min(60, (chartWidth / n) * 0.55);
+    const groupWidth = chartWidth / n;
+
+    // Nice grid steps
+    const gridSteps = 5;
+    const stepVal = Math.ceil(maxVal / gridSteps);
+    const gridMax = stepVal * gridSteps;
+
+    // Grid lines
+    let gridLines = '';
+    for (let i = 0; i <= gridSteps; i++) {
+        const y = marginTop + (chartHeight * (1 - i / gridSteps));
+        const val = stepVal * i;
+        gridLines += `<line x1="${marginLeft}" y1="${y}" x2="${svgWidth - marginRight}" y2="${y}" stroke="rgba(15,23,42,0.06)" stroke-width="1"/>`;
+        gridLines += `<text x="${marginLeft - 8}" y="${y + 4}" fill="rgba(15,23,42,0.4)" font-size="10" font-weight="600" text-anchor="end" font-family="Inter, sans-serif">${val}</text>`;
+    }
+
+    // Bars
+    let bars = '';
+    // Store detail data as JSON in a script tag for tooltip access
+    const detailData = modules.map(m => {
+        let valText;
+        if (kpiKey === 'qa') {
+            valText = `${m.kpis.qa || 0} resolved / ${m.kpis.qaBugsIdentified || 0} identified`;
+        } else if (kpiKey === 'pagesDeveloped') {
+            valText = `${m.kpis.pagesDeveloped || 0} (${m.kpis.pagesDevelopedNew || 0} new / ${m.kpis.pagesDevelopedCompleted || 0} completed)`;
+        } else {
+            valText = m.kpis[kpiKey] || 0;
+        }
+        return {
+            name: m.name,
+            color: m.color,
+            icon: m.icon,
+            value: valText,
+            detail: m.details ? (m.details[kpiKey] || {}) : {}
+        };
+    });
+
+    // Add legend if active KPI is QA or Pages Developed
+    let legend = '';
+    if (kpiKey === 'qa') {
+        legend = `
+            <g transform="translate(${svgWidth - marginRight - 240}, 10)">
+                <rect x="0" y="0" width="10" height="10" rx="2" fill="#ef4444"/>
+                <text x="15" y="9" fill="rgba(15,23,42,0.6)" font-size="10" font-weight="700" font-family="Inter, sans-serif">Bugs Identified</text>
+                <rect x="110" y="0" width="10" height="10" rx="2" fill="#10b981"/>
+                <text x="125" y="9" fill="rgba(15,23,42,0.6)" font-size="10" font-weight="700" font-family="Inter, sans-serif">Bugs Resolved</text>
+            </g>
+        `;
+    } else if (kpiKey === 'pagesDeveloped') {
+        legend = `
+            <g transform="translate(${svgWidth - marginRight - 275}, 10)">
+                <rect x="0" y="0" width="10" height="10" rx="2" fill="#6366f1"/>
+                <text x="15" y="9" fill="rgba(15,23,42,0.6)" font-size="10" font-weight="700" font-family="Inter, sans-serif">New Pages Developed</text>
+                <rect x="135" y="0" width="10" height="10" rx="2" fill="#10b981"/>
+                <text x="150" y="9" fill="rgba(15,23,42,0.6)" font-size="10" font-weight="700" font-family="Inter, sans-serif">Pages Completed</text>
+            </g>
+        `;
+    }
+
+    modules.forEach((mod, i) => {
+        const cx = marginLeft + groupWidth * i + groupWidth / 2;
+        const labelY = marginTop + chartHeight + 18;
+        const nameWords = mod.name.split(' ');
+
+        if (kpiKey === 'pagesDeveloped') {
+            const valNew = mod.kpis.pagesDevelopedNew || 0;
+            const valCompleted = mod.kpis.pagesDevelopedCompleted || 0;
+
+            const barHNew = gridMax > 0 ? (valNew / gridMax) * chartHeight : 0;
+            const barHCompleted = gridMax > 0 ? (valCompleted / gridMax) * chartHeight : 0;
+
+            // Side by side double bars
+            const spacing = 4;
+            const doubleBarWidth = barWidth * 0.43;
+            const barXNew = cx - doubleBarWidth - spacing / 2;
+            const barXCompleted = cx + spacing / 2;
+
+            const barYNew = marginTop + chartHeight - barHNew;
+            const barYCompleted = marginTop + chartHeight - barHCompleted;
+
+            // New Pages Developed bar (Indigo)
+            bars += `<defs><linearGradient id="mbg_new_${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.95"/><stop offset="100%" stop-color="#a5b4fc" stop-opacity="0.65"/></linearGradient></defs>`;
+            bars += `<rect class="monthly-bar-rect" x="${barXNew}" y="${barYNew}" width="${doubleBarWidth}" height="${barHNew}" rx="4" fill="url(#mbg_new_${i})" style="animation-delay: ${i * 0.08}s"/>`;
+
+            // Pages Completed bar (Green)
+            bars += `<defs><linearGradient id="mbg_comp_${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity="0.95"/><stop offset="100%" stop-color="#6ee7b7" stop-opacity="0.65"/></linearGradient></defs>`;
+            bars += `<rect class="monthly-bar-rect" x="${barXCompleted}" y="${barYCompleted}" width="${doubleBarWidth}" height="${barHCompleted}" rx="4" fill="url(#mbg_comp_${i})" style="animation-delay: ${i * 0.08}s"/>`;
+
+            // Value labels
+            if (valNew > 0) {
+                bars += `<text x="${barXNew + doubleBarWidth / 2}" y="${barYNew - 6}" fill="#6366f1" font-size="10" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">${valNew}</text>`;
+            }
+            if (valCompleted > 0) {
+                bars += `<text x="${barXCompleted + doubleBarWidth / 2}" y="${barYCompleted - 6}" fill="#10b981" font-size="10" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">${valCompleted}</text>`;
+            }
+        } else if (kpiKey === 'qa') {
+            const valIdentified = mod.kpis.qaBugsIdentified || 0;
+            const valResolved = mod.kpis.qa || 0;
+
+            const barHIdentified = gridMax > 0 ? (valIdentified / gridMax) * chartHeight : 0;
+            const barHResolved = gridMax > 0 ? (valResolved / gridMax) * chartHeight : 0;
+
+            // Side by side double bars
+            const spacing = 4;
+            const doubleBarWidth = barWidth * 0.43;
+            const barXIdentified = cx - doubleBarWidth - spacing / 2;
+            const barXResolved = cx + spacing / 2;
+
+            const barYIdentified = marginTop + chartHeight - barHIdentified;
+            const barYResolved = marginTop + chartHeight - barHResolved;
+
+            // Identified bar (Red)
+            bars += `<defs><linearGradient id="mbg_id_${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.95"/><stop offset="100%" stop-color="#fca5a5" stop-opacity="0.65"/></linearGradient></defs>`;
+            bars += `<rect class="monthly-bar-rect" x="${barXIdentified}" y="${barYIdentified}" width="${doubleBarWidth}" height="${barHIdentified}" rx="4" fill="url(#mbg_id_${i})" style="animation-delay: ${i * 0.08}s"/>`;
+
+            // Resolved bar (Green)
+            bars += `<defs><linearGradient id="mbg_res_${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity="0.95"/><stop offset="100%" stop-color="#6ee7b7" stop-opacity="0.65"/></linearGradient></defs>`;
+            bars += `<rect class="monthly-bar-rect" x="${barXResolved}" y="${barYResolved}" width="${doubleBarWidth}" height="${barHResolved}" rx="4" fill="url(#mbg_res_${i})" style="animation-delay: ${i * 0.08}s"/>`;
+
+            // Value labels
+            if (valIdentified > 0) {
+                bars += `<text x="${barXIdentified + doubleBarWidth / 2}" y="${barYIdentified - 6}" fill="#ef4444" font-size="10" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">${valIdentified}</text>`;
+            }
+            if (valResolved > 0) {
+                bars += `<text x="${barXResolved + doubleBarWidth / 2}" y="${barYResolved - 6}" fill="#10b981" font-size="10" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">${valResolved}</text>`;
+            }
+        } else {
+            const val = mod.kpis[kpiKey] || 0;
+            const barH = gridMax > 0 ? (val / gridMax) * chartHeight : 0;
+            const barX = cx - barWidth / 2;
+            const barY = marginTop + chartHeight - barH;
+
+            // Bar gradient def
+            bars += `<defs><linearGradient id="mbg${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${mod.color}" stop-opacity="0.9"/><stop offset="100%" stop-color="${mod.color}" stop-opacity="0.6"/></linearGradient></defs>`;
+            bars += `<rect class="monthly-bar-rect" x="${barX}" y="${barY}" width="${barWidth}" height="${barH}" rx="5" fill="url(#mbg${i})" style="animation-delay: ${i * 0.08}s"/>`;
+
+            // Value label
+            if (val > 0) {
+                bars += `<text x="${cx}" y="${barY - 8}" fill="${mod.color}" font-size="12" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">${val}</text>`;
+            }
+        }
+
+        // Invisible hover zone covering full column height
+        const hoverX = marginLeft + groupWidth * i;
+        bars += `<rect class="monthly-bar-hover" x="${hoverX}" y="${marginTop}" width="${groupWidth}" height="${chartHeight + marginBottom - 10}" fill="transparent" data-modindex="${i}" style="cursor: pointer;"/>`;
+
+        // Module name label
+        if (nameWords.length > 1 && mod.name.length > 8) {
+            bars += `<text x="${cx}" y="${labelY}" fill="rgba(15,23,42,0.55)" font-size="10" font-weight="700" text-anchor="middle" font-family="Inter, sans-serif">${nameWords[0]}</text>`;
+            bars += `<text x="${cx}" y="${labelY + 13}" fill="rgba(15,23,42,0.55)" font-size="10" font-weight="700" text-anchor="middle" font-family="Inter, sans-serif">${nameWords.slice(1).join(' ')}</text>`;
+        } else {
+            bars += `<text x="${cx}" y="${labelY}" fill="rgba(15,23,42,0.55)" font-size="10" font-weight="700" text-anchor="middle" font-family="Inter, sans-serif">${mod.name}</text>`;
+        }
+
+        // Module icon
+        bars += `<text x="${cx}" y="${labelY + (nameWords.length > 1 && mod.name.length > 8 ? 28 : 16)}" fill="rgba(15,23,42,0.25)" font-size="14" text-anchor="middle">${mod.icon}</text>`;
+    });
+
+    // Store detail data in a hidden element for JS access
+    const detailJson = JSON.stringify(detailData).replace(/"/g, '&quot;');
+
+    return `
+        <div class="monthly-chart-section" style="position: relative;"
+             onmousemove="_onChartMouseMove(event)"
+             onmouseleave="_hideMonthlyTooltipNow()"
+             onwheel="_onChartWheel(event)">
+            <div class="monthly-chart-title">
+                <span class="icon">${kpiDef.icon}</span>
+                ${kpiDef.label} — Per Module Breakdown
+            </div>
+            <div id="monthly-bar-detail-data" data-detail="${detailJson}" style="display:none;"></div>
+            <div id="monthly-bar-tooltip" class="monthly-bar-tooltip" style="display:none; pointer-events: none;"></div>
+            <svg id="monthly-chart-svg" width="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet" style="display: block; overflow: visible;">
+                ${gridLines}
+                ${legend}
+                <line x1="${marginLeft}" y1="${marginTop}" x2="${marginLeft}" y2="${marginTop + chartHeight}" stroke="rgba(15,23,42,0.08)" stroke-width="1"/>
+                <line x1="${marginLeft}" y1="${marginTop + chartHeight}" x2="${svgWidth - marginRight}" y2="${marginTop + chartHeight}" stroke="rgba(15,23,42,0.08)" stroke-width="1"/>
+                ${bars}
+            </svg>
+        </div>
+    `;
+}
+
+// ── Bar Hover Tooltip ────────────────────────────────────────────────────
+
+let _monthlyTooltipHideTimer = null;
+let _monthlyTooltipCurrentMod = -1;
+
+function _onChartWheel(event) {
+    // If tooltip is visible and a bar is active, scroll the tooltip
+    const tooltip = document.getElementById('monthly-bar-tooltip');
+    if (!tooltip || tooltip.style.display === 'none' || _monthlyTooltipCurrentMod < 0) return;
+    // Check if tooltip actually has overflow to scroll
+    if (tooltip.scrollHeight > tooltip.clientHeight) {
+        event.preventDefault();
+        event.stopPropagation();
+        tooltip.scrollTop += event.deltaY;
+    }
+}
+
+function _onChartMouseMove(event) {
+    // Find which hover rect we're over
+    const target = event.target;
+    const modIndex = target.dataset && target.dataset.modindex !== undefined
+        ? parseInt(target.dataset.modindex, 10)
+        : -1;
+
+    const tooltip = document.getElementById('monthly-bar-tooltip');
+    if (!tooltip) return;
+
+    if (modIndex >= 0) {
+        if (modIndex !== _monthlyTooltipCurrentMod) {
+            _monthlyTooltipCurrentMod = modIndex;
+            _buildTooltipContent(modIndex);
+        }
+        // Always reposition on move
+        _positionTooltip(event, tooltip);
+        tooltip.style.display = 'block';
+    } else {
+        // Mouse is over chart area but not a bar — keep showing last tooltip
+        if (_monthlyTooltipCurrentMod >= 0) {
+            _positionTooltip(event, tooltip);
+        }
+    }
+}
+
+function _positionTooltip(event, tooltip) {
+    const container = tooltip.closest('.monthly-chart-section') || tooltip.parentElement;
+    const rect = container.getBoundingClientRect();
+    let left = event.clientX - rect.left + 18;
+    let top = event.clientY - rect.top - 10;
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+
+    // Prevent right overflow
+    const tRect = tooltip.getBoundingClientRect();
+    if (tRect.right > window.innerWidth - 16) {
+        left = event.clientX - rect.left - tRect.width - 18;
+        tooltip.style.left = left + 'px';
+    }
+    // Prevent bottom overflow
+    if (tRect.bottom > window.innerHeight - 16) {
+        top = event.clientY - rect.top - tRect.height - 10;
+        tooltip.style.top = top + 'px';
+    }
+}
+
+function _hideMonthlyTooltipNow() {
+    const tooltip = document.getElementById('monthly-bar-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+    _monthlyTooltipCurrentMod = -1;
+}
+
+function _buildTooltipContent(modIndex) {
+    const dataEl = document.getElementById('monthly-bar-detail-data');
+    const tooltip = document.getElementById('monthly-bar-tooltip');
+    if (!dataEl || !tooltip) return;
+
+    let data;
+    try {
+        data = JSON.parse(dataEl.dataset.detail.replace(/&quot;/g, '"'));
+    } catch(e) { return; }
+
+    const mod = data[modIndex];
+    if (!mod) return;
+
+    const detail = mod.detail;
+    const utNames = Object.keys(detail);
+
+    let innerHtml = `
+        <div class="mbt-header" style="border-left: 3px solid ${mod.color};">
+            <span class="mbt-module">${mod.name}</span>
+            <span class="mbt-count" style="color: ${mod.color};">${mod.value}</span>
+        </div>
+    `;
+
+    if (utNames.length === 0) {
+        innerHtml += `<div class="mbt-empty">No changes this month</div>`;
+    } else {
+        const itemGroups = {};
+        utNames.forEach(ut => {
+            const items = detail[ut] || [];
+            items.forEach(item => {
+                if (!itemGroups[item]) itemGroups[item] = [];
+                itemGroups[item].push(ut);
+            });
+        });
+
+        const reverseGroup = {};
+        Object.entries(itemGroups).forEach(([item, uts]) => {
+            const uniqueUts = [...new Set(uts)];
+            const utKey = uniqueUts.join(', ');
+            if (!reverseGroup[utKey]) reverseGroup[utKey] = [];
+            reverseGroup[utKey].push(item);
+        });
+
+        Object.entries(reverseGroup).forEach(([combinedUtName, items]) => {
+            innerHtml += `
+                <div class="mbt-ut-group">
+                    <div class="mbt-ut-name">${combinedUtName} <span class="mbt-ut-count">(${items.length})</span></div>
+                    <ul class="mbt-items">
+                        ${items.map(item => `<li>${item.split('|||')[0]}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        });
+    }
+
+    tooltip.innerHTML = innerHtml;
+}
+
+// Legacy: called by old inline handlers if any remain
+function _showMonthlyTooltip(event, modIndex) {
+    _monthlyTooltipCurrentMod = modIndex;
+    _buildTooltipContent(modIndex);
+    const tooltip = document.getElementById('monthly-bar-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'block';
+        _positionTooltip(event, tooltip);
+    }
+}
+
+function _scheduleHideTooltip() { _hideMonthlyTooltipNow(); }
+function _hideMonthlyTooltip() { _hideMonthlyTooltipNow(); }
+
+// ── Commitments Hover Tooltip ────────────────────────────────────────────
+
+let _monthlyCommitmentsTooltipTimer = null;
+let _monthlyCommitmentsCurrentMod = null;
+
+function _onCommitmentsWheel(event) {
+    const tooltip = document.getElementById('monthly-commitments-tooltip');
+    if (!tooltip || tooltip.style.display === 'none' || !_monthlyCommitmentsCurrentMod) return;
+    if (tooltip.scrollHeight > tooltip.clientHeight) {
+        event.preventDefault();
+        event.stopPropagation();
+        tooltip.scrollTop += event.deltaY * 0.8;
+    }
+}
+
+function _hideCommitmentsTooltipNow() {
+    const tooltip = document.getElementById('monthly-commitments-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+    _monthlyCommitmentsCurrentMod = null;
+}
+
+function _cancelHideCommitmentsTooltip() {
+    if (_monthlyCommitmentsTooltipTimer) {
+        clearTimeout(_monthlyCommitmentsTooltipTimer);
+        _monthlyCommitmentsTooltipTimer = null;
+    }
+}
+
+function _showCommitmentsTooltip(event, modName) {
+    if (_monthlyCommitmentsTooltipTimer) {
+        clearTimeout(_monthlyCommitmentsTooltipTimer);
+        _monthlyCommitmentsTooltipTimer = null;
+    }
+
+    const dataEl = document.getElementById('monthly-commitments-data');
+    const tooltip = document.getElementById('monthly-commitments-tooltip');
+    if (!dataEl || !tooltip) return;
+
+    let data;
+    try {
+        data = JSON.parse(dataEl.dataset.detail.replace(/&quot;/g, '"'));
+    } catch(e) { return; }
+
+    const goals = data[modName] || [];
+    const visuals = getVisuals(modName.toLowerCase().replace(/\s+/g, ''), modName);
+
+    // Sticky header + scrollable list — single scroll layer on the tooltip itself
+    let innerHtml = `
+        <div class="mbt-header" style="border-left: 3px solid ${visuals.color}; position: sticky; top: 0; background: #fff; z-index: 1; margin-bottom: 0; padding-bottom: 0.5rem;">
+            <span class="mbt-module">${modName} Commitments</span>
+        </div>
+        <div style="padding: 0.5rem 0.25rem 0.25rem 0.25rem;">
+    `;
+
+    if (goals.length === 0) {
+        innerHtml += `<div class="mbt-empty">No commitments found</div>`;
+    } else {
+        goals.forEach(g => {
+            const statusLower = (g.status + ' ' + g.remark).toLowerCase();
+            let statusColor = '#64748b'; // N/A / Default
+            if (statusLower.includes('done')) statusColor = '#10b981';
+            else if (statusLower.includes('progress') || statusLower.includes('started')) statusColor = '#3b82f6';
+            else if (statusLower.includes('pending') || statusLower.includes('not started') || statusLower.includes('hold')) statusColor = '#f59e0b';
+            
+            innerHtml += `
+                <div style="margin-bottom: 0.85rem; border-left: 2px solid ${statusColor}; padding-left: 0.6rem;">
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.8rem; line-height: 1.35;">${g.goal}</div>
+                    <div style="font-size: 0.65rem; color: ${statusColor}; font-weight: 700; text-transform: uppercase; margin-top: 0.25rem;">${g.status || '-'}</div>
+                    ${g.remark && g.remark !== '-' ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.3;">${g.remark}</div>` : ''}
+                </div>
+            `;
+        });
+    }
+    innerHtml += '</div>';
+
+    tooltip.innerHTML = innerHtml;
+    _monthlyCommitmentsCurrentMod = modName;
+    tooltip.style.display = 'block';
+    tooltip.scrollTop = 0; // Reset scroll on new display
+
+    const container = document.getElementById('commitments-grid-container') || document.body;
+    const rect = container.getBoundingClientRect();
+    let left = event.clientX - rect.left + 20;
+    let top = event.clientY - rect.top - 10;
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+
+    const tRect = tooltip.getBoundingClientRect();
+    if (left + tRect.width > rect.width) {
+        left = event.clientX - rect.left - tRect.width - 20;
+        tooltip.style.left = left + 'px';
+    }
+    if (top + tRect.height > rect.height) {
+        top = rect.height - tRect.height - 10;
+        if (top < 0) top = 10;
+        tooltip.style.top = top + 'px';
+    }
+}
+
+function _scheduleHideCommitmentsTooltip() {
+    _hideCommitmentsTooltipNow();
+}
+
+function _hideCommitmentsTooltip() {
+    _hideCommitmentsTooltipNow();
+}
+
+// ── Monthly Presentation Navigation ─────────────────────────────────────
+
+function _renderMonthlyDots() {
+    const dotsContainer = document.getElementById('monthly-pres-dots');
+    if (!dotsContainer) return;
+    let html = '';
+    for (let i = 0; i < _monthlyTotalSlides; i++) {
+        html += `<span class="pres-dot ${i === _monthlySlideIndex ? 'active' : ''}" onclick="_monthlyGoToSlide(${i})"></span>`;
+    }
+    dotsContainer.innerHTML = html;
+}
+
+function _monthlyGoToSlide(index) {
+    _monthlySlideIndex = index;
+    renderMonthlySlide();
+}
+
+function monthlyPrevSlide() {
+    if (_monthlySlideIndex > 0) {
+        _monthlySlideIndex--;
+        renderMonthlySlide();
+    }
+}
+
+function monthlyNextSlide() {
+    if (_monthlySlideIndex < _monthlyTotalSlides - 1) {
+        _monthlySlideIndex++;
+        renderMonthlySlide();
+    }
+}
+
+// Keyboard navigation for monthly presentation
+document.addEventListener('keydown', (e) => {
+    const monthlyPage = document.getElementById('monthly-pres-page');
+    if (!monthlyPage || monthlyPage.classList.contains('hidden')) return;
+
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+        monthlyNextSlide();
+    } else if (e.key === 'ArrowLeft') {
+        monthlyPrevSlide();
+    } else if (e.key === 'Escape') {
+        exitMonthlyPresentation();
+    }
+});
