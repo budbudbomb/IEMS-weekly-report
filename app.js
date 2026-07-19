@@ -2963,9 +2963,10 @@ function parseExcelToModules(workbook, boldCells = {}) {
         const _remarkMergeGid = _remarkMergeMap[r];
         if (_remarkMergeGid && !ut._remarkMergeGid) ut._remarkMergeGid = _remarkMergeGid;
         // Store raw remark text on UT (no prefix — decided in render)
-        if (!ut.remark) {
-            const remVal = (row[colIdx.remark] || '').toString().trim();
-            if (remVal) ut.remark = remVal;
+        if (!ut.remark && colIdx.remark !== -1) {
+            const remarkData = getDocMergedCellData(worksheet, r, colIdx.remark);
+            const remVal = (remarkData.value || '').toString().trim();
+            if (remVal && remVal !== '-') ut.remark = remVal;
         }
 
         // Reset category if user type changes
