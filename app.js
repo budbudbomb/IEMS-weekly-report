@@ -3285,6 +3285,15 @@ function parseExcelToModules(workbook, boldCells = {}) {
         });
     });
 
+    // Fall back to DEFAULT_MODULES remark for any module with empty remark
+    // This ensures remarks always show in the Quick Report and PDF even when
+    // the Excel sheet doesn't have the Remark column filled in.
+    Object.values(parsedModules).forEach(mod => {
+        if (!mod.remark && DEFAULT_MODULES[mod.id] && DEFAULT_MODULES[mod.id].remark) {
+            mod.remark = DEFAULT_MODULES[mod.id].remark;
+        }
+    });
+
     return parsedModules;
 }
 
@@ -3457,44 +3466,53 @@ function getPhaseDetail(mod, stepName) {
         case 'Internal review': {
             const pts = countInternalReviewPoints(mod);
             // Build status breakdown from UT reviews
-            let intDone = 0, intInProg = 0, intTBS = 0, intRejected = 0;
+            // On Hold and Rejected shown as separate pills but excluded from green check
+            let intDone = 0, intInProg = 0, intTBS = 0, intRejected = 0, intOnHold = 0;
             mod.userTypes.forEach(ut => {
                 if (ut.internalReviews && ut.internalReviews.length > 0) {
                     ut.internalReviews.forEach(rev => {
                         const s = (rev.status || '').toLowerCase().trim();
                         if (s === 'done' || s === 'fixed') intDone++;
+                        else if (s.includes('on hold')) intOnHold++;
                         else if (s === 'rejected') intRejected++;
                         else if (s.includes('progress')) intInProg++;
                         else intTBS++;
                     });
                 }
             });
-            const hasBreakdown = (intDone + intInProg + intTBS + intRejected) > 0;
+            const intBreakdownTotal = intDone + intInProg + intTBS + intRejected + intOnHold;
+            // Use breakdown sum as the total when available so KPI + pills always match
+            const intDisplayTotal = intBreakdownTotal > 0 ? intBreakdownTotal : pts;
+            const hasBreakdown = intBreakdownTotal > 0;
             const breakdownHtml = hasBreakdown
-                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${intDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${intDone} Done</span>` : ''}${intInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${intInProg} In Prog</span>` : ''}${intTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${intTBS} TBS</span>` : ''}${intRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${intRejected} Rejected</span>` : ''}</div>`
+                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${intDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${intDone} Done</span>` : ''}${intInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${intInProg} In Prog</span>` : ''}${intTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${intTBS} TBS</span>` : ''}${intOnHold > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(251,191,36,0.15);color:#b45309;">⊘ ${intOnHold} On Hold</span>` : ''}${intRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${intRejected} Rejected</span>` : ''}</div>`
                 : '';
-            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div>${breakdownHtml}</div>`;
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${intDisplayTotal}</span><span class="qr-review-pts-label">review points</span></div>${breakdownHtml}</div>`;
         }
         case 'Client review': {
             const pts = countClientReviewPoints(mod);
             // Build status breakdown from UT reviews
-            let clDone = 0, clInProg = 0, clTBS = 0, clRejected = 0;
+            // On Hold and Rejected shown as separate pills but excluded from green check
+            let clDone = 0, clInProg = 0, clTBS = 0, clRejected = 0, clOnHold = 0;
             mod.userTypes.forEach(ut => {
                 if (ut.clientReviews && ut.clientReviews.length > 0) {
                     ut.clientReviews.forEach(rev => {
                         const s = (rev.status || '').toLowerCase().trim();
                         if (s === 'done' || s === 'approved') clDone++;
+                        else if (s.includes('on hold')) clOnHold++;
                         else if (s === 'rejected') clRejected++;
                         else if (s.includes('progress')) clInProg++;
                         else clTBS++;
                     });
                 }
             });
-            const hasClBreakdown = (clDone + clInProg + clTBS + clRejected) > 0;
+            const clBreakdownTotal = clDone + clInProg + clTBS + clRejected + clOnHold;
+            const clDisplayTotal = clBreakdownTotal > 0 ? clBreakdownTotal : pts;
+            const hasClBreakdown = clBreakdownTotal > 0;
             const clBreakdownHtml = hasClBreakdown
-                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${clDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${clDone} Done</span>` : ''}${clInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${clInProg} In Prog</span>` : ''}${clTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${clTBS} TBS</span>` : ''}${clRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${clRejected} Rejected</span>` : ''}</div>`
+                ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${clDone > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${clDone} Done</span>` : ''}${clInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${clInProg} In Prog</span>` : ''}${clTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${clTBS} TBS</span>` : ''}${clOnHold > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(251,191,36,0.15);color:#b45309;">⊘ ${clOnHold} On Hold</span>` : ''}${clRejected > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(148,163,184,0.15);color:#64748b;">✗ ${clRejected} Rejected</span>` : ''}</div>`
                 : '';
-            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${pts}</span><span class="qr-review-pts-label">review points</span></div>${clBreakdownHtml}</div>`;
+            return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${clDisplayTotal}</span><span class="qr-review-pts-label">review points</span></div>${clBreakdownHtml}</div>`;
         }
         case 'QA': {
             // Always show the same format: big bug count + "bugs found" + fixed pill
@@ -4236,26 +4254,30 @@ function resolveReviewStatus(statuses) {
     // Apply the 5 rules:
     // 1. pending + done (no in-progress) → In Progress
     // 2. all pending → Pending
-    // 3. all done (or rejected) → Done
+    // 3. all done → Done
     // 4. in-progress + done → In Progress
     // 5. all in-progress → In Progress
-    // Note: 'rejected' counts as 'done' for tracker purposes
+    // Note: 'on hold' and 'rejected' are EXCLUDED from the green check calculation.
+    //       They are shown as separate pills in the Quick Report but do NOT affect the indicator.
     const real = statuses.map(s => s.toLowerCase().trim()).filter(s => s && s !== '-' && s !== '');
     if (real.length === 0) return null; // no data
-    const hasProgress  = real.some(s => s.includes('progress'));
-    const hasPending   = real.some(s => s.includes('pending') || s.includes('not started') || s.includes('to be started'));
-    const hasDone      = real.some(s => s.includes('done') || s.includes('approved') || s.includes('complete') || s.includes('rejected'));
-    const allDoneOrRejected = real.every(s => s.includes('done') || s.includes('approved') || s.includes('complete') || s.includes('rejected'));
-    const hasSkipped   = real.some(s => s.includes('skip'));
+    // Filter out 'on hold' and 'rejected' for tracker status determination
+    const counted = real.filter(s => !s.includes('on hold') && !s.includes('rejected'));
+    if (counted.length === 0) return null; // all items are on hold/rejected — don't affect indicator
+    const hasProgress  = counted.some(s => s.includes('progress'));
+    const hasPending   = counted.some(s => s.includes('pending') || s.includes('not started') || s.includes('to be started'));
+    const hasDone      = counted.some(s => s.includes('done') || s.includes('approved') || s.includes('complete'));
+    const allDone      = counted.every(s => s.includes('done') || s.includes('approved') || s.includes('complete'));
+    const hasSkipped   = counted.some(s => s.includes('skip'));
 
-    if (allDoneOrRejected) return 'Done';                     // all done/rejected → green
+    if (allDone) return 'Done';                               // all counted items done → green
     if (hasProgress) return 'In Progress';                    // rules 4 & 5
     if (hasPending && hasDone) return 'In Progress';          // rule 1
     if (hasPending && !hasDone && !hasProgress) return 'Pending'; // rule 2
     if (hasDone && !hasPending && !hasProgress) return 'Done';    // rule 3
     if (hasSkipped) return 'Skipped';
     // Fallback: return the first real value capitalised
-    return real[0].charAt(0).toUpperCase() + real[0].slice(1);
+    return counted[0].charAt(0).toUpperCase() + counted[0].slice(1);
 }
 
 function getInternalReviewStatus(mod) {
@@ -4392,7 +4414,8 @@ function getStepStatus(mod, stepName) {
                 if (resolved === 'In Progress') return 'in-progress';
                 if (resolved === 'Pending') return 'not-started';
             }
-            // Also check UT internalReviews array for done/rejected counts
+            // Also check UT internalReviews array for done/pending counts
+            // 'on hold' and 'rejected' are excluded from the green check (not counted)
             let intTotal = 0;
             let intDoneCount = 0;
             let intNotStartedCount = 0;
@@ -4400,18 +4423,20 @@ function getStepStatus(mod, stepName) {
                 // If UT has per-review data, use that
                 if (ut.internalReviews && ut.internalReviews.length > 0) {
                     ut.internalReviews.forEach(rev => {
-                        intTotal++;
                         const s = (rev.status || '').toLowerCase().trim();
-                        if (s === 'done' || s === 'fixed' || s === 'rejected') intDoneCount++;
+                        if (s.includes('on hold') || s.includes('rejected')) return; // excluded
+                        intTotal++;
+                        if (s === 'done' || s === 'fixed') intDoneCount++;
                         else if (!s || s === '-') intNotStartedCount++;
                     });
                 } else {
                     ut.categories.forEach(cat => {
                         cat.pages.forEach(p => {
-                            intTotal++;
                             const s = (p.internalReview.status || '').toLowerCase().trim();
                             const r = (p.internalReview.review || '').toLowerCase().trim();
-                            if (s === 'done' || s === 'fixed' || r === 'no issues' || s === 'rejected') {
+                            if (s.includes('on hold') || s.includes('rejected')) return; // excluded
+                            intTotal++;
+                            if (s === 'done' || s === 'fixed' || r === 'no issues') {
                                 intDoneCount++;
                             } else if (s === '-' && (r === '-' || r === '')) {
                                 intNotStartedCount++;
@@ -4434,25 +4459,28 @@ function getStepStatus(mod, stepName) {
                 if (resolved === 'In Progress') return 'in-progress';
                 if (resolved === 'Pending') return 'not-started';
             }
-            // Check UT clientReviews array for done/rejected counts
+            // Check UT clientReviews array for done/pending counts
+            // 'on hold' and 'rejected' are excluded from the green check (not counted)
             let clTotal = 0;
             let clDoneCount = 0;
             let clNotStartedCount = 0;
             mod.userTypes.forEach(ut => {
                 if (ut.clientReviews && ut.clientReviews.length > 0) {
                     ut.clientReviews.forEach(rev => {
-                        clTotal++;
                         const s = (rev.status || '').toLowerCase().trim();
-                        if (s === 'approved' || s === 'done' || s === 'rejected') clDoneCount++;
+                        if (s.includes('on hold') || s.includes('rejected')) return; // excluded
+                        clTotal++;
+                        if (s === 'approved' || s === 'done') clDoneCount++;
                         else if (!s || s === '-') clNotStartedCount++;
                     });
                 } else {
                     ut.categories.forEach(cat => {
                         cat.pages.forEach(p => {
-                            clTotal++;
                             const s = (p.clientReview.status || '').toLowerCase().trim();
                             const r = (p.clientReview.review || '').toLowerCase().trim();
-                            if (s === 'approved' || s === 'done' || s === 'rejected') {
+                            if (s.includes('on hold') || s.includes('rejected')) return; // excluded
+                            clTotal++;
+                            if (s === 'approved' || s === 'done') {
                                 clDoneCount++;
                             } else if (s === '-' && (r === '-' || r === '')) {
                                 clNotStartedCount++;
