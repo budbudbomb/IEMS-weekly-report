@@ -3442,20 +3442,27 @@ function getPhaseDetail(mod, stepName) {
             return 'Not applicable';
         }
         case 'Dynamic Development': {
-            // Count per-status distribution across all pages
-            let devDone2 = 0, devInProg = 0, devTBS = 0;
+            // Strict per-status bucketing — no catch-all:
+            // Done    : exact 'done'
+            // Updated : 'updated' (was done, revised after review — shown separately)
+            // In Prog : 'in progress', 'setup', 'partial'
+            // TBS     : explicit 'tbs', 'to be started', 'not started' / 'not started yet'
+            // Ignored in breakdown pills: '-', blank, 'skipped' (skipped is static-screens only)
+            let devDone2 = 0, devUpdated = 0, devInProg = 0, devTBS = 0;
             mod.userTypes.forEach(ut => {
                 ut.categories.forEach(cat => {
                     cat.pages.forEach(p => {
                         const s = (p.dynamicDev || '').toLowerCase().trim();
                         if (s === 'done') devDone2++;
-                        else if (s.includes('progress') || s.includes('setup') || s.includes('partial')) devInProg++;
-                        else devTBS++;
+                        else if (s === 'updated' || s.startsWith('updated')) devUpdated++;
+                        else if (s.includes('in progress') || s === 'partial' || s.includes('setup')) devInProg++;
+                        else if (s === 'tbs' || s === 'to be started' || s.includes('not started')) devTBS++;
+                        // '-', '', 'skipped' etc. → counted in total pages but not in breakdown pills
                     });
                 });
             });
-            const hasDevBreakdown = (devDone2 + devInProg + devTBS) > 0;
-            const devBreakdownHtml = hasDevBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${devDone2 > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${devDone2} Done</span>` : ''}${devInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${devInProg} In Prog</span>` : ''}${devTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${devTBS} TBS</span>` : ''}</div>` : '';
+            const hasDevBreakdown = (devDone2 + devUpdated + devInProg + devTBS) > 0;
+            const devBreakdownHtml = hasDevBreakdown ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;">${devDone2 > 0 ? `<span class="qr-review-status-pill qr-review-done" style="font-size:0.55rem;padding:1px 5px;">✓ ${devDone2} Done</span>` : ''}${devUpdated > 0 ? `<span class="qr-review-status-pill" style="font-size:0.55rem;padding:1px 5px;background:rgba(99,102,241,0.12);color:#4f46e5;border:1px solid rgba(99,102,241,0.25);">↻ ${devUpdated} Updated</span>` : ''}${devInProg > 0 ? `<span class="qr-review-status-pill qr-review-progress" style="font-size:0.55rem;padding:1px 5px;">◐ ${devInProg} In Prog</span>` : ''}${devTBS > 0 ? `<span class="qr-review-status-pill qr-review-pending" style="font-size:0.55rem;padding:1px 5px;">◷ ${devTBS} TBS</span>` : ''}</div>` : '';
             return `<div class="qr-review-detail"><div class="qr-review-count-row"><span class="qr-review-num">${totalPages}</span><span class="qr-review-pts-label">pages</span></div>${devBreakdownHtml}</div>`;
         }
         case 'Internal review': {
@@ -5078,7 +5085,7 @@ let _monthlyOldParsed = null;
 let _monthlyNewParsed = null;
 let _monthlyComparison = null;
 let _monthlySlideIndex = 0;
-const _monthlyTotalSlides = 8; // Slide 0: Intro, Slide 1: Overview, Slide 2: Pending Work, Slide 3: Dependencies, Slide 4: Last Month Commitments, Slide 5: This Month's Commitment, Slide 6: Team Review, Slide 7: Thank You
+const _monthlyTotalSlides = 9; // Slide 0: Intro, Slide 1: Progress Overview, Slide 2: Work Done, Slide 3: Pending Work, Slide 4: Dependencies, Slide 5: Last Month Commitments, Slide 6: This Month's Commitment, Slide 7: Team Review, Slide 8: Thank You
 let _monthlyPendingData = null;
 let _monthlyPendingSelectedKpi = 'pagesPending';
 let _monthlyCommitmentsParsed = null;
@@ -5697,8 +5704,9 @@ function _isDone(val) {
 
 function _hasNoDevStatus(val) {
     // Returns true when the page had no development work assigned yet
+    // Handles: '', '-', 'not started', 'not started yet', 'not started (...)', etc.
     const v = (val || '').toString().toLowerCase().trim();
-    return v === '' || v === '-' || v === 'not started';
+    return v === '' || v === '-' || v.includes('not started') || v === 'pending';
 }
 
 function _isReviewStatusDone(status) {
@@ -6165,7 +6173,7 @@ function computePendingWork(newModules) {
         newPages.forEach((page, key) => {
             const utName = page._utName;
             const dev = (page.dynamicDev || '').toString().toLowerCase().trim();
-            if (dev === '' || dev === '-' || dev.includes('progress') || dev.includes('pending')) {
+            if (dev === '' || dev === '-' || dev.includes('progress') || dev.includes('pending') || dev.includes('not started')) {
                 if (!pagesPendingSet.has(page.name)) {
                     kpis.pagesPending++;
                     pagesPendingSet.add(page.name);
@@ -6292,10 +6300,10 @@ function generateMonthlyPresentation() {
 }
 
 function selectMonthlyKpi(kpiKey) {
-    if (_monthlySlideIndex >= 3) return;
-    if (_monthlySlideIndex === 1) {
+    if (_monthlySlideIndex >= 4) return;
+    if (_monthlySlideIndex === 2) {
         _monthlySelectedKpi = kpiKey;
-    } else if (_monthlySlideIndex === 2) {
+    } else if (_monthlySlideIndex === 3) {
         _monthlyPendingSelectedKpi = kpiKey;
     }
     // Update KPI card active states
@@ -6305,7 +6313,7 @@ function selectMonthlyKpi(kpiKey) {
     // Re-render only the chart
     const chartContainer = document.getElementById('monthly-chart-container');
     if (chartContainer) {
-        const modules = _monthlySlideIndex === 1 ? _monthlyComparison.modules : _monthlyPendingData.modules;
+        const modules = _monthlySlideIndex === 2 ? _monthlyComparison.modules : _monthlyPendingData.modules;
         chartContainer.innerHTML = _buildMonthlyBarChart(modules, kpiKey);
     }
 }
@@ -6315,6 +6323,7 @@ function renderMonthlySlide() {
     
     let comp, kpiDefs, selectedKpi, title, subtitle;
     
+    // ── Slide 0: Original Title ──────────────────────────────────────────
     if (_monthlySlideIndex === 0) {
         container.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; animation: tmc-card-enter 0.6s ease-out backwards; padding: 2rem;">
@@ -6330,38 +6339,228 @@ function renderMonthlySlide() {
         return;
     }
 
+    // ── Slide 1: Module Pipeline Swimlane Overview ───────────────────────
     if (_monthlySlideIndex === 1) {
+        const trackerSteps = [
+            { key: 'Requirement Gathering',   short: 'Req. Gathering'  },
+            { key: 'Static screens',          short: 'Static Screens'  },
+            { key: 'Dynamic Development',     short: 'Dynamic Dev'     },
+            { key: 'Internal review',         short: 'Internal Review' },
+            { key: 'Client review',           short: 'Client Review'   },
+            { key: 'QA',                      short: 'QA Testing'      },
+            { key: 'Final Review',            short: 'Final Review'    },
+            { key: 'Security implementation', short: 'Security'        },
+            { key: 'UAT',                     short: 'UAT'             },
+            { key: 'Go Live',                 short: 'Go Live'         },
+        ];
+        // Pipeline tracker ALWAYS uses the same hardcoded MODULES data as Quick Report.
+        // The uploaded "this month" file is only used for KPI comparison (slides 2, 3, etc.).
+        // This guarantees slide 1 is always in sync with Quick Report.
+        const n = trackerSteps.length;
+
+        let totalDone = 0, totalInProg = 0, totalAll = 0;
+        const moduleRows = Object.keys(MODULES)
+            .map(id => {
+                const mod = MODULES[id];
+                const displayName = (mod.name || '').trim();
+                if (!displayName) return null;
+                const visuals = getVisuals(id, displayName);
+                const steps = trackerSteps.map(({ key }) => {
+                    const s = getStepStatus(mod, key);
+                    if (s === 'done' || s === 'mixed-done') totalDone++;
+                    else if (s === 'in-progress') totalInProg++;
+                    totalAll++;
+                    return s;
+                });
+                let lastReached = -1;
+                steps.forEach((s, i) => {
+                    if (s === 'done' || s === 'mixed-done' || s === 'in-progress' || s === 'skipped') lastReached = i;
+                });
+                const donePages  = countDonePages(mod);
+                const totalPages = countPages(mod);
+                const pct = totalPages > 0 ? Math.round((donePages / totalPages) * 100) : 0;
+                return { id, name: displayName, color: visuals.color, icon: visuals.icon, steps, lastReached, pct };
+            })
+            .filter(Boolean);  // remove nulls from blank-named modules
+
+        const overallPct = totalAll > 0 ? Math.round((totalDone / totalAll) * 100) : 0;
+        const pending = totalAll - totalDone - totalInProg;
+        const LABEL_W = 152;
+        const NODE = 26;
+
+        // ── Build swimlane rows — each row is flex:1 so they fill height equally
+        let swimlanesHtml = '';
+        moduleRows.forEach(({ id, name, color, icon, steps, lastReached, pct }, rowIdx) => {
+            // Colored progress segments
+            let segsHtml = '';
+            for (let i = 0; i < n - 1; i++) {
+                const leftPct  = (i / (n - 1)) * 100;
+                const widthPct = (1 / (n - 1)) * 100;
+                if (i >= lastReached) continue;
+                let hasPassedInProg = false;
+                for (let k = 0; k <= i; k++) {
+                    if (steps[k] === 'in-progress') { hasPassedInProg = true; break; }
+                }
+                // Universal color: green for completed, amber for in-progress segments
+                const segColor = hasPassedInProg ? '#f59e0b' : '#10b981';
+                segsHtml += `<div style="position:absolute;left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%;top:50%;transform:translateY(-50%);height:3px;background:${segColor};border-radius:2px;"></div>`;
+            }
+
+            // Nodes — ONLY render for done, in-progress, skipped. Skip pending entirely.
+            let nodesHtml = '';
+            steps.forEach((status, i) => {
+                const pctPos = (i / (n - 1)) * 100;
+                if (status === 'done') {
+                    // Fully done — solid green with checkmark
+                    nodesHtml += `<div title="${trackerSteps[i].key}" style="position:absolute;left:${pctPos.toFixed(2)}%;top:50%;transform:translate(-50%,-50%);width:${NODE}px;height:${NODE}px;border-radius:50%;background:#10b981;border:2.5px solid #10b981;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 10px rgba(16,185,129,0.4);cursor:default;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>`;
+                } else if (status === 'mixed-done') {
+                    // Partially done (e.g. Static screens done for some pages) — half green / half grey split circle
+                    const r = NODE / 2;
+                    nodesHtml += `<div title="${trackerSteps[i].key} (Done for some screens)" style="position:absolute;left:${pctPos.toFixed(2)}%;top:50%;transform:translate(-50%,-50%);width:${NODE}px;height:${NODE}px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 10px rgba(16,185,129,0.3);cursor:default;border:2.5px solid #10b981;">
+                        <svg width="${NODE}" height="${NODE}" viewBox="0 0 ${NODE} ${NODE}" style="position:absolute;top:0;left:0;">
+                            <path d="M${r},0 A${r},${r} 0 0,0 ${r},${NODE} Z" fill="#10b981"/>
+                            <path d="M${r},0 A${r},${r} 0 0,1 ${r},${NODE} Z" fill="#e2e8f0"/>
+                        </svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>`;
+                } else if (status === 'in-progress') {
+                    nodesHtml += `<div title="${trackerSteps[i].key}" style="position:absolute;left:${pctPos.toFixed(2)}%;top:50%;transform:translate(-50%,-50%);width:${NODE}px;height:${NODE}px;border-radius:50%;background:#fff;border:2.5px solid #f59e0b;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 10px rgba(245,158,11,0.35);cursor:default;">
+                        <div style="width:9px;height:9px;border-radius:50%;background:#f59e0b;"></div>
+                    </div>`;
+                } else if (status === 'skipped') {
+                    nodesHtml += `<div title="${trackerSteps[i].key} (Skipped)" style="position:absolute;left:${pctPos.toFixed(2)}%;top:50%;transform:translate(-50%,-50%);width:${NODE - 4}px;height:${NODE - 4}px;border-radius:50%;background:#f8fafc;border:1.5px dashed #94a3b8;display:flex;align-items:center;justify-content:center;z-index:2;cursor:default;">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </div>`;
+                }
+                // pending: render nothing — the rail line speaks for itself
+            });
+
+            const rowBg = rowIdx % 2 === 0 ? 'rgba(255,255,255,0.85)' : 'transparent';
+            swimlanesHtml += `
+                <div style="display:flex;align-items:center;flex:1;background:${rowBg};border-radius:8px;padding:0 0.5rem;">
+                    <!-- Module label -->
+                    <div style="display:flex;align-items:center;gap:0.55rem;width:${LABEL_W}px;flex-shrink:0;padding-right:0.75rem;">
+                        <div style="width:30px;height:30px;border-radius:8px;background:${color}15;border:1.5px solid ${color}30;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${icon}</div>
+                        <div style="overflow:hidden;flex:1;">
+                            <div style="font-size:0.8rem;font-weight:700;color:#0f172a;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                            <div style="font-size:0.6rem;font-weight:600;color:${color};margin-top:1px;">${pct}% done</div>
+                        </div>
+                    </div>
+                    <!-- Phase track -->
+                    <div style="flex:1;position:relative;height:${NODE}px;margin-right:0.25rem;">
+                        ${segsHtml}
+                        ${nodesHtml}
+                    </div>
+                </div>
+            `;
+        });
+
+        // ── Shared X-axis ──────────────────────────────────────────────────
+        let axisLabelsHtml = '';
+        trackerSteps.forEach((step, i) => {
+            const pctPos = (i / (n - 1)) * 100;
+            axisLabelsHtml += `
+                <div style="position:absolute;left:${pctPos.toFixed(2)}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;">
+                    <div style="width:1.5px;height:6px;background:#cbd5e1;border-radius:1px;"></div>
+                    <span style="font-size:0.6rem;font-weight:600;color:#64748b;white-space:nowrap;letter-spacing:0.01em;">${step.short}</span>
+                </div>`;
+        });
+
+        // ── Assemble ───────────────────────────────────────────────────────
+        container.innerHTML = `
+            <div style="display:flex;flex-direction:column;height:100%;animation:tmc-card-enter 0.4s ease-out backwards;overflow:hidden;background:#fff;">
+
+                <!-- ── LIGHT HEADER ── -->
+                <div style="flex-shrink:0;padding:1rem 1.5rem 0.9rem;border-bottom:1.5px solid #f1f5f9;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <!-- Left: title -->
+                        <div>
+                            <div style="font-size:0.6rem;font-weight:700;color:#6366f1;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Monthly Review · June 2026</div>
+                            <div style="font-size:1.25rem;font-weight:800;color:#0f172a;letter-spacing:-0.02em;line-height:1.1;">Project Pipeline Overview</div>
+                            <div style="font-size:0.68rem;color:#94a3b8;margin-top:3px;font-weight:500;">${n} phases &nbsp;·&nbsp; ${moduleRows.length} modules</div>
+                        </div>
+                        <!-- Right: stats -->
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <div style="display:flex;align-items:center;gap:0.4rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.35rem 0.7rem;">
+                                <div style="width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;"></div>
+                                <span style="font-size:0.72rem;font-weight:700;color:#059669;">${totalDone} Done</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.4rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.35rem 0.7rem;">
+                                <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+                                <span style="font-size:0.72rem;font-weight:700;color:#d97706;">${totalInProg} In Progress</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.4rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.35rem 0.7rem;">
+                                <div style="width:7px;height:7px;border-radius:50%;background:#cbd5e1;flex-shrink:0;"></div>
+                                <span style="font-size:0.72rem;font-weight:700;color:#64748b;">${pending} Pending</span>
+                            </div>
+                            <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;padding:0.4rem 1rem;text-align:center;box-shadow:0 4px 12px rgba(99,102,241,0.25);">
+                                <div style="font-size:1.4rem;font-weight:900;color:#fff;line-height:1;">${overallPct}<span style="font-size:0.75rem;">%</span></div>
+                                <div style="font-size:0.5rem;font-weight:700;color:rgba(255,255,255,0.75);letter-spacing:0.08em;text-transform:uppercase;">Complete</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Thin progress bar -->
+                    <div style="margin-top:0.75rem;height:3px;border-radius:999px;background:#f1f5f9;overflow:hidden;">
+                        <div style="height:100%;width:${overallPct}%;border-radius:999px;background:linear-gradient(90deg,#10b981 0%,#6366f1 60%,#8b5cf6 100%);transition:width 0.8s ease;"></div>
+                    </div>
+                </div>
+
+                <!-- ── SWIMLANE GRID — fills remaining height ── -->
+                <div style="flex:1;display:flex;flex-direction:column;padding:0.5rem 1.25rem 0;min-height:0;overflow:hidden;">
+                    <!-- Rows: flex column, each row gets flex:1 -->
+                    <div style="flex:1;display:flex;flex-direction:column;gap:0;min-height:0;">
+                        ${swimlanesHtml}
+                    </div>
+                    <!-- X-axis phase labels -->
+                    <div style="flex-shrink:0;display:flex;align-items:flex-start;padding-top:0;margin-bottom:0.35rem;">
+                        <div style="width:${LABEL_W}px;flex-shrink:0;"></div>
+                        <div style="flex:1;position:relative;height:32px;margin-right:0.25rem;border-top:1.5px solid #e2e8f0;">
+                            ${axisLabelsHtml}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        `;
+        _renderMonthlyDots();
+        return;
+    }
+
+    if (_monthlySlideIndex === 2) {
         comp = _monthlyComparison;
         kpiDefs = MONTHLY_KPI_DEFS;
         selectedKpi = _monthlySelectedKpi;
         title = 'Work Done In This Month';
         subtitle = 'Click on any KPI to see per-module breakdown';
-    } else if (_monthlySlideIndex === 2) {
+    } else if (_monthlySlideIndex === 3) {
         comp = _monthlyPendingData;
         kpiDefs = MONTHLY_PENDING_KPI_DEFS;
         selectedKpi = _monthlyPendingSelectedKpi;
         title = 'Pending Work';
         subtitle = 'Click on any KPI to see per-module breakdown';
-    } else if (_monthlySlideIndex === 3) {
+    } else if (_monthlySlideIndex === 4) {
         title = 'Dependencies & Blockers';
         subtitle = 'Current active dependencies across all modules';
-    } else if (_monthlySlideIndex === 4) {
+    } else if (_monthlySlideIndex === 5) {
         title = "Last Month's Commitment Status";
         subtitle = 'Goals, status, and remarks from the previous month';
-    } else if (_monthlySlideIndex === 5) {
+    } else if (_monthlySlideIndex === 6) {
         title = "This Month's Commitment";
         subtitle = 'Targets and estimated completion dates for each module';
-    } else if (_monthlySlideIndex === 6) {
+    } else if (_monthlySlideIndex === 7) {
         title = "Team Review";
         subtitle = 'Developer performance and review metrics';
-    } else if (_monthlySlideIndex === 7) {
+    } else if (_monthlySlideIndex === 8) {
         title = "Thank You";
         subtitle = '';
     }
-    
-    if (!comp && _monthlySlideIndex !== 3 && _monthlySlideIndex !== 4 && _monthlySlideIndex !== 5 && _monthlySlideIndex !== 6 && _monthlySlideIndex !== 7) return;
 
-    if (_monthlySlideIndex === 3) {
+    if (!comp && _monthlySlideIndex !== 4 && _monthlySlideIndex !== 5 && _monthlySlideIndex !== 6 && _monthlySlideIndex !== 7 && _monthlySlideIndex !== 8) return;
+
+
+    if (_monthlySlideIndex === 4) {
         let cardsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; width: 100%;">';
         Object.keys(_monthlyNewParsed || {}).forEach(id => {
             const mod = _monthlyNewParsed[id];
@@ -6422,7 +6621,7 @@ function renderMonthlySlide() {
         return;
     }
 
-    if (_monthlySlideIndex === 4) {
+    if (_monthlySlideIndex === 5) {
         let cardsHtml = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; width: 100%; height: 100%; align-content: center;">';
         if (!_monthlyCommitmentsParsed || Object.keys(_monthlyCommitmentsParsed).length === 0) {
             cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No commitments data uploaded.</div>`;
@@ -6518,7 +6717,7 @@ function renderMonthlySlide() {
         return;
     }
 
-    if (_monthlySlideIndex === 5) {
+    if (_monthlySlideIndex === 6) {
         let cardsHtml = '';
         if (!_monthlyThisMonthCommitParsed || Object.keys(_monthlyThisMonthCommitParsed).length === 0) {
             cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No this month's commitment data uploaded.</div>`;
@@ -6589,7 +6788,7 @@ function renderMonthlySlide() {
         return;
     }
 
-    if (_monthlySlideIndex === 6) {
+    if (_monthlySlideIndex === 7) {
         let cardsHtml = '';
         if (!_monthlyTeamReviewParsed || _monthlyTeamReviewParsed.length === 0) {
             cardsHtml = `<div style="width: 100%; text-align: center; padding: 3rem; color: var(--text-muted); font-style: italic;">No team review data uploaded.</div>`;
@@ -6655,7 +6854,7 @@ function renderMonthlySlide() {
         return;
     }
 
-    if (_monthlySlideIndex === 7) {
+    if (_monthlySlideIndex === 8) {
         container.innerHTML = `
             <div style="
                 display: flex;
