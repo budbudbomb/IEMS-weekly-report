@@ -6462,9 +6462,9 @@ function renderMonthlySlide() {
         trackerSteps.forEach((step, i) => {
             const pctPos = (i / (n - 1)) * 100;
             axisLabelsHtml += `
-                <div style="position:absolute;left:${pctPos.toFixed(2)}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;">
-                    <div style="width:1.5px;height:6px;background:#cbd5e1;border-radius:1px;"></div>
-                    <span style="font-size:0.6rem;font-weight:600;color:#64748b;white-space:nowrap;letter-spacing:0.01em;">${step.short}</span>
+                <div style="position:absolute;left:${pctPos.toFixed(2)}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:5;">
+                    <span style="font-size:0.72rem;font-weight:800;color:#0f172a;white-space:nowrap;letter-spacing:0.02em;background:#f8fafc;padding:3px 8px;border-radius:6px;border:1px solid #cbd5e1;box-shadow:0 1px 2px rgba(0,0,0,0.05);">${step.short}</span>
+                    <div style="width:2px;height:12px;background:#94a3b8;border-radius:1px;"></div>
                 </div>`;
         });
 
@@ -6509,16 +6509,16 @@ function renderMonthlySlide() {
 
                 <!-- ── SWIMLANE GRID — fills remaining height ── -->
                 <div style="flex:1;display:flex;flex-direction:column;padding:0.5rem 1.25rem 0;min-height:0;overflow:hidden;">
+                    <!-- X-axis phase labels (Moved to Top) -->
+                    <div style="flex-shrink:0;display:flex;align-items:flex-end;padding-bottom:0.25rem;margin-top:0.35rem;margin-bottom:0.35rem;">
+                        <div style="width:${LABEL_W}px;flex-shrink:0;"></div>
+                        <div style="flex:1;position:relative;height:44px;margin-right:0.25rem;border-bottom:3px solid #cbd5e1;">
+                            ${axisLabelsHtml}
+                        </div>
+                    </div>
                     <!-- Rows: flex column, each row gets flex:1 -->
                     <div style="flex:1;display:flex;flex-direction:column;gap:0;min-height:0;">
                         ${swimlanesHtml}
-                    </div>
-                    <!-- X-axis phase labels -->
-                    <div style="flex-shrink:0;display:flex;align-items:flex-start;padding-top:0;margin-bottom:0.35rem;">
-                        <div style="width:${LABEL_W}px;flex-shrink:0;"></div>
-                        <div style="flex:1;position:relative;height:32px;margin-right:0.25rem;border-top:1.5px solid #e2e8f0;">
-                            ${axisLabelsHtml}
-                        </div>
                     </div>
                 </div>
 
